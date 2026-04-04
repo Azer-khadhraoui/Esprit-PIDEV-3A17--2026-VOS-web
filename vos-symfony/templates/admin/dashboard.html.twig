@@ -65,6 +65,26 @@
                 <h2>Liste des utilisateurs</h2>
                 <span class="table-badge">{{ users|length }} entrées</span>
             </div>
+
+            <div class="search-filters">
+                <form method="GET" class="filter-form">
+                    <input type="text" name="search" placeholder="Rechercher par nom, prénom ou email..." value="{{ search }}" class="search-input">
+                    
+                    <select name="sortBy" class="sort-select">
+                        <option value="id" {% if sortBy == 'id' %}selected{% endif %}>Trier par ID</option>
+                        <option value="nom" {% if sortBy == 'nom' %}selected{% endif %}>Trier par Nom</option>
+                        <option value="email" {% if sortBy == 'email' %}selected{% endif %}>Trier par Email</option>
+                    </select>
+
+                    <select name="sortOrder" class="sort-select">
+                        <option value="DESC" {% if sortOrder == 'DESC' %}selected{% endif %}>Descendant</option>
+                        <option value="ASC" {% if sortOrder == 'ASC' %}selected{% endif %}>Ascendant</option>
+                    </select>
+
+                    <a href="{{ path('app_admin_dashboard') }}" class="btn-reset">Réinitialiser</a>
+                </form>
+            </div>
+
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -112,4 +132,37 @@
         </section>
     </main>
 </div>
+
+<script>
+    (function () {
+        const form = document.querySelector('.filter-form');
+        if (!form) {
+            return;
+        }
+
+        const searchInput = form.querySelector('input[name="search"]');
+        const sortBySelect = form.querySelector('select[name="sortBy"]');
+        const sortOrderSelect = form.querySelector('select[name="sortOrder"]');
+        let debounceTimer;
+
+        const submitFilters = function () {
+            form.submit();
+        };
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(submitFilters, 350);
+            });
+        }
+
+        if (sortBySelect) {
+            sortBySelect.addEventListener('change', submitFilters);
+        }
+
+        if (sortOrderSelect) {
+            sortOrderSelect.addEventListener('change', submitFilters);
+        }
+    })();
+</script>
 {% endblock %}

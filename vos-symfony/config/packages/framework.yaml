@@ -9,8 +9,10 @@ framework:
     # Remove or comment this section to explicitly disable session support.
     session:
         handler_id: null
-        cookie_secure: auto
+        cookie_secure: false
+        cookie_httponly: true
         cookie_samesite: lax
+        gc_maxlifetime: 3600
 
     #esi: true
     #fragments: true

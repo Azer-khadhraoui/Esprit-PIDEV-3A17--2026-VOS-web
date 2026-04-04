@@ -156,6 +156,10 @@ body {
     box-shadow: 0 16px 34px rgba(11, 32, 72, 0.24);
 }
 
+.edit-page-card {
+    padding: 1.2rem;
+}
+
 .table-head {
     display: flex;
     align-items: center;
@@ -276,9 +280,85 @@ tbody tr:hover {
 .flash-success { background: #e7f7e7; color: #1d6f3d; }
 
 .admin-edit-form {
-    max-width: 560px;
+    max-width: none;
     display: grid;
     gap: 0.8rem;
+}
+
+.edit-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 1.15rem;
+    align-items: start;
+}
+
+.edit-profile-panel {
+    background: linear-gradient(165deg, #f7faff, #edf4ff);
+    border: 1px solid #d4e1f7;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.edit-profile-panel h3 {
+    margin: 0 0 0.7rem;
+    color: #0f3878;
+    font-size: 1rem;
+}
+
+.edit-form-panel {
+    background: linear-gradient(165deg, #fcfdff, #f6f9ff);
+    border: 1px solid #dbe5f6;
+    border-radius: 14px;
+    padding: 1rem;
+    display: grid;
+    gap: 0.8rem;
+}
+
+.edit-form-panel .btn-edit {
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.profile-preview-large {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #d7e6ff;
+    background: #eaf1ff;
+    margin-bottom: 0.65rem;
+    display: grid;
+    place-items: center;
+}
+
+.profile-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-placeholder-large {
+    font-size: 0.8rem;
+    color: #5f7397;
+    text-align: center;
+    padding: 0 0.6rem;
+}
+
+.profile-filename {
+    font-size: 0.82rem;
+    color: #4f5f79;
+    margin: 0.2rem 0 0.55rem;
+    word-break: break-all;
+}
+
+.profile-upload label {
+    display: block;
+    color: #263b63;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
 }
 
 .admin-edit-form input,
@@ -291,6 +371,23 @@ tbody tr:hover {
     font-family: 'Poppins', sans-serif;
 }
 
+.admin-edit-form input[type="file"] {
+    padding: 0.45rem;
+    background: #fff;
+    border-radius: 10px;
+}
+
+.edit-form-panel .form-row,
+.edit-form-panel > div {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.edit-form-panel label {
+    color: #223961;
+    font-weight: 500;
+}
+
 .admin-edit-form input:focus,
 .admin-edit-form select:focus {
     outline: none;
@@ -298,8 +395,89 @@ tbody tr:hover {
     box-shadow: 0 0 0 4px rgba(70, 129, 215, 0.16);
 }
 
+.search-filters {
+    background: #f8fbff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-form {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 77, 164, 0.1);
+}
+
+.sort-select {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 77, 164, 0.1);
+}
+
+.btn-filter,
+.btn-reset {
+    padding: 0.6rem 1.2rem;
+    border: 0;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.btn-filter {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-filter:hover {
+    background: var(--primary-strong);
+}
+
+.btn-reset {
+    background: #e8e8e8;
+    color: var(--text);
+}
+
+.btn-reset:hover {
+    background: #d8d8d8;
+}
+
 @media (max-width: 1080px) {
     .admin-shell { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: 1fr; }
     .topbar { gap: 1rem; flex-wrap: wrap; }
+    .filter-form { flex-direction: column; }
+    .search-input { min-width: 100%; }
+    .edit-layout { grid-template-columns: 1fr; }
 }

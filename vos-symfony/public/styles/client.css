@@ -1,0 +1,291 @@
+:root {
+    --primary: #0e4da4;
+    --primary-dark: #0a3a7e;
+    --bg-light: #f0f5fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #5f6b82;
+    --line: #d6deec;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg-light);
+    color: var(--text);
+}
+
+.client-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.client-header {
+    background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.client-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.client-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.client-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.btn-logout-client {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: 0.2s ease;
+}
+
+.btn-logout-client:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.client-content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.offres-container h2 {
+    margin-top: 0;
+    color: var(--primary);
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-section {
+    background: linear-gradient(145deg, rgba(14, 77, 164, 0.08), rgba(14, 77, 164, 0.04));
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.search-field {
+    flex: 1;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+}
+
+.search-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 77, 164, 0.1);
+}
+
+.btn-search {
+    background: linear-gradient(145deg, var(--primary), #0a3a7e);
+    color: #fff;
+    border: 0;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.btn-search:hover {
+    filter: brightness(1.06);
+}
+
+.filter-types {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 0.6rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: 0.2s ease;
+    color: var(--text);
+}
+
+.filter-btn:hover {
+    border-color: var(--primary);
+}
+
+.filter-btn.active {
+    background: linear-gradient(145deg, var(--primary), #0a3a7e);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.no-offres {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 3rem;
+    text-align: center;
+    color: var(--muted);
+}
+
+.offres-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.offre-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.offre-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(14, 77, 164, 0.15);
+}
+
+.offre-header {
+    background: linear-gradient(145deg, #f0f5fb, #e7edf8);
+    padding: 1rem;
+    border-bottom: 2px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.offre-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--primary);
+    flex: 1;
+}
+
+.offre-type {
+    background: var(--primary);
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.offre-body {
+    padding: 1rem;
+    flex: 1;
+}
+
+.offre-body p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.offre-entreprise,
+.offre-localisation,
+.offre-salaire {
+    color: var(--text);
+}
+
+.offre-entreprise strong,
+.offre-localisation strong,
+.offre-salaire strong {
+    color: var(--primary);
+}
+
+.offre-description {
+    color: var(--muted);
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--line);
+}
+
+.offre-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(240, 245, 251, 0.5);
+}
+
+.offre-footer small {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.btn-candidate {
+    background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    border: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.btn-candidate:hover {
+    filter: brightness(1.06);
+}
+
+@media (max-width: 768px) {
+    .client-header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .offres-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-content {
+        padding: 1rem;
+    }
+}

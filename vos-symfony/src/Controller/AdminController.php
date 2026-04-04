@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\AdminUserType;
-use App\Repository\UserRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\AdminDashboardService;
+use App\Service\AdminUserService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,29 +17,32 @@ use Symfony\Component\Routing\Annotation\Route;
 class AdminController extends AbstractController
 {
     #[Route('/dashboard', name: 'app_admin_dashboard', methods: ['GET'])]
-    public function dashboard(UserRepository $userRepository, SessionInterface $session): Response
+    public function dashboard(AdminDashboardService $dashboardService, SessionInterface $session, Request $request): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
             return $access;
         }
 
-        $users = $userRepository->findBy([], ['id' => 'DESC']);
-        $stats = [
-            'total' => $userRepository->count([]),
-            'clients' => $userRepository->count(['role' => 'CLIENT']),
-            'admins' => $userRepository->count(['role' => 'ADMIN_RH']) + $userRepository->count(['role' => 'ADMIN_TECHNIQUE']),
-        ];
+        $search = (string) $request->query->get('search', '');
+        $sortBy = (string) $request->query->get('sortBy', 'id');
+        $sortOrder = (string) $request->query->get('sortOrder', 'DESC');
+
+        $users = $dashboardService->getUsers($search, $sortBy, $sortOrder);
+        $stats = $dashboardService->getStats();
 
         return $this->render('admin/dashboard.html.twig', [
             'users' => $users,
             'stats' => $stats,
             'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            'search' => $search,
+            'sortBy' => $sortBy,
+            'sortOrder' => $sortOrder,
         ]);
     }
 
     #[Route('/users/{id}/edit', name: 'app_admin_user_edit', methods: ['GET', 'POST'])]
-    public function editUser(User $user, Request $request, EntityManagerInterface $em, SessionInterface $session): Response
+    public function editUser(User $user, Request $request, AdminUserService $adminUserService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -50,9 +53,22 @@ class AdminController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Utilisateur modifié avec succès.');
-            return $this->redirectToRoute('app_admin_dashboard');
+            try {
+                $uploadedImage = $form->get('imageFile')->getData();
+
+                $adminUserService->updateUser(
+                    $user,
+                    (string) $user->getNom(),
+                    (string) $user->getPrenom(),
+                    (string) $user->getEmail(),
+                    (string) $user->getRole(),
+                    $uploadedImage
+                );
+                $this->addFlash('success', 'Utilisateur modifié avec succès.');
+                return $this->redirectToRoute('app_admin_dashboard');
+            } catch (\Throwable $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            }
         }
 
         return $this->render('admin/edit_user.html.twig', [
@@ -63,7 +79,7 @@ class AdminController extends AbstractController
     }
 
     #[Route('/users/{id}/delete', name: 'app_admin_user_delete', methods: ['POST'])]
-    public function deleteUser(User $user, Request $request, EntityManagerInterface $em, SessionInterface $session): Response
+    public function deleteUser(User $user, Request $request, AdminUserService $adminUserService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -75,15 +91,12 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_dashboard');
         }
 
-        if ($session->get('admin_user_id') === $user->getId()) {
-            $this->addFlash('error', 'Vous ne pouvez pas supprimer votre propre compte admin.');
-            return $this->redirectToRoute('app_admin_dashboard');
+        try {
+            $adminUserService->deleteUser($user, (int) $session->get('admin_user_id'));
+            $this->addFlash('success', 'Utilisateur supprimé avec succès.');
+        } catch (\Throwable $exception) {
+            $this->addFlash('error', $exception->getMessage());
         }
-
-        $em->remove($user);
-        $em->flush();
-
-        $this->addFlash('success', 'Utilisateur supprimé avec succès.');
 
         return $this->redirectToRoute('app_admin_dashboard');
     }
