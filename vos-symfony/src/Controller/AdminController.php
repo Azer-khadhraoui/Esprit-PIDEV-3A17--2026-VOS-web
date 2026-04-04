@@ -35,6 +35,7 @@ class AdminController extends AbstractController
             'users' => $users,
             'stats' => $stats,
             'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            'adminUserId' => (int) $session->get('admin_user_id', 0),
             'search' => $search,
             'sortBy' => $sortBy,
             'sortOrder' => $sortOrder,

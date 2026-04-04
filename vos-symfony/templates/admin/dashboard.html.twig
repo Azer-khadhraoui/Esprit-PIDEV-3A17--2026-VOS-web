@@ -116,10 +116,14 @@
                             <td>
                                 <div class="actions">
                                     <a class="btn-edit" href="{{ path('app_admin_user_edit', {id: user.id}) }}">Modifier</a>
-                                    <form method="post" action="{{ path('app_admin_user_delete', {id: user.id}) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
-                                        <button class="btn-delete" type="submit">Supprimer</button>
-                                    </form>
+                                    {% if user.id == adminUserId %}
+                                        <span class="self-protected-chip">Compte courant</span>
+                                    {% else %}
+                                        <form method="post" action="{{ path('app_admin_user_delete', {id: user.id}) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
+                                            <button class="btn-delete" type="submit">Supprimer</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

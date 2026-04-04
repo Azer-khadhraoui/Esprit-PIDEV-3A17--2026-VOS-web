@@ -24,6 +24,73 @@ body {
 .signup-page {
     min-height: 100vh;
     padding: 0 1.2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.signup-page::before,
+.signup-page::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.signup-page::before {
+    width: 560px;
+    height: 560px;
+    right: -180px;
+    bottom: -220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(32, 106, 224, 0.36) 0%, rgba(5, 24, 57, 0.05) 65%, transparent 75%);
+    filter: blur(8px);
+    animation: floatGlow 10s ease-in-out infinite;
+}
+
+.signup-page::after {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 230px;
+    background:
+        radial-gradient(120% 100% at 50% 120%, rgba(45, 124, 255, 0.32) 0%, rgba(8, 22, 45, 0) 60%),
+        repeating-linear-gradient(
+            -22deg,
+            rgba(255, 255, 255, 0.06) 0px,
+            rgba(255, 255, 255, 0.06) 1px,
+            transparent 1px,
+            transparent 14px
+        );
+    opacity: 0.48;
+    animation: lineDrift 12s linear infinite;
+}
+
+.top-nav,
+.signup-layout {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes floatGlow {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.9;
+    }
+    50% {
+        transform: translate3d(-22px, -16px, 0) scale(1.08);
+        opacity: 1;
+    }
+}
+
+@keyframes lineDrift {
+    0% {
+        background-position: 0 0, 0 0;
+    }
+    100% {
+        background-position: 0 0, 220px 0;
+    }
 }
 
 .top-nav {
@@ -263,6 +330,11 @@ body {
 }
 
 @media (max-width: 980px) {
+    .signup-page::after {
+        height: 170px;
+        opacity: 0.38;
+    }
+
     .top-nav {
         height: auto;
         padding: 1.1rem 0;
@@ -299,5 +371,12 @@ body {
 
     .btn-primary {
         font-size: 1.2rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .signup-page::before,
+    .signup-page::after {
+        animation: none;
     }
 }

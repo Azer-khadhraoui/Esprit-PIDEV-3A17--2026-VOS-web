@@ -16,6 +16,7 @@
             <h1>VOS - Offres d'Emploi</h1>
             <div class="client-header-right">
                 <span>Bienvenue {{ userName }}</span>
+                <a class="btn-profile-client" href="{{ path('app_client_profile') }}">Mon profil</a>
                 <form method="post" action="{{ path('app_logout') }}" class="logout-form">
                     <button class="btn-logout-client" type="submit">Déconnexion</button>
                 </form>

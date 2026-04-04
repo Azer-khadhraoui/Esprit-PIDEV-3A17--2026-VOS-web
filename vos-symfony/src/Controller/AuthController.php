@@ -103,6 +103,9 @@ class AuthController extends AbstractController
         $session->remove('admin_user_id');
         $session->remove('admin_user_role');
         $session->remove('admin_user_name');
+        $session->remove('user_id');
+        $session->remove('user_role');
+        $session->remove('user_name');
 
         $this->addFlash('success', 'Déconnexion réussie.');
 
