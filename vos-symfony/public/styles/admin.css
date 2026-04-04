@@ -1,0 +1,305 @@
+:root {
+    --bg-deep: #09142d;
+    --bg-mid: #0f2450;
+    --bg-soft: #e7edf8;
+    --card: rgba(255, 255, 255, 0.92);
+    --text: #111827;
+    --muted: #5f6b82;
+    --primary: #0e4da4;
+    --primary-strong: #0a3a7e;
+    --danger: #b3261e;
+    --line: #d6deec;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background:
+        radial-gradient(circle at 4% 8%, #173e84 0%, transparent 28%),
+        radial-gradient(circle at 96% 88%, #1f3b72 0%, transparent 31%),
+        linear-gradient(140deg, var(--bg-deep), var(--bg-mid));
+    color: var(--text);
+}
+
+.admin-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+}
+
+.sidebar {
+    background: linear-gradient(185deg, rgba(4, 15, 35, 0.9), rgba(9, 28, 63, 0.95));
+    color: #fff;
+    padding: 1.4rem 1rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-brand {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    letter-spacing: 0.4px;
+}
+
+.brand-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5ea3ff, #9fd3ff);
+    box-shadow: 0 0 0 6px rgba(94, 163, 255, 0.16);
+}
+
+.sidebar-nav {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.sidebar-nav a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: 0.18s ease;
+}
+
+.sidebar-nav a.active,
+.sidebar-nav a:hover {
+    background: linear-gradient(145deg, rgba(41, 108, 195, 0.45), rgba(25, 74, 146, 0.25));
+    border-color: rgba(162, 205, 255, 0.36);
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #d8e7ff;
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.content {
+    padding: 1.5rem 1.8rem;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.topbar h1 {
+    margin: 0;
+    font-size: 1.65rem;
+    color: #ffffff;
+    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.topbar p {
+    margin: 0.35rem 0 0;
+    color: #c6d7f8;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+}
+
+.stat-card {
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(242, 247, 255, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 1rem;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 16px 34px rgba(9, 24, 52, 0.24);
+    transform: translateY(0);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+}
+
+.stat-total { border-left: 6px solid #2f71de; }
+.stat-admins { border-left: 6px solid #0e9f6e; }
+.stat-clients { border-left: 6px solid #b7791f; }
+
+.stat-card h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.stat-card p {
+    margin: 0.62rem 0 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0b2d63;
+}
+
+.table-card {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, 0.64);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 16px 34px rgba(11, 32, 72, 0.24);
+}
+
+.table-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.7rem;
+}
+
+.table-card h2 {
+    margin: 0;
+    color: #102d5d;
+}
+
+.table-badge {
+    border-radius: 999px;
+    background: #dfeafe;
+    color: #0b3f8f;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: left;
+    padding: 0.72rem 0.62rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.88rem;
+}
+
+th {
+    color: #5a6883;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+tbody tr:hover {
+    background: rgba(225, 236, 255, 0.45);
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #d4e5ff;
+}
+
+.avatar-empty {
+    display: grid;
+    place-items: center;
+    background: #eff4fd;
+    color: #8ea0be;
+}
+
+.role-chip {
+    display: inline-block;
+    background: #e9f0ff;
+    color: #0d3f8a;
+    border-radius: 999px;
+    padding: 0.2rem 0.62rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-edit,
+.btn-delete,
+.btn-logout {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.48rem 0.82rem;
+    text-decoration: none;
+    font-size: 0.83rem;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: 0.18s ease;
+}
+
+.btn-edit,
+.btn-logout {
+    background: linear-gradient(145deg, var(--primary), var(--primary-strong));
+    color: #fff;
+}
+
+.btn-edit:hover,
+.btn-logout:hover {
+    filter: brightness(1.06);
+}
+
+.btn-delete {
+    background: #fde8e7;
+    color: var(--danger);
+}
+
+.btn-delete:hover {
+    background: #fcd5d2;
+}
+
+.flash {
+    margin: 0.7rem 0;
+    border-radius: 12px;
+    padding: 0.7rem 0.92rem;
+}
+
+.flash-error { background: #ffe4e4; color: #8d1f1f; }
+.flash-success { background: #e7f7e7; color: #1d6f3d; }
+
+.admin-edit-form {
+    max-width: 560px;
+    display: grid;
+    gap: 0.8rem;
+}
+
+.admin-edit-form input,
+.admin-edit-form select {
+    width: 100%;
+    padding: 0.58rem 0.72rem;
+    border: 1px solid #d7dfef;
+    border-radius: 10px;
+    background: #fbfdff;
+    font-family: 'Poppins', sans-serif;
+}
+
+.admin-edit-form input:focus,
+.admin-edit-form select:focus {
+    outline: none;
+    border-color: #9ec0f2;
+    box-shadow: 0 0 0 4px rgba(70, 129, 215, 0.16);
+}
+
+@media (max-width: 1080px) {
+    .admin-shell { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .topbar { gap: 1rem; flex-wrap: wrap; }
+}

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -82,8 +83,48 @@ class AuthController extends AbstractController
     }
 
     #[Route('/signin', name: 'app_signin')]
-    public function signin(Request $request): Response
+    public function signin(
+        Request $request,
+        UserRepository $userRepository,
+        UserPasswordHasherInterface $passwordHasher,
+        SessionInterface $session
+    ): Response
     {
+        if ($request->isMethod('POST')) {
+            $email = (string) $request->request->get('email', '');
+            $password = (string) $request->request->get('password', '');
+
+            $user = $userRepository->findByEmail($email);
+
+            if (!$user || !$passwordHasher->isPasswordValid($user, $password)) {
+                $this->addFlash('error', 'Email ou mot de passe invalide.');
+                return $this->redirectToRoute('app_signin');
+            }
+
+            if (!str_starts_with($user->getRole(), 'ADMIN')) {
+                $this->addFlash('error', 'Accès admin uniquement.');
+                return $this->redirectToRoute('app_signin');
+            }
+
+            $session->set('admin_user_id', $user->getId());
+            $session->set('admin_user_role', $user->getRole());
+            $session->set('admin_user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
+
+            return $this->redirectToRoute('app_admin_dashboard');
+        }
+
         return $this->render('auth/signin.html.twig', []);
+    }
+
+    #[Route('/logout', name: 'app_logout', methods: ['POST'])]
+    public function logout(SessionInterface $session): Response
+    {
+        $session->remove('admin_user_id');
+        $session->remove('admin_user_role');
+        $session->remove('admin_user_name');
+
+        $this->addFlash('success', 'Déconnexion réussie.');
+
+        return $this->redirectToRoute('app_signin');
     }
 }

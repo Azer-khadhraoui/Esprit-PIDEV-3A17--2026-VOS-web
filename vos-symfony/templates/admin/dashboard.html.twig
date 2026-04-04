@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Admin | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-dot"></span>
+            VOS Admin
+        </div>
+        <nav class="sidebar-nav">
+            <a class="active" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a href="#">Gestion Offres</a>
+            <a href="#">Gestion Entretiens</a>
+            <a href="#">Gestion Recrutements</a>
+            <a href="#">Forum</a>
+            <a href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Dashboard Utilisateurs</h1>
+                <p>Bienvenue {{ adminName }}</p>
+            </div>
+            <form method="post" action="{{ path('app_logout') }}">
+                <button class="btn-logout" type="submit">Déconnexion</button>
+            </form>
+        </header>
+
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+
+        <section class="stats-grid">
+            <article class="stat-card stat-total">
+                <h3>Total Users</h3>
+                <p>{{ stats.total }}</p>
+            </article>
+            <article class="stat-card stat-admins">
+                <h3>Admins</h3>
+                <p>{{ stats.admins }}</p>
+            </article>
+            <article class="stat-card stat-clients">
+                <h3>Clients</h3>
+                <p>{{ stats.clients }}</p>
+            </article>
+        </section>
+
+        <section class="table-card">
+            <div class="table-head">
+                <h2>Liste des utilisateurs</h2>
+                <span class="table-badge">{{ users|length }} entrées</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Photo</th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                {% if user.imageProfil %}
+                                    <img class="avatar" src="{{ user.imageProfil }}" alt="photo user">
+                                {% else %}
+                                    <div class="avatar avatar-empty">-</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.nom ?? '-' }}</td>
+                            <td>{{ user.prenom ?? '-' }}</td>
+                            <td>{{ user.email }}</td>
+                            <td><span class="role-chip">{{ user.role }}</span></td>
+                            <td>
+                                <div class="actions">
+                                    <a class="btn-edit" href="{{ path('app_admin_user_edit', {id: user.id}) }}">Modifier</a>
+                                    <form method="post" action="{{ path('app_admin_user_delete', {id: user.id}) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
+                                        <button class="btn-delete" type="submit">Supprimer</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7">Aucun utilisateur trouvé.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

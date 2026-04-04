@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier User | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-dot"></span>
+            VOS Admin
+        </div>
+        <nav class="sidebar-nav">
+            <a class="active" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a href="#">Gestion Offres</a>
+            <a href="#">Gestion Entretiens</a>
+            <a href="#">Gestion Recrutements</a>
+            <a href="#">Forum</a>
+            <a href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Modifier Utilisateur</h1>
+                <p>{{ adminName }}</p>
+            </div>
+            <a class="btn-edit" href="{{ path('app_admin_dashboard') }}">Retour Dashboard</a>
+        </header>
+
+        <section class="table-card">
+            <h2>{{ user.prenom }} {{ user.nom }}</h2>
+            {{ form_start(editForm, {'attr': {'class': 'admin-edit-form'}}) }}
+                {{ form_row(editForm.nom) }}
+                {{ form_row(editForm.prenom) }}
+                {{ form_row(editForm.email) }}
+                {{ form_row(editForm.role) }}
+                <button class="btn-edit" type="submit">Enregistrer</button>
+            {{ form_end(editForm) }}
+        </section>
+    </main>
+</div>
+{% endblock %}
