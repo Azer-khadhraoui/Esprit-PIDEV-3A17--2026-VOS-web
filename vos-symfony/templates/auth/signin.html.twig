@@ -16,10 +16,10 @@
                 <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="logo-img">
             </div>
             <nav>
-                <a href="#">Accueil</a>
+                <a href="{{ path('app_signin') }}">Accueil</a>
                 <a href="#">Opportunités</a>
-                <a href="#">Contact</a>
-                <a href="#">À propos</a>
+                <a href="{{ path('app_contact') }}">Contact</a>
+                <a href="{{ path('app_about') }}">À propos</a>
             </nav>
         </header>
 
@@ -52,7 +52,7 @@
                                 <input type="checkbox" name="remember" id="remember">
                                 Se souvenir de moi
                             </label>
-                            <a href="#">Mot de passe oublié ?</a>
+                            <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
                         </div>
 
                         <button type="submit" class="btn-primary">Connexion</button>

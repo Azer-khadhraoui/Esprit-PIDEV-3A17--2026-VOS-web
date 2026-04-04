@@ -29,7 +29,7 @@ body {
 .top-nav {
     max-width: 1240px;
     margin: 0 auto;
-    height: 92px;
+    height: 108px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -41,7 +41,7 @@ body {
 }
 
 .logo-img {
-    height: 64px;
+    height: 84px;
     width: auto;
     display: inline-block;
 }

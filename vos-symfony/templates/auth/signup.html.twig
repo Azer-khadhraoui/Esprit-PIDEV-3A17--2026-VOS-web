@@ -51,10 +51,10 @@
                 <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="logo-img">
             </div>
             <nav>
-                <a href="#">Accueil</a>
+                <a href="{{ path('app_signup') }}">Accueil</a>
                 <a href="#">Opportunités</a>
-                <a href="#">Contact</a>
-                <a href="#">À propos</a>
+                <a href="{{ path('app_contact') }}">Contact</a>
+                <a href="{{ path('app_about') }}">À propos</a>
             </nav>
         </header>
 

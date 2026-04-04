@@ -108,4 +108,28 @@ class AuthController extends AbstractController
 
         return $this->redirectToRoute('app_signin');
     }
+
+    #[Route('/contact', name: 'app_contact', methods: ['GET'])]
+    public function contact(): Response
+    {
+        return $this->render('static/contact.html.twig');
+    }
+
+    #[Route('/about', name: 'app_about', methods: ['GET'])]
+    public function about(): Response
+    {
+        return $this->render('static/about.html.twig');
+    }
+
+    #[Route('/forgot-password', name: 'app_forgot_password', methods: ['GET', 'POST'])]
+    public function forgotPassword(): Response
+    {
+        return $this->render('auth/forgot_password.html.twig');
+    }
+
+    #[Route('/reset-password', name: 'app_reset_password', methods: ['GET', 'POST'])]
+    public function resetPassword(): Response
+    {
+        return $this->render('auth/reset_password.html.twig');
+    }
 }
