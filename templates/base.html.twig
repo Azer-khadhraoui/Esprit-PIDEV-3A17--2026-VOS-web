@@ -3,280 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VOS - {% block title %}{% endblock %}</title>
+    <title>VOS Admin - {% block title %}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --sidebar-bg: #1a1a2e;
-            --accent: #4361ee;
-            --sidebar-w: 70px;
-        }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; margin: 0; }
 
-        /* SIDEBAR */
+        /* ── SIDEBAR ── */
         .sidebar {
-            position: fixed; left: 0; top: 0; bottom: 0;
-            width: var(--sidebar-w);
-            background: var(--sidebar-bg);
-            display: flex; flex-direction: column; align-items: center;
-            padding: 20px 0; z-index: 100;
+            width: 240px; min-height: 100vh; background: #0f1c2e;
+            display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
         }
-        .sidebar .logo {
-            color: white; font-weight: 900; font-size: 1rem;
-            background: var(--accent); width: 42px; height: 42px;
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
-            margin-bottom: 30px;
+        .sidebar-brand {
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; gap: 10px;
         }
-        .sidebar .nav-icon {
-            width: 42px; height: 42px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            color: #8892b0; margin: 4px 0; text-decoration: none;
-            transition: all 0.2s; font-size: 1rem; position: relative;
+        .sidebar-brand .dot { width: 10px; height: 10px; border-radius: 50%; background: #4cc9f0; flex-shrink:0; }
+        .sidebar-brand span { color: white; font-weight: 700; font-size: 1rem; }
+        .sidebar nav { padding: 16px 0; flex: 1; }
+        .sidebar nav a {
+            display: block; padding: 11px 24px; color: #8892b0;
+            text-decoration: none; font-size: 0.9rem; font-weight: 500;
+            transition: all 0.2s; border-left: 3px solid transparent;
         }
-        .sidebar .nav-icon:hover, .sidebar .nav-icon.active {
-            background: var(--accent); color: white;
-        }
-        .sidebar .nav-icon .tooltip-label {
-            position: absolute; left: 58px; background: #333; color: white;
-            padding: 4px 10px; border-radius: 6px; font-size: 0.78rem;
-            white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s;
-        }
-        .sidebar .nav-icon:hover .tooltip-label { opacity: 1; }
-
-        /* MAIN */
-        .main-content { margin-left: var(--sidebar-w); min-height: 100vh; }
-
-        /* TOP NAV */
-        .top-nav {
-            background: white; padding: 12px 28px;
-            display: flex; align-items: center; gap: 15px;
-            border-bottom: 1px solid #e8ecf0;
-        }
-        .top-nav .search-box { flex: 1; max-width: 380px; }
-        .top-nav .search-box .input-group-text { background: #f5f7fa; border: 1.5px solid #e8ecf0; border-right: 0; }
-        .top-nav .search-box .form-control { background: #f5f7fa; border: 1.5px solid #e8ecf0; border-left: 0; }
-        .avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: var(--accent); display: flex; align-items: center;
-            justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;
+        .sidebar nav a:hover { color: white; background: rgba(255,255,255,0.05); }
+        .sidebar nav a.active {
+            color: white; background: rgba(67,97,238,0.18);
+            border-left-color: #4361ee; font-weight: 600;
         }
 
-        /* TAB NAV */
-        .tab-nav {
-            background: white; padding: 0 28px;
-            border-bottom: 1px solid #e8ecf0; display: flex; gap: 5px;
-        }
-        .tab-nav a {
-            padding: 13px 18px; text-decoration: none; color: #6c757d;
-            font-size: 0.88rem; border-bottom: 2px solid transparent; transition: all 0.2s;
-        }
-        .tab-nav a:hover { color: #333; }
-        .tab-nav a.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+        /* ── MAIN ── */
+        .main { margin-left: 240px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* PAGE */
-        .page-content { padding: 24px 28px; }
-        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
-        .page-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
-        .page-header p { color: #6c757d; margin: 3px 0 0; font-size: 0.88rem; }
-
-        /* CARD & TABLE */
-        .card { border: none; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        .table { margin: 0; }
-        .table th {
-            font-weight: 600; font-size: 0.8rem; color: #8c98a4;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            background: #fafbfc; padding: 13px 16px; border-bottom: 1px solid #f0f2f5;
+        /* ── TOPBAR ── */
+        .topbar {
+            background: #0f1c2e; padding: 14px 32px;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .table td { padding: 13px 16px; vertical-align: middle; font-size: 0.88rem; border-bottom: 1px solid #f8f9fa; }
-        .table tbody tr:last-child td { border-bottom: none; }
-        .table tbody tr:hover { background: #f8f9ff; }
-
-        /* BADGES */
-        .badge-s { padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
-        .b-termine  { background: #d4f5e9; color: #1a7a4a; }
-        .b-planifie { background: #dde8ff; color: #3451b2; }
-        .b-annule   { background: #fde8e8; color: #c0392b; }
-        .b-attente  { background: #fff3cd; color: #856404; }
-        .b-accepte  { background: #d4f5e9; color: #1a7a4a; }
-        .b-refuse   { background: #fde8e8; color: #c0392b; }
-        .b-rh       { background: #e8f4fd; color: #1565c0; }
-        .b-technique{ background: #f3e5f5; color: #6a1b9a; }
-
-        /* ACTION BUTTONS */
-        .btn-act {
-            width: 33px; height: 33px; border-radius: 8px; border: none;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; cursor: pointer; transition: all 0.15s; text-decoration: none;
+        .topbar .brand { color: white; font-weight: 700; font-size: 1rem; }
+        .btn-deconnect {
+            background: #4361ee; color: white; border: none;
+            padding: 8px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+            text-decoration: none;
         }
-        .btn-act:hover { opacity: 0.8; transform: scale(1.08); }
-        .ba-view   { background: #d4f5e9; color: #1a7a4a; }
-        .ba-edit   { background: #dde8ff; color: #3451b2; }
-        .ba-eval   { background: #fff3cd; color: #b88a00; }
-        .ba-delete { background: #fde8e8; color: #c0392b; }
+        .btn-deconnect:hover { background: #3451b2; color: white; }
 
-        /* BUTTONS */
-        .btn-add {
-            background: var(--accent); color: white; border: none;
-            padding: 9px 18px; border-radius: 9px; font-weight: 600;
-            font-size: 0.88rem; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 7px; transition: all 0.2s;
+        /* ── TABS ── */
+        .tab-bar {
+            background: #0f1c2e;
+            padding: 12px 32px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .btn-add:hover { background: #3451b2; color: white; }
-        .btn-refresh {
-            background: white; color: #4361ee; border: 1.5px solid #4361ee;
-            padding: 9px 18px; border-radius: 9px; font-weight: 600;
-            font-size: 0.88rem; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 7px;
+        .tab-container {
+            display: inline-flex;
+            background: #1a2d45;
+            border-radius: 10px;
+            padding: 4px;
+            gap: 2px;
+        }
+        .tab-container a {
+            padding: 8px 20px;
+            text-decoration: none;
+            color: #8892b0;
+            font-size: 0.88rem;
+            font-weight: 500;
+            border-radius: 7px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-container a:hover { color: white; background: rgba(255,255,255,0.07); }
+        .tab-container a.active {
+            background: white;
+            color: #0f1c2e;
+            font-weight: 700;
         }
 
-        /* STATS */
-        .stat-card { background: white; border-radius: 14px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        .stat-label { color: #8c98a4; font-size: 0.82rem; margin-bottom: 6px; }
-        .stat-value { font-size: 2rem; font-weight: 800; color: #1a1a2e; }
-        .stat-sub { color: #adb5bd; font-size: 0.78rem; margin-top: 3px; }
+        /* ── PAGE ── */
+        .page { padding: 28px 32px; }
+        .page h1 { font-size: 2rem; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+        .page .subtitle { color: #6c757d; font-size: 0.88rem; margin-bottom: 24px; }
 
-        /* FORM */
-        .form-wrap { max-width: 720px; }
+        /* ── STAT CARDS ── */
+        .stat-card {
+            background: white; border-radius: 14px; padding: 22px 24px;
+            border-top: 3px solid #e0e6ed; height: 100%;
+        }
+        .stat-card.blue   { border-top-color: #4361ee; }
+        .stat-card.green  { border-top-color: #06d6a0; }
+        .stat-card.orange { border-top-color: #fb8500; }
+        .stat-card.purple { border-top-color: #7209b7; }
+        .stat-card.red    { border-top-color: #f72585; }
+        .stat-card .s-label { color: #8c98a4; font-size: 0.85rem; margin-bottom: 8px; font-weight: 500; }
+        .stat-card .s-value { font-size: 2.2rem; font-weight: 800; color: #1a1a2e; line-height: 1; }
+
+        /* ── TABLE CARD ── */
+        .table-card { background: white; border-radius: 14px; overflow: hidden; margin-top: 24px; }
+        .table-card-header {
+            padding: 20px 24px 16px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .table-card-header h2 { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; margin: 0; }
+        .table-card-header p  { color: #8c98a4; font-size: 0.82rem; margin: 3px 0 0; }
+        .entries-count { color: #4361ee; font-size: 0.88rem; font-weight: 600; }
+
+        /* ── SEARCH ── */
+        .search-row { padding: 12px 24px; background: #fafbfc; border-bottom: 1px solid #f0f2f5; }
+        .search-row .form-control, .search-row .form-select {
+            border: 1.5px solid #e0e6ed; font-size: 0.88rem; border-radius: 8px;
+        }
+        .search-row .input-group-text {
+            background: #f5f7fa; border: 1.5px solid #e0e6ed;
+            border-right: 0; border-radius: 8px 0 0 8px;
+        }
+        .search-row .input-group .form-control { border-left: 0; border-radius: 0 8px 8px 0; }
+
+        /* ── TABLE ── */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 11px 16px; font-size: 0.78rem; font-weight: 700;
+            color: #8c98a4; text-transform: uppercase; letter-spacing: 0.5px;
+            background: #fafbfc; border-bottom: 1px solid #f0f2f5;
+        }
+        thead th a { text-decoration: none; color: inherit; }
+        tbody td { padding: 13px 16px; font-size: 0.88rem; border-bottom: 1px solid #f8f9fa; vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #f8f9ff; }
+
+        /* ── BADGES ── */
+        .badge-s { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; display: inline-block; }
+        .b-termine   { color: #06d6a0; }
+        .b-planifie  { color: #4361ee; }
+        .b-annule    { color: #f72585; }
+        .b-attente   { color: #fb8500; }
+        .b-accepte   { background: #d4f5e9; color: #1a7a4a; }
+        .b-refuse    { background: #fde8e8; color: #c0392b; }
+        .b-rh        { background: #e8f4fd; color: #1565c0; border-radius: 6px; }
+        .b-technique { background: #f3e5f5; color: #6a1b9a; border-radius: 6px; }
+
+        /* ── ACTION BUTTONS ── */
+        .btn-voir      { background: #d4f5e9; color: #1a7a4a; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-decoration: none; display: inline-block; }
+        .btn-modifier  { background: #4361ee; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-decoration: none; display: inline-block; }
+        .btn-modifier:hover { background: #3451b2; color: white; }
+        .btn-supprimer { background: #fde8e8; color: #c0392b; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .btn-ajouter   { background: #4361ee; color: white; border: none; padding: 9px 20px; border-radius: 9px; font-size: 0.88rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; }
+        .btn-ajouter:hover { background: #3451b2; color: white; }
+        .btn-filter    { background: #4361ee; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-reset     { background: #f0f2f5; color: #6c757d; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer; }
+
+        /* ── FLASH ── */
+        .flash-ok  { background: #d4f5e9; color: #1a7a4a; padding: 12px 18px; border-radius: 10px; margin-bottom: 16px; font-size: 0.88rem; }
+        .flash-err { background: #fde8e8; color: #c0392b; padding: 12px 18px; border-radius: 10px; margin-bottom: 16px; font-size: 0.88rem; }
+
+        /* ── FORM ── */
+        .form-wrap { background: white; border-radius: 14px; padding: 28px; max-width: 720px; }
         .form-label { font-weight: 600; font-size: 0.84rem; color: #495057; }
-        .form-control, .form-select {
-            border-radius: 9px; border: 1.5px solid #e0e6ed;
-            padding: 9px 13px; font-size: 0.9rem;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
-        }
+        .form-control, .form-select { border-radius: 9px; border: 1.5px solid #e0e6ed; padding: 9px 13px; font-size: 0.9rem; }
+        .form-control:focus, .form-select:focus { border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
         textarea.form-control { min-height: 100px; }
     </style>
     {% block stylesheets %}{% endblock %}
 </head>
 <body>
 
+<!-- SIDEBAR -->
 <div class="sidebar">
-    <div class="logo">VOS</div>
-    <a href="{{ path('app_entretien_index') }}"
-       class="nav-icon {% if app.request.attributes.get('_route') starts with 'app_entretien' and app.request.attributes.get('_route') != 'app_entretien_stats' %}active{% endif %}"
-       title="Entretiens">
-        <i class="fas fa-briefcase"></i>
-        <span class="tooltip-label">Entretiens</span>
-    </a>
-    <a href="{{ path('app_evaluation_entretien_index') }}"
-       class="nav-icon {% if app.request.attributes.get('_route') starts with 'app_evaluation' %}active{% endif %}"
-       title="Évaluations">
-        <i class="fas fa-star"></i>
-        <span class="tooltip-label">Évaluations</span>
-    </a>
-    <a href="{{ path('app_entretien_stats') }}"
-       class="nav-icon {% if app.request.attributes.get('_route') == 'app_entretien_stats' %}active{% endif %}"
-       title="Statistiques">
-        <i class="fas fa-chart-pie"></i>
-        <span class="tooltip-label">Statistiques</span>
-    </a>
+    <div class="sidebar-brand">
+        <div class="dot"></div>
+        <span>VOS Admin</span>
+    </div>
+    <nav>
+        <a href="#">Gestion Users</a>
+        <a href="#">Gestion Offres</a>
+        <a href="{{ path('app_entretien_index') }}"
+           class="{% if app.request.attributes.get('_route') starts with 'app_entretien' or app.request.attributes.get('_route') starts with 'app_evaluation' %}active{% endif %}">
+            Gestion Entretiens
+        </a>
+        <a href="#">Gestion Recrutements</a>
+        <a href="#">Forum</a>
+        <a href="#">Rapports</a>
+    </nav>
 </div>
 
-<div class="main-content">
-    <div class="top-nav">
-        <div class="search-box">
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-search text-muted" style="font-size:0.8rem"></i></span>
-                <input type="text" id="global-live-search" class="form-control" placeholder="Rechercher...">
-            </div>
-        </div>
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <div class="avatar">A</div>
-            <div>
-                <div style="font-weight:600;font-size:0.88rem;line-height:1.2">Admin</div>
-                <div style="font-size:0.75rem;color:#6c757d">ADMIN_TECHNIQUE</div>
-            </div>
+<!-- MAIN -->
+<div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <div class="brand">VOS Admin</div>
+        <a href="#" class="btn-deconnect">Déconnexion</a>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+        <div class="tab-container">
+            <a href="{{ path('app_entretien_index') }}"
+               class="{% if app.request.attributes.get('_route') starts with 'app_entretien' and app.request.attributes.get('_route') != 'app_entretien_stats' %}active{% endif %}">
+                Gestion des Entretiens
+            </a>
+            <a href="{{ path('app_evaluation_entretien_index') }}"
+               class="{% if app.request.attributes.get('_route') starts with 'app_evaluation' %}active{% endif %}">
+                Gestion des Évaluations
+            </a>
+            <a href="{{ path('app_entretien_stats') }}"
+               class="{% if app.request.attributes.get('_route') == 'app_entretien_stats' %}active{% endif %}">
+                Statistiques
+            </a>
         </div>
     </div>
 
-    <div class="tab-nav">
-        <a href="{{ path('app_entretien_index') }}"
-           class="{% if app.request.attributes.get('_route') starts with 'app_entretien' and app.request.attributes.get('_route') != 'app_entretien_stats' %}active{% endif %}">
-            Gestion des Entretiens
-        </a>
-        <a href="{{ path('app_evaluation_entretien_index') }}"
-           class="{% if app.request.attributes.get('_route') starts with 'app_evaluation' %}active{% endif %}">
-            Gestion des Évaluations
-        </a>
-        <a href="{{ path('app_entretien_stats') }}"
-           class="{% if app.request.attributes.get('_route') == 'app_entretien_stats' %}active{% endif %}">
-            Statistiques des Entretiens
-        </a>
-    </div>
-
-    <div class="page-content">
+    <!-- CONTENT -->
+    <div class="page">
         {% for msg in app.flashes('success') %}
-            <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3">
-                <i class="fas fa-check-circle me-2"></i>{{ msg }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            <div class="flash-ok"><i class="fas fa-check-circle me-2"></i>{{ msg }}</div>
         {% endfor %}
         {% for msg in app.flashes('error') %}
-            <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-3">
-                <i class="fas fa-exclamation-circle me-2"></i>{{ msg }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            <div class="flash-err"><i class="fas fa-exclamation-circle me-2"></i>{{ msg }}</div>
         {% endfor %}
         {% block body %}{% endblock %}
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-(() => {
-    const topSearch = document.getElementById('global-live-search');
-    const filterForm = document.querySelector('form[data-live-search-form="true"]');
-    if (!topSearch || !filterForm) {
-        return;
-    }
-
-    const pageSearch = filterForm.querySelector('input[data-page-search="true"]');
-    const debounceMs = 350;
-    let timer;
-
-    if (pageSearch) {
-        topSearch.value = pageSearch.value || '';
-        topSearch.placeholder = pageSearch.dataset.placeholder || 'Rechercher...';
-    }
-
-    const submitFilters = () => {
-        if (filterForm.requestSubmit) {
-            filterForm.requestSubmit();
-        } else {
-            filterForm.submit();
-        }
-    };
-
-    const scheduleSubmit = () => {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(submitFilters, debounceMs);
-    };
-
-    topSearch.addEventListener('input', () => {
-        if (pageSearch) {
-            pageSearch.value = topSearch.value;
-        }
-        scheduleSubmit();
-    });
-
-    topSearch.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            if (pageSearch) {
-                pageSearch.value = topSearch.value;
-            }
-            window.clearTimeout(timer);
-            submitFilters();
-        }
-    });
-
-    filterForm.querySelectorAll('select').forEach((select) => {
-        select.addEventListener('change', submitFilters);
-    });
-})();
-</script>
 {% block javascripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,97 @@
+{{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'row g-3'}}) }}
+
+<div class="col-md-6">
+    {{ form_label(form.entretien) }}
+    {{ form_widget(form.entretien, {'attr': {'class': 'form-select' ~ (form.entretien.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+    {% if form.entretien.vars.errors|length > 0 %}
+        <div class="invalid-feedback d-block">{{ form.entretien.vars.errors[0].message }}</div>
+    {% endif %}
+</div>
+
+<div class="col-md-3">
+    {{ form_label(form.scoreTest) }}
+    {{ form_widget(form.scoreTest, {'attr': {'class': 'form-control' ~ (form.scoreTest.vars.errors|length > 0 ? ' is-invalid' : ''), 'placeholder': '0 - 100', 'min': '0', 'max': '100'}}) }}
+    {% if form.scoreTest.vars.errors|length > 0 %}
+        <div class="invalid-feedback d-block">{{ form.scoreTest.vars.errors[0].message }}</div>
+    {% endif %}
+</div>
+
+<div class="col-md-3">
+    {{ form_label(form.noteEntretien) }}
+    {{ form_widget(form.noteEntretien, {'attr': {'class': 'form-select' ~ (form.noteEntretien.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+    {% if form.noteEntretien.vars.errors|length > 0 %}
+        <div class="invalid-feedback d-block">{{ form.noteEntretien.vars.errors[0].message }}</div>
+    {% endif %}
+</div>
+
+<div class="col-md-6">
+    {{ form_label(form.decision) }}
+    {{ form_widget(form.decision, {'attr': {'class': 'form-select' ~ (form.decision.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+    {% if form.decision.vars.errors|length > 0 %}
+        <div class="invalid-feedback d-block">{{ form.decision.vars.errors[0].message }}</div>
+    {% endif %}
+</div>
+
+<div class="col-12">
+    {{ form_label(form.commentaire) }}
+    {{ form_widget(form.commentaire, {'attr': {'class': 'form-control' ~ (form.commentaire.vars.errors|length > 0 ? ' is-invalid' : ''), 'rows': '3', 'placeholder': 'Commentaire sur le candidat...'}}) }}
+    {% if form.commentaire.vars.errors|length > 0 %}
+        <div class="invalid-feedback d-block">{{ form.commentaire.vars.errors[0].message }}</div>
+    {% endif %}
+</div>
+
+<div class="col-12">
+    <div style="background:#f8f9ff;border:1.5px solid #e0e6ed;border-radius:12px;padding:20px">
+        <h6 class="mb-3 fw-600" style="font-size:0.88rem;color:#495057">
+            <i class="fas fa-chart-bar me-2 text-primary"></i>Grille de compétences
+        </h6>
+        <div class="row g-3">
+            <div class="col-md-4">
+                {{ form_label(form.competencesTechniques) }}
+                {{ form_widget(form.competencesTechniques, {'attr': {'class': 'form-select' ~ (form.competencesTechniques.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+                {% if form.competencesTechniques.vars.errors|length > 0 %}
+                    <div class="invalid-feedback d-block">{{ form.competencesTechniques.vars.errors[0].message }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {{ form_label(form.competencesComportementales) }}
+                {{ form_widget(form.competencesComportementales, {'attr': {'class': 'form-select' ~ (form.competencesComportementales.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+                {% if form.competencesComportementales.vars.errors|length > 0 %}
+                    <div class="invalid-feedback d-block">{{ form.competencesComportementales.vars.errors[0].message }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {{ form_label(form.communication) }}
+                {{ form_widget(form.communication, {'attr': {'class': 'form-select' ~ (form.communication.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+                {% if form.communication.vars.errors|length > 0 %}
+                    <div class="invalid-feedback d-block">{{ form.communication.vars.errors[0].message }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {{ form_label(form.motivation) }}
+                {{ form_widget(form.motivation, {'attr': {'class': 'form-select' ~ (form.motivation.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+                {% if form.motivation.vars.errors|length > 0 %}
+                    <div class="invalid-feedback d-block">{{ form.motivation.vars.errors[0].message }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {{ form_label(form.experience) }}
+                {{ form_widget(form.experience, {'attr': {'class': 'form-select' ~ (form.experience.vars.errors|length > 0 ? ' is-invalid' : '')}}) }}
+                {% if form.experience.vars.errors|length > 0 %}
+                    <div class="invalid-feedback d-block">{{ form.experience.vars.errors[0].message }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-12 d-flex gap-2 mt-2">
+    <button type="submit" class="btn-ajouter">
+        <i class="fas fa-save"></i> Enregistrer
+    </button>
+    <a href="{{ path('app_evaluation_entretien_index') }}" class="btn btn-light rounded-3">
+        <i class="fas fa-arrow-left me-1"></i> Annuler
+    </a>
+</div>
+
+{{ form_end(form) }}

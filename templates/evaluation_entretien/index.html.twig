@@ -2,23 +2,63 @@
 {% block title %}Gestion des Évaluations{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-star me-2" style="color:#4361ee"></i>Gestion des Évaluations</h1>
-        <p>Gérez vos évaluations d'entretien</p>
+
+<h1>Dashboard Évaluations</h1>
+<p class="subtitle">Vue d'ensemble des évaluations d'entretien</p>
+
+{# ── STAT CARDS ── #}
+<div class="row g-3 mb-2">
+    <div class="col-md-3 col-6">
+        <div class="stat-card blue">
+            <div class="s-label">Total Évaluations</div>
+            <div class="s-value">{{ evaluation_entretiens|length }}</div>
+        </div>
     </div>
-    <a href="{{ path('app_evaluation_entretien_new') }}" class="btn-add">
-        <i class="fas fa-plus"></i> Ajouter Évaluation
-    </a>
+    <div class="col-md-3 col-6">
+        <div class="stat-card green">
+            <div class="s-label">Acceptés</div>
+            <div class="s-value">{{ evaluation_entretiens|filter(e => 'accept' in e.decision|lower)|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card red">
+            <div class="s-label">Refusés</div>
+            <div class="s-value">{{ evaluation_entretiens|filter(e => 'refus' in e.decision|lower)|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card orange">
+            <div class="s-label">En Attente</div>
+            <div class="s-value">{{ evaluation_entretiens|filter(e => 'attente' in e.decision|lower)|length }}</div>
+        </div>
+    </div>
 </div>
 
-{# Filtres (la recherche est pilotée par la barre du haut) #}
-<form method="get" action="{{ path('app_evaluation_entretien_index') }}" class="mb-3" data-live-search-form="true">
-    <input type="hidden" name="search" value="{{ search }}" data-page-search="true" data-placeholder="Rechercher commentaire, décision...">
-    <div class="card">
-        <div class="card-body p-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-2">
+{# ── TABLE CARD ── #}
+<div class="table-card">
+    <div class="table-card-header">
+        <div>
+            <h2>Liste des évaluations</h2>
+            <p>Vue d'ensemble des évaluations et scores</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="entries-count">{{ evaluation_entretiens|length }} entrées</span>
+            <a href="{{ path('app_evaluation_entretien_new') }}" class="btn-ajouter">
+                <i class="fas fa-plus"></i> Ajouter
+            </a>
+        </div>
+    </div>
+
+    <div class="search-row">
+        <form method="get" action="{{ path('app_evaluation_entretien_index') }}">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search text-muted" style="font-size:0.8rem"></i></span>
+                        <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Rechercher...">
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <select name="decision" class="form-select">
                         <option value="">Toutes les décisions</option>
                         <option value="Accepté"    {% if decision == 'Accepté' %}selected{% endif %}>Accepté</option>
@@ -26,131 +66,104 @@
                         <option value="En attente" {% if decision == 'En attente' %}selected{% endif %}>En attente</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="sortBy" class="form-select">
-                        <option value="ev.scoreTest"     {% if sortBy == 'ev.scoreTest' %}selected{% endif %}>Trier par score</option>
-                        <option value="ev.noteEntretien" {% if sortBy == 'ev.noteEntretien' %}selected{% endif %}>Trier par note</option>
-                        <option value="ev.decision"      {% if sortBy == 'ev.decision' %}selected{% endif %}>Trier par décision</option>
+                        <option value="ev.scoreTest"     {% if sortBy == 'ev.scoreTest' %}selected{% endif %}>Par score</option>
+                        <option value="ev.noteEntretien" {% if sortBy == 'ev.noteEntretien' %}selected{% endif %}>Par note</option>
+                        <option value="ev.decision"      {% if sortBy == 'ev.decision' %}selected{% endif %}>Par décision</option>
                     </select>
                 </div>
                 <div class="col-md-1">
                     <select name="sortDir" class="form-select">
-                        <option value="DESC" {% if sortDir == 'DESC' %}selected{% endif %}>↓ Desc</option>
-                        <option value="ASC"  {% if sortDir == 'ASC' %}selected{% endif %}>↑ Asc</option>
+                        <option value="DESC" {% if sortDir == 'DESC' %}selected{% endif %}>↓</option>
+                        <option value="ASC"  {% if sortDir == 'ASC' %}selected{% endif %}>↑</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex gap-1">
-                    <button type="submit" class="btn-add px-3" title="Filtrer">
-                        <i class="fas fa-filter"></i> Filtrer
-                    </button>
-                    <a href="{{ path('app_evaluation_entretien_index') }}" class="btn btn-light rounded-3 px-3" title="Réinitialiser">
-                        <i class="fas fa-times text-muted"></i>
-                    </a>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Filtrer</button>
+                    <a href="{{ path('app_evaluation_entretien_index') }}" class="btn-reset"><i class="fas fa-times"></i></a>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
-</form>
 
-{% if search or decision %}
-<div class="mb-2" style="font-size:0.85rem;color:#6c757d">
-    <i class="fas fa-filter me-1"></i>
-    <strong>{{ evaluation_entretiens|length }}</strong> résultat(s)
-    {% if search %} pour "<strong>{{ search }}</strong>"{% endif %}
-    {% if decision %} · Décision: <strong>{{ decision }}</strong>{% endif %}
-</div>
-{% endif %}
-
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>
-                        <a href="{{ path('app_evaluation_entretien_index', {search: search, decision: decision, sortBy: 'ev.scoreTest', sortDir: sortBy == 'ev.scoreTest' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Score {% if sortBy == 'ev.scoreTest' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>
-                        <a href="{{ path('app_evaluation_entretien_index', {search: search, decision: decision, sortBy: 'ev.noteEntretien', sortDir: sortBy == 'ev.noteEntretien' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Note {% if sortBy == 'ev.noteEntretien' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>Commentaire</th>
-                    <th>
-                        <a href="{{ path('app_evaluation_entretien_index', {search: search, decision: decision, sortBy: 'ev.decision', sortDir: sortBy == 'ev.decision' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Décision {% if sortBy == 'ev.decision' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>Entretien</th>
-                    <th>Compétences</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for eval in evaluation_entretiens %}
-                <tr>
-                    <td><strong style="color:#4361ee">#{{ eval.id }}</strong></td>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <div style="width:60px;height:6px;background:#f0f2f5;border-radius:3px;overflow:hidden">
-                                <div style="width:{{ eval.scoreTest ?? 0 }}%;height:100%;background:{% if (eval.scoreTest ?? 0) >= 75 %}#06d6a0{% elseif (eval.scoreTest ?? 0) >= 50 %}#fb8500{% else %}#f72585{% endif %};border-radius:3px"></div>
-                            </div>
-                            <span class="fw-600">{{ eval.scoreTest ?? '-' }}</span>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>
+                    <a href="{{ path('app_evaluation_entretien_index', {search:search,decision:decision,sortBy:'ev.scoreTest',sortDir:sortBy=='ev.scoreTest' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Score {% if sortBy=='ev.scoreTest' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ path('app_evaluation_entretien_index', {search:search,decision:decision,sortBy:'ev.noteEntretien',sortDir:sortBy=='ev.noteEntretien' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Note {% if sortBy=='ev.noteEntretien' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>Commentaire</th>
+                <th>
+                    <a href="{{ path('app_evaluation_entretien_index', {search:search,decision:decision,sortBy:'ev.decision',sortDir:sortBy=='ev.decision' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Décision {% if sortBy=='ev.decision' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>ID Entretien</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for eval in evaluation_entretiens %}
+            <tr>
+                <td><strong>{{ eval.id }}</strong></td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div style="width:55px;height:6px;background:#f0f2f5;border-radius:3px;overflow:hidden">
+                            <div style="width:{{ eval.scoreTest ?? 0 }}%;height:100%;background:{% if (eval.scoreTest ?? 0) >= 75 %}#06d6a0{% elseif (eval.scoreTest ?? 0) >= 50 %}#fb8500{% else %}#f72585{% endif %};border-radius:3px"></div>
                         </div>
-                    </td>
-                    <td>
-                        {% for i in 1..5 %}
-                            <i class="fas fa-star" style="font-size:0.7rem;color:{% if i <= (eval.noteEntretien ?? 0) %}#fb8500{% else %}#dee2e6{% endif %}"></i>
-                        {% endfor %}
-                        <span class="ms-1 text-muted" style="font-size:0.8rem">{{ eval.noteEntretien ?? '-' }}/5</span>
-                    </td>
-                    <td style="max-width:200px">
-                        <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-                            {{ eval.commentaire ?? '-' }}
-                        </span>
-                    </td>
-                    <td>
-                        {% set d = eval.decision|lower %}
-                        <span class="badge-s {% if 'accept' in d %}b-accepte{% elseif 'refus' in d %}b-refuse{% else %}b-attente{% endif %}">
-                            {{ eval.decision ?? '-' }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if eval.entretien %}
-                            <a href="{{ path('app_entretien_show', {'id': eval.entretien.id}) }}" style="text-decoration:none;color:#4361ee;font-weight:600">
-                                #{{ eval.entretien.id }}
-                            </a>
-                        {% else %}-{% endif %}
-                    </td>
-                    <td style="font-size:0.75rem;color:#6c757d">
-                        T:{{ eval.competencesTechniques ?? '-' }}
-                        C:{{ eval.communication ?? '-' }}
-                        M:{{ eval.motivation ?? '-' }}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a href="{{ path('app_evaluation_entretien_show', {'id': eval.id}) }}" class="btn-act ba-view" title="Voir"><i class="fas fa-eye"></i></a>
-                            <a href="{{ path('app_evaluation_entretien_edit', {'id': eval.id}) }}" class="btn-act ba-edit" title="Modifier"><i class="fas fa-pen"></i></a>
-                            <form method="post" action="{{ path('app_evaluation_entretien_delete', {'id': eval.id}) }}"
-                                  style="display:inline" onsubmit="return confirm('Supprimer cette évaluation ?')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ eval.id) }}">
-                                <button class="btn-act ba-delete" title="Supprimer"><i class="fas fa-times"></i></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="8" class="text-center text-muted py-5">
-                        <i class="fas fa-star fa-2x mb-2 d-block" style="color:#dee2e6"></i>
-                        Aucun résultat trouvé
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <strong>{{ eval.scoreTest ?? '-' }}</strong>
+                    </div>
+                </td>
+                <td>
+                    {% for i in 1..5 %}
+                        <i class="fas fa-star" style="font-size:0.7rem;color:{% if i <= (eval.noteEntretien ?? 0) %}#fb8500{% else %}#dee2e6{% endif %}"></i>
+                    {% endfor %}
+                    <span class="text-muted ms-1" style="font-size:0.8rem">{{ eval.noteEntretien ?? '-' }}/5</span>
+                </td>
+                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ eval.commentaire ?? '-' }}</td>
+                <td>
+                    {% set d = eval.decision|lower %}
+                    <span class="badge-s {% if 'accept' in d %}b-accepte{% elseif 'refus' in d %}b-refuse{% else %}b-attente{% endif %}">
+                        {{ eval.decision ?? '-' }}
+                    </span>
+                </td>
+                <td>
+                    {% if eval.entretien %}
+                        <a href="{{ path('app_entretien_show', {'id': eval.entretien.id}) }}" style="color:#4361ee;font-weight:700;text-decoration:none">
+                            {{ eval.entretien.id }}
+                        </a>
+                    {% else %}-{% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{{ path('app_evaluation_entretien_show', {'id': eval.id}) }}" class="btn-voir">Voir</a>
+                        <a href="{{ path('app_evaluation_entretien_edit', {'id': eval.id}) }}" class="btn-modifier">Modifier</a>
+                        <form method="post" action="{{ path('app_evaluation_entretien_delete', {'id': eval.id}) }}"
+                              style="display:inline" onsubmit="return confirm('Supprimer ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ eval.id) }}">
+                            <button class="btn-supprimer">Supprimer</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-5">
+                    <i class="fas fa-star fa-2x mb-2 d-block" style="color:#dee2e6"></i>
+                    Aucune évaluation trouvée
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

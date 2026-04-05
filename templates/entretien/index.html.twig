@@ -2,22 +2,64 @@
 {% block title %}Gestion des Entretiens{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-briefcase me-2" style="color:#4361ee"></i>Gestion des Entretiens</h1>
-        <p>Gérez vos entretiens</p>
+
+{# ── HEADER ── #}
+<h1>Dashboard Entretiens</h1>
+<p class="subtitle">Bienvenue — Gestion des entretiens et évaluations</p>
+
+{# ── STAT CARDS ── #}
+<div class="row g-3 mb-2">
+    <div class="col-md-3 col-6">
+        <div class="stat-card blue">
+            <div class="s-label">Total Entretiens</div>
+            <div class="s-value">{{ entretiens|length }}</div>
+        </div>
     </div>
-    <a href="{{ path('app_entretien_new') }}" class="btn-add">
-        <i class="fas fa-plus"></i> Ajouter Entretien
-    </a>
+    <div class="col-md-3 col-6">
+        <div class="stat-card green">
+            <div class="s-label">Entretiens Terminés</div>
+            <div class="s-value">{{ entretiens|filter(e => 'termin' in e.statutEntretien|lower)|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card orange">
+            <div class="s-label">Entretiens Planifiés</div>
+            <div class="s-value">{{ entretiens|filter(e => 'planifi' in e.statutEntretien|lower)|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card purple">
+            <div class="s-label">Type RH</div>
+            <div class="s-value">{{ entretiens|filter(e => e.typeEntretien == 'RH')|length }}</div>
+        </div>
+    </div>
 </div>
 
-{# Filtres (la recherche est pilotée par la barre du haut) #}
-<form method="get" action="{{ path('app_entretien_index') }}" class="mb-3" data-live-search-form="true">
-    <input type="hidden" name="search" value="{{ search }}" data-page-search="true" data-placeholder="Rechercher lieu, type, statut...">
-    <div class="card">
-        <div class="card-body p-3">
-            <div class="row g-2 align-items-end">
+{# ── TABLE CARD ── #}
+<div class="table-card">
+    <div class="table-card-header">
+        <div>
+            <h2>Liste des entretiens</h2>
+            <p>Vue d'ensemble de tous les entretiens planifiés</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="entries-count">{{ entretiens|length }} entrées</span>
+            <a href="{{ path('app_entretien_new') }}" class="btn-ajouter">
+                <i class="fas fa-plus"></i> Ajouter
+            </a>
+        </div>
+    </div>
+
+    {# SEARCH ROW #}
+    <div class="search-row">
+        <form method="get" action="{{ path('app_entretien_index') }}">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search text-muted" style="font-size:0.8rem"></i></span>
+                        <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Rechercher...">
+                    </div>
+                </div>
                 <div class="col-md-2">
                     <select name="type" class="form-select">
                         <option value="">Tous les types</option>
@@ -36,113 +78,104 @@
                 </div>
                 <div class="col-md-2">
                     <select name="sortBy" class="form-select">
-                        <option value="e.dateEntretien"   {% if sortBy == 'e.dateEntretien' %}selected{% endif %}>Trier par date</option>
-                        <option value="e.typeEntretien"   {% if sortBy == 'e.typeEntretien' %}selected{% endif %}>Trier par type</option>
-                        <option value="e.statutEntretien" {% if sortBy == 'e.statutEntretien' %}selected{% endif %}>Trier par statut</option>
-                        <option value="e.lieu"            {% if sortBy == 'e.lieu' %}selected{% endif %}>Trier par lieu</option>
+                        <option value="e.dateEntretien"   {% if sortBy == 'e.dateEntretien' %}selected{% endif %}>Par date</option>
+                        <option value="e.typeEntretien"   {% if sortBy == 'e.typeEntretien' %}selected{% endif %}>Par type</option>
+                        <option value="e.statutEntretien" {% if sortBy == 'e.statutEntretien' %}selected{% endif %}>Par statut</option>
+                        <option value="e.lieu"            {% if sortBy == 'e.lieu' %}selected{% endif %}>Par lieu</option>
                     </select>
                 </div>
                 <div class="col-md-1">
                     <select name="sortDir" class="form-select">
-                        <option value="DESC" {% if sortDir == 'DESC' %}selected{% endif %}>↓ Desc</option>
-                        <option value="ASC"  {% if sortDir == 'ASC' %}selected{% endif %}>↑ Asc</option>
+                        <option value="DESC" {% if sortDir == 'DESC' %}selected{% endif %}>↓</option>
+                        <option value="ASC"  {% if sortDir == 'ASC' %}selected{% endif %}>↑</option>
                     </select>
                 </div>
-                <div class="col-md-1 d-flex gap-1">
-                    <button type="submit" class="btn-add px-3" title="Filtrer">
-                        <i class="fas fa-filter"></i>
-                    </button>
-                    <a href="{{ path('app_entretien_index') }}" class="btn btn-light rounded-3 px-3" title="Réinitialiser">
-                        <i class="fas fa-times text-muted"></i>
-                    </a>
+                <div class="col-md-1 d-flex gap-2">
+                    <button type="submit" class="btn-filter"><i class="fas fa-search"></i></button>
+                    <a href="{{ path('app_entretien_index') }}" class="btn-reset"><i class="fas fa-times"></i></a>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
-</form>
 
-{% if search or type or statut %}
-<div class="mb-2" style="font-size:0.85rem;color:#6c757d">
-    <i class="fas fa-filter me-1"></i>
-    <strong>{{ entretiens|length }}</strong> résultat(s)
-    {% if search %} pour "<strong>{{ search }}</strong>"{% endif %}
-    {% if type %} · Type: <strong>{{ type }}</strong>{% endif %}
-    {% if statut %} · Statut: <strong>{{ statut }}</strong>{% endif %}
-</div>
-{% endif %}
-
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>
-                        <a href="{{ path('app_entretien_index', {search: search, type: type, statut: statut, sortBy: 'e.dateEntretien', sortDir: sortBy == 'e.dateEntretien' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Date {% if sortBy == 'e.dateEntretien' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>Heure</th>
-                    <th>
-                        <a href="{{ path('app_entretien_index', {search: search, type: type, statut: statut, sortBy: 'e.typeEntretien', sortDir: sortBy == 'e.typeEntretien' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Type {% if sortBy == 'e.typeEntretien' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>
-                        <a href="{{ path('app_entretien_index', {search: search, type: type, statut: statut, sortBy: 'e.statutEntretien', sortDir: sortBy == 'e.statutEntretien' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Statut {% if sortBy == 'e.statutEntretien' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>
-                        <a href="{{ path('app_entretien_index', {search: search, type: type, statut: statut, sortBy: 'e.lieu', sortDir: sortBy == 'e.lieu' and sortDir == 'ASC' ? 'DESC' : 'ASC'}) }}" style="text-decoration:none;color:inherit">
-                            Lieu {% if sortBy == 'e.lieu' %}<i class="fas fa-sort-{{ sortDir == 'ASC' ? 'up' : 'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
-                        </a>
-                    </th>
-                    <th>Type Test</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for entretien in entretiens %}
-                <tr>
-                    <td><strong style="color:#4361ee">#{{ entretien.id }}</strong></td>
-                    <td>{{ entretien.dateEntretien ? entretien.dateEntretien|date('Y-m-d') : '-' }}</td>
-                    <td>{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i:s') : '-' }}</td>
-                    <td>
-                        <span class="badge-s {{ entretien.typeEntretien == 'RH' ? 'b-rh' : 'b-technique' }}">
-                            {{ entretien.typeEntretien ?? '-' }}
-                        </span>
-                    </td>
-                    <td>
-                        {% set s = entretien.statutEntretien|lower %}
-                        <span class="badge-s {% if 'termin' in s %}b-termine{% elseif 'planifi' in s %}b-planifie{% elseif 'annul' in s %}b-annule{% else %}b-attente{% endif %}">
-                            {{ entretien.statutEntretien ?? '-' }}
-                        </span>
-                    </td>
-                    <td>{{ entretien.lieu ?? '-' }}</td>
-                    <td>{{ entretien.typeTest ?? '-' }}</td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a href="{{ path('app_entretien_show', {'id': entretien.id}) }}" class="btn-act ba-view" title="Voir"><i class="fas fa-eye"></i></a>
-                            <a href="{{ path('app_entretien_edit', {'id': entretien.id}) }}" class="btn-act ba-edit" title="Modifier"><i class="fas fa-pen"></i></a>
-                            <a href="{{ path('app_evaluation_entretien_new') }}" class="btn-act ba-eval" title="Évaluer"><i class="fas fa-star"></i></a>
-                            <form method="post" action="{{ path('app_entretien_delete', {'id': entretien.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cet entretien ?')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
-                                <button class="btn-act ba-delete" title="Supprimer"><i class="fas fa-times"></i></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="8" class="text-center text-muted py-5">
-                        <i class="fas fa-inbox fa-2x mb-2 d-block" style="color:#dee2e6"></i>
-                        Aucun résultat trouvé
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    {% if search or type or statut %}
+    <div class="px-4 py-2" style="font-size:0.83rem;color:#6c757d;background:#fffbf0;border-bottom:1px solid #f0f2f5">
+        <i class="fas fa-filter me-1"></i> <strong>{{ entretiens|length }}</strong> résultat(s)
+        {% if search %} pour "<strong>{{ search }}</strong>"{% endif %}
+        {% if type %} · <strong>{{ type }}</strong>{% endif %}
+        {% if statut %} · <strong>{{ statut }}</strong>{% endif %}
     </div>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>
+                    <a href="{{ path('app_entretien_index', {search:search,type:type,statut:statut,sortBy:'e.dateEntretien',sortDir:sortBy=='e.dateEntretien' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Date {% if sortBy=='e.dateEntretien' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>Heure</th>
+                <th>
+                    <a href="{{ path('app_entretien_index', {search:search,type:type,statut:statut,sortBy:'e.typeEntretien',sortDir:sortBy=='e.typeEntretien' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Type {% if sortBy=='e.typeEntretien' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ path('app_entretien_index', {search:search,type:type,statut:statut,sortBy:'e.statutEntretien',sortDir:sortBy=='e.statutEntretien' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Statut {% if sortBy=='e.statutEntretien' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ path('app_entretien_index', {search:search,type:type,statut:statut,sortBy:'e.lieu',sortDir:sortBy=='e.lieu' and sortDir=='ASC'?'DESC':'ASC'}) }}">
+                        Lieu {% if sortBy=='e.lieu' %}<i class="fas fa-sort-{{ sortDir=='ASC'?'up':'down' }}" style="color:#4361ee"></i>{% else %}<i class="fas fa-sort" style="color:#dee2e6"></i>{% endif %}
+                    </a>
+                </th>
+                <th>Type Test</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for entretien in entretiens %}
+            <tr>
+                <td><strong>{{ entretien.id }}</strong></td>
+                <td>{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</td>
+                <td>{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</td>
+                <td>
+                    <span class="badge-s {{ entretien.typeEntretien == 'RH' ? 'b-rh' : 'b-technique' }}">
+                        {{ entretien.typeEntretien ?? '-' }}
+                    </span>
+                </td>
+                <td>
+                    {% set s = entretien.statutEntretien|lower %}
+                    <span class="badge-s {% if 'termin' in s %}b-termine{% elseif 'planifi' in s %}b-planifie{% elseif 'annul' in s %}b-annule{% else %}b-attente{% endif %}">
+                        {{ entretien.statutEntretien ? entretien.statutEntretien|upper : '-' }}
+                    </span>
+                </td>
+                <td>{{ entretien.lieu ?? '-' }}</td>
+                <td>{{ entretien.typeTest ?? '-' }}</td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <a href="{{ path('app_entretien_show', {'id': entretien.id}) }}" class="btn-voir">Voir</a>
+                        <a href="{{ path('app_entretien_edit', {'id': entretien.id}) }}" class="btn-modifier">Modifier</a>
+                        <form method="post" action="{{ path('app_entretien_delete', {'id': entretien.id}) }}"
+                              style="display:inline" onsubmit="return confirm('Supprimer ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
+                            <button class="btn-supprimer">Supprimer</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="8" class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-2x mb-2 d-block" style="color:#dee2e6"></i>
+                    Aucun entretien trouvé
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

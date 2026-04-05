@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier Évaluation{% endblock %}
+{% block body %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-pen me-2" style="color:#4361ee"></i>Modifier l'Évaluation #{{ evaluation_entretien.id }}</h1>
+        <p>Modifiez les informations de l'évaluation</p>
+    </div>
+    <a href="{{ path('app_evaluation_entretien_index') }}" class="btn-refresh">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+<div class="card form-wrap">
+    <div class="card-body p-4">
+        {{ include('evaluation_entretien/_form.html.twig') }}
+    </div>
+</div>
+{% endblock %}

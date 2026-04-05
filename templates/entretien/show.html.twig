@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+{% block title %}Entretien #{{ entretien.id }}{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-eye me-2" style="color:#4361ee"></i>Détail Entretien #{{ entretien.id }}</h1>
+        <p>Informations complètes de l'entretien</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ path('app_entretien_edit', {'id': entretien.id}) }}" class="btn-add">
+            <i class="fas fa-pen"></i> Modifier
+        </a>
+        <a href="{{ path('app_entretien_index') }}" class="btn-refresh">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-body p-4">
+                <h6 class="text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px">Informations générales</h6>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Date</div>
+                        <div class="fw-600">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Heure</div>
+                        <div class="fw-600">{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Type</div>
+                        <span class="badge-s {{ entretien.typeEntretien == 'RH' ? 'b-rh' : 'b-technique' }}">
+                            {{ entretien.typeEntretien ?? '-' }}
+                        </span>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Statut</div>
+                        {% set s = entretien.statutEntretien|lower %}
+                        <span class="badge-s {% if 'termin' in s %}b-termine{% elseif 'planifi' in s %}b-planifie{% elseif 'annul' in s %}b-annule{% else %}b-attente{% endif %}">
+                            {{ entretien.statutEntretien ?? '-' }}
+                        </span>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Lieu</div>
+                        <div>{{ entretien.lieu ?? '-' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted" style="font-size:0.8rem">Type de test</div>
+                        <div>{{ entretien.typeTest ?? '-' }}</div>
+                    </div>
+                    {% if entretien.lienReunion %}
+                    <div class="col-12">
+                        <div class="text-muted" style="font-size:0.8rem">Lien de réunion</div>
+                        <a href="{{ entretien.lienReunion }}" target="_blank" class="text-primary">
+                            <i class="fas fa-link me-1"></i>{{ entretien.lienReunion }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body p-4">
+                <h6 class="text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px">Évaluations liées</h6>
+                {% if entretien.evaluationEntretiens is not empty %}
+                    {% for eval in entretien.evaluationEntretiens %}
+                    <div class="p-2 mb-2 rounded-3" style="background:#f8f9ff">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-600">Score: {{ eval.scoreTest ?? '-' }}/100</span>
+                            <span class="badge-s {{ eval.decision == 'Accepté' ? 'b-accepte' : 'b-refuse' }}">{{ eval.decision }}</span>
+                        </div>
+                        <div class="text-muted" style="font-size:0.8rem">Note: {{ eval.noteEntretien ?? '-' }}/5</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted text-center py-3" style="font-size:0.85rem">
+                        <i class="fas fa-star fa-2x mb-2 d-block" style="color:#dee2e6"></i>
+                        Aucune évaluation
+                    </div>
+                {% endif %}
+                <a href="{{ path('app_evaluation_entretien_new') }}" class="btn-add w-100 justify-content-center mt-2">
+                    <i class="fas fa-plus"></i> Ajouter évaluation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if entretien.questionsEntretien %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-4">
+                <h6 class="text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px">Questions</h6>
+                <div style="white-space:pre-line;font-size:0.9rem;line-height:1.7">{{ entretien.questionsEntretien }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

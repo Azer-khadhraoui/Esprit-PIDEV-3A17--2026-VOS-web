@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+{% block title %}Statistiques{% endblock %}
+
+{% block body %}
+
+<h1>Statistiques</h1>
+<p class="subtitle">Analysez vos entretiens et évaluations</p>
+
+{# ── STAT CARDS ── #}
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card blue">
+            <div class="s-label">Total Entretiens</div>
+            <div class="s-value">{{ total }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card green">
+            <div class="s-label">Entretiens Terminés</div>
+            <div class="s-value">{{ termines }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card orange">
+            <div class="s-label">Entretiens Planifiés</div>
+            <div class="s-value">{{ planifies }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card purple">
+            <div class="s-label">Total Évaluations</div>
+            <div class="s-value">{{ totalEvals }}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card blue">
+            <div class="s-label">Score Moyen</div>
+            <div class="s-value">{{ scoreMoyen }}</div>
+            <div style="font-size:0.78rem;color:#adb5bd;margin-top:4px">Sur 100</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card purple">
+            <div class="s-label">Note Moyenne</div>
+            <div class="s-value">{{ noteMoyenne }}</div>
+            <div style="font-size:0.78rem;color:#adb5bd;margin-top:4px">Sur 5</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card red">
+            <div class="s-label">Autres Statuts</div>
+            <div class="s-value">{{ autres }}</div>
+            <div style="font-size:0.78rem;color:#adb5bd;margin-top:4px">Annulés / En attente</div>
+        </div>
+    </div>
+</div>
+
+{# ── CHARTS ── #}
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="table-card p-4">
+            <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">Entretiens par Statut</h2>
+            <canvas id="chartStatut" height="220"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="table-card p-4">
+            <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">Entretiens par Type</h2>
+            <canvas id="chartType" height="220"></canvas>
+        </div>
+    </div>
+    {% if evalStats is defined and evalStats %}
+    <div class="col-12">
+        <div class="table-card p-4">
+            <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">Compétences moyennes évaluées</h2>
+            <canvas id="chartCompetences" height="90"></canvas>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const palette = ['#4361ee','#06d6a0','#fb8500','#f72585','#7209b7','#4cc9f0'];
+
+new Chart(document.getElementById('chartStatut'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ parStatutLabels|json_encode|raw }},
+        datasets: [{ data: {{ parStatutData|json_encode|raw }}, backgroundColor: palette, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } } }, cutout: '60%' }
+});
+
+new Chart(document.getElementById('chartType'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ parTypeLabels|json_encode|raw }},
+        datasets: [{ data: {{ parTypeData|json_encode|raw }}, backgroundColor: ['#4361ee','#f72585','#06d6a0','#fb8500'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } } }, cutout: '60%' }
+});
+
+{% if evalStats is defined and evalStats %}
+new Chart(document.getElementById('chartCompetences'), {
+    type: 'bar',
+    data: {
+        labels: ['Compétences techniques','Comportementales','Communication','Motivation','Expérience'],
+        datasets: [{ label: 'Moyenne /5', data: {{ evalStats|json_encode|raw }}, backgroundColor: ['#4361ee','#7209b7','#4cc9f0','#06d6a0','#fb8500'], borderRadius: 8 }]
+    },
+    options: { scales: { y: { beginAtZero: true, max: 5 } }, plugins: { legend: { display: false } } }
+});
+{% endif %}
+</script>
+{% endblock %}
