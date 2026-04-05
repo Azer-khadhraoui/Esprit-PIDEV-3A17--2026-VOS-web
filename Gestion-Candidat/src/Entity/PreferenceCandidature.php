@@ -68,7 +68,7 @@ class PreferenceCandidature
     #[ORM\Column(nullable: true)]
     private ?int $id_utilisateur = null;
 
-    public function getId(): ?int
+    public function getIdPreference(): ?int
     {
         return $this->id_preference;
     }

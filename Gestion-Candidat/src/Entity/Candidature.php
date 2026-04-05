@@ -70,7 +70,7 @@ class Candidature
     #[ORM\Column(nullable: true)]
     private ?int $id_offre = 1;
 
-    public function getId(): ?int
+    public function getIdCandidature(): ?int
     {
         return $this->id_candidature;
     }
