@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+class CritereOffre
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $idCritere = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $niveauExperience = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $niveauEtude = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $competencesRequises = null;
+
+    #[ORM\Column(length: 2000, nullable: true)]
+    private ?string $responsibilities = null;
+
+    #[ORM\ManyToOne(targetEntity: OffreEmploi::class, inversedBy: 'critereOffres')]
+    #[ORM\JoinColumn(name: 'id_offre', referencedColumnName: 'id_offre', nullable: true, onDelete: 'CASCADE')]
+    private ?OffreEmploi $offreEmploi = null;
+
+    public function getIdCritere(): ?int
+    {
+        return $this->idCritere;
+    }
+
+    public function getNiveauExperience(): ?string
+    {
+        return $this->niveauExperience;
+    }
+
+    public function setNiveauExperience(?string $niveauExperience): self
+    {
+        $this->niveauExperience = $niveauExperience;
+
+        return $this;
+    }
+
+    public function getNiveauEtude(): ?string
+    {
+        return $this->niveauEtude;
+    }
+
+    public function setNiveauEtude(?string $niveauEtude): self
+    {
+        $this->niveauEtude = $niveauEtude;
+
+        return $this;
+    }
+
+    public function getCompetencesRequises(): ?string
+    {
+        return $this->competencesRequises;
+    }
+
+    public function setCompetencesRequises(?string $competencesRequises): self
+    {
+        $this->competencesRequises = $competencesRequises;
+
+        return $this;
+    }
+
+    public function getResponsibilities(): ?string
+    {
+        return $this->responsibilities;
+    }
+
+    public function setResponsibilities(?string $responsibilities): self
+    {
+        $this->responsibilities = $responsibilities;
+
+        return $this;
+    }
+
+    public function getOffreEmploi(): ?OffreEmploi
+    {
+        return $this->offreEmploi;
+    }
+
+    public function setOffreEmploi(?OffreEmploi $offreEmploi): self
+    {
+        $this->offreEmploi = $offreEmploi;
+
+        return $this;
+    }
+}

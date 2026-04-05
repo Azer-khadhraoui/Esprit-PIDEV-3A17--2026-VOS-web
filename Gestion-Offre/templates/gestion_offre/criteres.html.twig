@@ -1,0 +1,285 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Critères Offre | VOS Admin{% endblock %}
+
+{% block body %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span>VOS Admin</span>
+            </div>
+
+            <nav class="nav-list">
+                <a class="nav-item" href="#">Gestion Users</a>
+                <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+                <a class="nav-item" href="#">Gestion Entretiens</a>
+                <a class="nav-item" href="#">Gestion Recrutements</a>
+                <a class="nav-item" href="#">Forum</a>
+                <a class="nav-item" href="#">Rapports</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="topbar">
+                <div>
+                    <h1 class="page-title" style="font-size:clamp(1.7rem, 2.4vw, 2.6rem);">Critères de l'offre #{{ offre.idOffre }}</h1>
+                    <p class="subtitle">{{ offre.titre ?? 'Sans titre' }} - Bienvenue {{ currentUserName }}</p>
+                </div>
+                <a class="logout-btn" href="#">Déconnexion</a>
+            </div>
+
+            <nav class="module-nav" aria-label="Navigation offre et critere offre">
+                <a class="module-link" href="{{ path('gestion_offre_dashboard', {selectedOfferId: offre.idOffre}) }}">Offre</a>
+                <a class="module-link is-active" href="{{ path('gestion_offre_criteres', {idOffre: offre.idOffre}) }}">Critere Offre</a>
+                <a class="module-link" href="{{ path('gestion_offre_statistique') }}">Statistique</a>
+            </nav>
+
+            {% for message in app.flashes('success') %}
+                <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#dcfce7;color:#166534;font-weight:600;">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#fee2e2;color:#991b1b;font-weight:600;">{{ message }}</div>
+            {% endfor %}
+
+            <section style="display:grid;grid-template-columns:0.82fr 1.18fr;gap:18px;align-items:start;">
+                <article style="background:var(--panel);color:var(--text);border-radius:20px;box-shadow:var(--shadow);padding:16px 16px 14px;">
+                    <h2 style="margin:0 0 2px;font-size:1.12rem;">Ajouter un critere</h2>
+                    <p style="margin:0 0 10px;color:var(--muted);font-size:0.88rem;">Ce critere sera attaché directement à l'offre sélectionnée.</p>
+
+                    <form method="post" action="{{ path('gestion_offre_critere_create') }}" style="display:grid;gap:8px;">
+                        <input type="hidden" name="id_offre" value="{{ offre.idOffre }}">
+                        <input type="hidden" name="context" value="offer">
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Niveau experience</span>
+                            <input id="niveau_experience" type="text" name="niveau_experience" required minlength="2" maxlength="50" placeholder="ex: 2 ans" style="border:1px solid #d0d8e5;border-radius:10px;padding:9px 10px;font-size:0.92rem;">
+                            <small id="niveau_experience_feedback" style="font-size:0.82rem;color:#64748b;">Saisir entre 2 et 50 caracteres.</small>
+                        </label>
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Niveau etude</span>
+                            <input id="niveau_etude" type="text" name="niveau_etude" required minlength="2" maxlength="50" placeholder="ex: Licence" style="border:1px solid #d0d8e5;border-radius:10px;padding:9px 10px;font-size:0.92rem;">
+                            <small id="niveau_etude_feedback" style="font-size:0.82rem;color:#64748b;">Saisir entre 2 et 50 caracteres.</small>
+                        </label>
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Competences requises</span>
+                            <textarea id="competences_requises" name="competences_requises" rows="2" required minlength="3" maxlength="2000" placeholder="ex: Java, Symfony, SQL" style="border:1px solid #d0d8e5;border-radius:10px;padding:9px 10px;resize:vertical;font-size:0.92rem;"></textarea>
+                            <small id="competences_requises_feedback" style="font-size:0.82rem;color:#64748b;">Saisir entre 3 et 2000 caracteres.</small>
+                        </label>
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Responsibilities</span>
+                            <textarea id="responsibilities" name="responsibilities" rows="2" required minlength="3" maxlength="2000" placeholder="ex: Developper API, corriger bugs, tests" style="border:1px solid #d0d8e5;border-radius:10px;padding:9px 10px;resize:vertical;font-size:0.92rem;"></textarea>
+                            <small id="responsibilities_feedback" style="font-size:0.82rem;color:#64748b;">Saisir entre 3 et 2000 caracteres.</small>
+                        </label>
+
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <button type="submit" style="padding:9px 14px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Ajouter critere</button>
+                            <a href="{{ path('gestion_offre_dashboard', {selectedOfferId: offre.idOffre}) }}" style="display:inline-flex;align-items:center;padding:9px 12px;border-radius:10px;background:#e2e8f0;color:#0f172a;font-weight:700;font-size:0.9rem;">Retour offres</a>
+                        </div>
+                    </form>
+                </article>
+
+                <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;">
+                    <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="margin:0;font-size:1.2rem;">Critères de cette offre</h3>
+                        <span style="font-size:0.85rem;color:var(--muted);">{{ criteria|length }} items</span>
+                    </div>
+                    <div style="max-height:520px;overflow:auto;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="text-align:left;color:#64748b;background:#f8fafc;">
+                                    <th style="padding:12px 16px;">ID</th>
+                                    <th style="padding:12px 16px;">Offre</th>
+                                    <th style="padding:12px 16px;">Experience</th>
+                                    <th style="padding:12px 16px;">Etude</th>
+                                    <th style="padding:12px 16px;">Competences requises</th>
+                                    <th style="padding:12px 16px;">Responsibilities</th>
+                                    <th style="padding:12px 16px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for critere in criteria %}
+                                    <tr style="border-top:1px solid var(--line);vertical-align:top;">
+                                        <td style="padding:12px 16px;font-weight:700;">{{ critere.idCritere }}</td>
+                                        <td style="padding:12px 16px;">
+                                            <strong>#{{ offre.idOffre }}</strong><br>
+                                            <span style="color:var(--muted);">{{ offre.titre ?? 'Sans titre' }}</span>
+                                        </td>
+                                        <td style="padding:12px 16px;">{{ critere.niveauExperience ?? 'N/A' }}</td>
+                                        <td style="padding:12px 16px;">{{ critere.niveauEtude ?? 'N/A' }}</td>
+                                        <td style="padding:12px 16px;white-space:pre-line;">{{ critere.competencesRequises ?? 'N/A' }}</td>
+                                        <td style="padding:12px 16px;white-space:pre-line;">{{ critere.responsibilities ?? 'N/A' }}</td>
+                                        <td style="padding:12px 16px;white-space:nowrap;">
+                                            <button
+                                                type="button"
+                                                class="open-edit-critere-modal"
+                                                data-action="{{ path('gestion_offre_critere_edit', {idCritere: critere.idCritere}) }}"
+                                                data-token="{{ csrf_token('edit_critere_' ~ critere.idCritere) }}"
+                                                data-niveau-experience="{{ (critere.niveauExperience ?? '')|e('html_attr') }}"
+                                                data-niveau-etude="{{ (critere.niveauEtude ?? '')|e('html_attr') }}"
+                                                data-competences="{{ (critere.competencesRequises ?? '')|e('html_attr') }}"
+                                                data-responsibilities="{{ (critere.responsibilities ?? '')|e('html_attr') }}"
+                                                style="display:inline-flex;padding:8px 12px;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;margin-right:8px;border:0;cursor:pointer;"
+                                            >Modifier</button>
+                                            <form method="post" action="{{ path('gestion_offre_critere_delete', {idCritere: critere.idCritere}) }}" style="display:inline;" onsubmit="return confirm('Supprimer ce critere ?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete_critere_' ~ critere.idCritere) }}">
+                                                <button type="submit" style="display:inline-flex;padding:8px 14px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-weight:700;border:0;cursor:pointer;">Supprimer</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" style="padding:18px 16px;color:var(--muted);">Aucun critere pour cette offre.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <div id="edit-critere-modal" style="position:fixed;inset:0;background:rgba(2,6,23,0.52);display:none;align-items:center;justify-content:center;z-index:1000;padding:18px;">
+        <div style="background:#fff;color:#0f172a;width:min(760px, 100%);border-radius:16px;box-shadow:0 22px 48px rgba(2,6,23,0.35);overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0;font-size:1.18rem;">Modifier critere</h3>
+                <button id="close-edit-critere-modal" type="button" style="border:0;background:#e2e8f0;color:#0f172a;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700;">X</button>
+            </div>
+            <form id="edit-critere-form" method="post" style="display:grid;gap:10px;padding:14px 16px 16px;">
+                <input id="edit-critere-token" type="hidden" name="_token" value="">
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-weight:600;color:#334155;">Niveau experience</span>
+                    <input id="edit-niveau-experience" type="text" name="niveau_experience" required minlength="2" maxlength="50" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;">
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-weight:600;color:#334155;">Niveau etude</span>
+                    <input id="edit-niveau-etude" type="text" name="niveau_etude" required minlength="2" maxlength="50" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;">
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-weight:600;color:#334155;">Competences requises</span>
+                    <textarea id="edit-competences" name="competences_requises" rows="3" required minlength="3" maxlength="2000" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;resize:vertical;"></textarea>
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-weight:600;color:#334155;">Responsibilities</span>
+                    <textarea id="edit-responsibilities" name="responsibilities" rows="3" required minlength="3" maxlength="2000" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;resize:vertical;"></textarea>
+                </label>
+
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="cancel-edit-critere-modal" type="button" style="padding:10px 14px;border:0;border-radius:10px;background:#e2e8f0;color:#0f172a;font-weight:700;cursor:pointer;">Annuler</button>
+                    <button type="submit" style="padding:10px 16px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer;">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const fields = [
+                {
+                    input: document.getElementById('niveau_experience'),
+                    feedback: document.getElementById('niveau_experience_feedback'),
+                    min: 2,
+                    max: 50,
+                    label: 'Niveau experience'
+                },
+                {
+                    input: document.getElementById('niveau_etude'),
+                    feedback: document.getElementById('niveau_etude_feedback'),
+                    min: 2,
+                    max: 50,
+                    label: 'Niveau etude'
+                },
+                {
+                    input: document.getElementById('competences_requises'),
+                    feedback: document.getElementById('competences_requises_feedback'),
+                    min: 3,
+                    max: 2000,
+                    label: 'Competences requises'
+                },
+                {
+                    input: document.getElementById('responsibilities'),
+                    feedback: document.getElementById('responsibilities_feedback'),
+                    min: 3,
+                    max: 2000,
+                    label: 'Responsibilities'
+                }
+            ];
+
+            fields.forEach((field) => {
+                if (!field.input || !field.feedback) return;
+
+                const validate = () => {
+                    const value = field.input.value.trim();
+                    if (value.length === 0) {
+                        field.input.style.borderColor = '#ef4444';
+                        field.feedback.style.color = '#b91c1c';
+                        field.feedback.textContent = field.label + ' est obligatoire.';
+                        return;
+                    }
+
+                    if (value.length < field.min || value.length > field.max) {
+                        field.input.style.borderColor = '#ef4444';
+                        field.feedback.style.color = '#b91c1c';
+                        field.feedback.textContent = field.label + ' doit contenir entre ' + field.min + ' et ' + field.max + ' caracteres.';
+                        return;
+                    }
+
+                    field.input.style.borderColor = '#22c55e';
+                    field.feedback.style.color = '#15803d';
+                    field.feedback.textContent = field.label + ' valide.';
+                };
+
+                field.input.addEventListener('input', validate);
+                field.input.addEventListener('blur', validate);
+            });
+            const modal = document.getElementById('edit-critere-modal');
+            const form = document.getElementById('edit-critere-form');
+            const closeBtn = document.getElementById('close-edit-critere-modal');
+            const cancelBtn = document.getElementById('cancel-edit-critere-modal');
+            const tokenInput = document.getElementById('edit-critere-token');
+            const expInput = document.getElementById('edit-niveau-experience');
+            const etudeInput = document.getElementById('edit-niveau-etude');
+            const compInput = document.getElementById('edit-competences');
+            const respInput = document.getElementById('edit-responsibilities');
+
+            const closeModal = () => {
+                if (!modal) return;
+                modal.style.display = 'none';
+            };
+
+            document.querySelectorAll('.open-edit-critere-modal').forEach((button) => {
+                button.addEventListener('click', () => {
+                    if (!modal || !form || !tokenInput || !expInput || !etudeInput || !compInput || !respInput) return;
+
+                    form.action = button.getAttribute('data-action') || '';
+                    tokenInput.value = button.getAttribute('data-token') || '';
+                    expInput.value = button.getAttribute('data-niveau-experience') || '';
+                    etudeInput.value = button.getAttribute('data-niveau-etude') || '';
+                    compInput.value = button.getAttribute('data-competences') || '';
+                    respInput.value = button.getAttribute('data-responsibilities') || '';
+
+                    modal.style.display = 'flex';
+                });
+            });
+
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+            if (modal) {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
+        })();
+    </script>
+{% endblock %}

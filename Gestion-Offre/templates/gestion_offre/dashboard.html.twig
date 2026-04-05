@@ -1,0 +1,226 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion Offres | VOS Admin{% endblock %}
+
+{% block body %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span>VOS Admin</span>
+            </div>
+
+            <nav class="nav-list">
+                <a class="nav-item" href="#">Gestion Users</a>
+                <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+                <a class="nav-item" href="#">Gestion Entretiens</a>
+                <a class="nav-item" href="#">Gestion Recrutements</a>
+                <a class="nav-item" href="#">Forum</a>
+                <a class="nav-item" href="#">Rapports</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="topbar">
+                <div>
+                    <h1 class="page-title">Dashboard Offres</h1>
+                    <p class="subtitle">Bienvenue {{ currentUserName }}</p>
+                </div>
+                <a class="logout-btn" href="#">Déconnexion</a>
+            </div>
+
+            <nav class="module-nav" aria-label="Navigation offre et critere offre">
+                <a class="module-link is-active" href="{{ path('gestion_offre_dashboard') }}">Offre</a>
+                {% if selectedOfferId is defined and selectedOfferId > 0 %}
+                    <a class="module-link" href="{{ path('gestion_offre_criteres', {idOffre: selectedOfferId}) }}">Critere Offre</a>
+                {% else %}
+                    <span class="module-link" style="opacity:0.55;cursor:not-allowed;">Critere Offre</span>
+                {% endif %}
+                <a class="module-link" href="{{ path('gestion_offre_statistique') }}">Statistique</a>
+            </nav>
+
+            {% for message in app.flashes('success') %}
+                <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#dcfce7;color:#166534;font-weight:600;">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#fee2e2;color:#991b1b;font-weight:600;">{{ message }}</div>
+            {% endfor %}
+
+            <section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:20px;">
+                <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);border-left:6px solid var(--primary);min-height:120px;">
+                    <div style="font-weight:600;color:var(--muted);margin-bottom:12px;">Total Offres</div>
+                    <div style="font-size:2.6rem;font-weight:800;line-height:1;">{{ totalOffers }}</div>
+                </article>
+                <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);border-left:6px solid var(--success);min-height:120px;">
+                    <div style="font-weight:600;color:var(--muted);margin-bottom:12px;">Offres Actives</div>
+                    <div style="font-size:2.6rem;font-weight:800;line-height:1;">{{ activeOffers }}</div>
+                </article>
+                <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);border-left:6px solid var(--warning);min-height:120px;">
+                    <div style="font-weight:600;color:var(--muted);margin-bottom:12px;">Offres Fermées</div>
+                    <div style="font-size:2.6rem;font-weight:800;line-height:1;">{{ closedOffers }}</div>
+                </article>
+            </section>
+
+            <section style="background:var(--panel);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:24px 24px 14px;gap:16px;">
+                    <div>
+                        <h2 style="margin:0;font-size:1.6rem;">Liste des offres</h2>
+                        <p style="margin:6px 0 0;color:var(--muted);">Vue d’ensemble des offres disponibles</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="padding:10px 16px;border-radius:999px;background:#eaf2ff;color:var(--primary);font-weight:700;">{{ offers|length }} entrées</div>
+                        <a href="{{ path('gestion_offre_new') }}" style="display:inline-flex;padding:10px 16px;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;">Ajouter</a>
+                    </div>
+                </div>
+
+                <form id="offre-filter-form" method="get" action="{{ path('gestion_offre_dashboard') }}" style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr auto;gap:10px;padding:0 24px 18px;align-items:end;">
+                    <label style="display:grid;gap:6px;">
+                        <span style="font-size:0.85rem;color:var(--muted);font-weight:600;">Recherche</span>
+                        <input id="filter-q" type="text" name="q" value="{{ filters.q ?? '' }}" placeholder="Titre, description, lieu..." style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;">
+                    </label>
+                    <label style="display:grid;gap:6px;">
+                        <span style="font-size:0.85rem;color:var(--muted);font-weight:600;">Statut</span>
+                        <select class="auto-filter-select" name="statut" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;background:#fff;">
+                            <option value="">Tous</option>
+                            {% for statut in filterOptions.statuts %}
+                                <option value="{{ statut }}" {{ (filters.statut ?? '') == statut ? 'selected' : '' }}>{{ statut }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label style="display:grid;gap:6px;">
+                        <span style="font-size:0.85rem;color:var(--muted);font-weight:600;">Type contrat</span>
+                        <select class="auto-filter-select" name="type_contrat" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;background:#fff;">
+                            <option value="">Tous</option>
+                            {% for typeContrat in filterOptions.typesContrat %}
+                                <option value="{{ typeContrat }}" {{ (filters.type_contrat ?? '') == typeContrat ? 'selected' : '' }}>{{ typeContrat }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label style="display:grid;gap:6px;">
+                        <span style="font-size:0.85rem;color:var(--muted);font-weight:600;">Work preference</span>
+                        <select class="auto-filter-select" name="work_preference" style="border:1px solid #d0d8e5;border-radius:10px;padding:10px 12px;background:#fff;">
+                            <option value="">Tous</option>
+                            {% for workPreference in filterOptions.workPreferences %}
+                                <option value="{{ workPreference }}" {{ (filters.work_preference ?? '') == workPreference ? 'selected' : '' }}>{{ workPreference }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <a href="{{ path('gestion_offre_dashboard') }}" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;border-radius:10px;background:#e2e8f0;color:#0f172a;font-weight:700;">Reset</a>
+                </form>
+
+                <div style="max-height:560px;overflow:auto;">
+                    <table style="width:100%;border-collapse:collapse;min-width:900px;">
+                        <thead>
+                            <tr style="text-align:left;color:#6b7280;background:rgba(241,245,249,0.95);">
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">ID</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Titre</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Type</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Work preference</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Lieu</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">ID utilisateur</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Statut</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Date publication</th>
+                                <th style="position:sticky;top:0;z-index:2;padding:16px 24px;background:rgba(241,245,249,0.95);">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for offer in offers %}
+                                {% set selectUrl = path('gestion_offre_dashboard', {
+                                    selectedOfferId: offer.idOffre,
+                                    q: filters.q ?? null,
+                                    statut: filters.statut ?? null,
+                                    type_contrat: filters.type_contrat ?? null,
+                                    work_preference: filters.work_preference ?? null
+                                }) %}
+                                                            <tr onclick="window.location='{{ selectUrl }}'" style="border-top:1px solid var(--line);background:{{ selectedOfferId == offer.idOffre ? '#f8fbff' : 'transparent' }};cursor:pointer;">
+                                    <td style="padding:18px 24px;">{{ offer.idOffre }}</td>
+                                    <td style="padding:18px 24px;font-weight:600;">
+                                                                    <a href="{{ selectUrl }}" onclick="event.stopPropagation();" style="color:#0f2b64;text-decoration:none;">
+                                            {{ offer.titre }}
+                                        </a>
+                                        {% if selectedOfferId == offer.idOffre %}
+                                            <span style="margin-left:8px;padding:4px 8px;border-radius:999px;background:#dbeafe;color:#1e3a8a;font-size:0.75rem;font-weight:700;">sélectionnée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:18px 24px;">{{ offer.typeContrat }}</td>
+                                    <td style="padding:18px 24px;">{{ offer.workPreference ?? 'N/A' }}</td>
+                                    <td style="padding:18px 24px;">{{ offer.lieu ?? 'N/A' }}</td>
+                                    <td style="padding:18px 24px;">{{ offer.idUtilisateur ?? 'N/A' }}</td>
+                                    <td style="padding:18px 24px;">
+                                        <span style="display:inline-flex;padding:8px 12px;border-radius:999px;font-weight:700;background:{{ offer.statutOffre == 'ACTIVE' ? '#e8fff5' : (offer.statutOffre == 'FERMEE' ? '#fff2e8' : '#eef2ff') }};color:{{ offer.statutOffre == 'ACTIVE' ? '#0f7a52' : (offer.statutOffre == 'FERMEE' ? '#b45309' : '#334155') }};">
+                                            {{ offer.statutOffre ?? 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td style="padding:18px 24px;">{{ offer.datePublication ? offer.datePublication|date('d/m/Y') : 'N/A' }}</td>
+                                    <td style="padding:18px 24px;white-space:nowrap;" onclick="event.stopPropagation();">
+                                        <a href="{{ path('gestion_offre_edit', {idOffre: offer.idOffre}) }}" style="display:inline-flex;padding:10px 16px;border-radius:14px;background:#2156d8;color:#fff;font-weight:600;margin-right:10px;">Modifier</a>
+                                        <form method="post" action="{{ path('gestion_offre_delete', {idOffre: offer.idOffre}) }}" style="display:inline;" onsubmit="event.stopPropagation(); return confirm('Supprimer cette offre ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_offer_' ~ offer.idOffre) }}">
+                                            <button type="submit" style="display:inline-flex;padding:10px 16px;border-radius:14px;background:#fee2e2;color:#b91c1c;font-weight:600;border:0;cursor:pointer;">Supprimer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" style="padding:28px 24px;color:var(--muted);">Aucune offre trouvée.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const form = document.getElementById('offre-filter-form');
+            if (!form) return;
+
+            let searchTimer = null;
+            const queryInput = document.getElementById('filter-q');
+            const selects = form.querySelectorAll('.auto-filter-select');
+            const SEARCH_DEBOUNCE_MS = 900;
+            const MIN_CHARS = 2;
+
+            const submitForm = () => {
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+                form.submit();
+            };
+
+            selects.forEach((select) => {
+                select.addEventListener('change', () => submitForm());
+            });
+
+            if (queryInput) {
+                queryInput.addEventListener('input', () => {
+                    if (searchTimer) {
+                        window.clearTimeout(searchTimer);
+                    }
+
+                    const value = queryInput.value.trim();
+                    if (value.length > 0 && value.length < MIN_CHARS) {
+                        return;
+                    }
+
+                    searchTimer = window.setTimeout(() => submitForm(), SEARCH_DEBOUNCE_MS);
+                });
+
+                queryInput.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter') {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    if (searchTimer) {
+                        window.clearTimeout(searchTimer);
+                    }
+                    submitForm();
+                });
+            }
+        })();
+    </script>
+{% endblock %}

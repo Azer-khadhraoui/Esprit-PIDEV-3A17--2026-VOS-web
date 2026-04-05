@@ -1,0 +1,247 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistique Offres | VOS Admin{% endblock %}
+
+{% block body %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span>VOS Admin</span>
+            </div>
+
+            <nav class="nav-list">
+                <a class="nav-item" href="#">Gestion Users</a>
+                <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+                <a class="nav-item" href="#">Gestion Entretiens</a>
+                <a class="nav-item" href="#">Gestion Recrutements</a>
+                <a class="nav-item" href="#">Forum</a>
+                <a class="nav-item" href="#">Rapports</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="topbar">
+                <div>
+                    <h1 class="page-title">Statistique Offres</h1>
+                    <p class="subtitle">Bienvenue {{ currentUserName }}</p>
+                </div>
+                <a class="logout-btn" href="#">Déconnexion</a>
+            </div>
+
+            <nav class="module-nav" aria-label="Navigation offre et critere offre">
+                <a class="module-link" href="{{ path('gestion_offre_dashboard') }}">Offre</a>
+                <a class="module-link" href="{{ path('gestion_offre_dashboard') }}">Critere Offre</a>
+                <a class="module-link is-active" href="{{ path('gestion_offre_statistique') }}">Statistique</a>
+            </nav>
+
+            <section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px;">
+                <article style="background:var(--panel);color:var(--text);padding:20px;border-radius:18px;box-shadow:var(--shadow);">
+                    <div style="font-size:0.95rem;color:var(--muted);font-weight:600;">Total offres</div>
+                    <div style="font-size:2.2rem;font-weight:800;">{{ totalOffers }}</div>
+                </article>
+                <article style="background:var(--panel);color:var(--text);padding:20px;border-radius:18px;box-shadow:var(--shadow);">
+                    <div style="font-size:0.95rem;color:var(--muted);font-weight:600;">Offres actives</div>
+                    <div style="font-size:2.2rem;font-weight:800;">{{ activeOffers }}</div>
+                </article>
+                <article style="background:var(--panel);color:var(--text);padding:20px;border-radius:18px;box-shadow:var(--shadow);">
+                    <div style="font-size:0.95rem;color:var(--muted);font-weight:600;">Offres fermées</div>
+                    <div style="font-size:2.2rem;font-weight:800;">{{ closedOffers }}</div>
+                </article>
+            </section>
+
+            <section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;">
+                <article style="background:var(--panel);color:var(--text);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;">Pie chart - Statut</div>
+                    <svg id="statutPieChart" viewBox="0 0 320 220" width="100%" height="220" role="img" aria-label="Statut pie chart"></svg>
+                </article>
+
+                <article style="background:var(--panel);color:var(--text);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;">Bar chart - Type contrat</div>
+                    <svg id="typeBarChart" viewBox="0 0 420 220" width="100%" height="220" role="img" aria-label="Type contrat bar chart"></svg>
+                </article>
+
+                <article style="background:var(--panel);color:var(--text);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;">Doughnut chart - Work preference</div>
+                    <svg id="workDoughnutChart" viewBox="0 0 320 220" width="100%" height="220" role="img" aria-label="Work preference doughnut chart"></svg>
+                </article>
+
+            </section>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const statutLabels = {{ statutStats|map(s => s.label)|json_encode|raw }};
+            const statutValues = {{ statutStats|map(s => s.total)|json_encode|raw }};
+
+            const typeLabels = {{ typeStats|map(s => s.label)|json_encode|raw }};
+            const typeValues = {{ typeStats|map(s => s.total)|json_encode|raw }};
+
+            const workLabels = {{ workPreferenceStats|map(s => s.label)|json_encode|raw }};
+            const workValues = {{ workPreferenceStats|map(s => s.total)|json_encode|raw }};
+
+            const palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#334155'];
+            const svgNs = 'http://www.w3.org/2000/svg';
+
+            function clearSvg(svg) {
+                while (svg.firstChild) {
+                    svg.removeChild(svg.firstChild);
+                }
+            }
+
+            function polarToCartesian(cx, cy, r, angleRad) {
+                return {
+                    x: cx + r * Math.cos(angleRad),
+                    y: cy + r * Math.sin(angleRad)
+                };
+            }
+
+            function renderArcChart(svgId, labels, values, isDoughnut) {
+                const svg = document.getElementById(svgId);
+                if (!svg) return;
+                clearSvg(svg);
+
+                const total = values.reduce((acc, value) => acc + Number(value || 0), 0);
+                if (total <= 0) {
+                    const text = document.createElementNS(svgNs, 'text');
+                    text.setAttribute('x', '50%');
+                    text.setAttribute('y', '50%');
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', '#64748b');
+                    text.textContent = 'Aucune donnée';
+                    svg.appendChild(text);
+                    return;
+                }
+
+                const cx = 110;
+                const cy = 110;
+                const outer = 78;
+                const inner = isDoughnut ? 44 : 0;
+                let start = -Math.PI / 2;
+
+                values.forEach((rawValue, index) => {
+                    const value = Number(rawValue || 0);
+                    if (value <= 0) return;
+                    const angle = (value / total) * Math.PI * 2;
+                    const end = start + angle;
+
+                    const outerStart = polarToCartesian(cx, cy, outer, start);
+                    const outerEnd = polarToCartesian(cx, cy, outer, end);
+                    const largeArc = angle > Math.PI ? 1 : 0;
+
+                    let d;
+                    if (isDoughnut) {
+                        const innerStart = polarToCartesian(cx, cy, inner, start);
+                        const innerEnd = polarToCartesian(cx, cy, inner, end);
+                        d = [
+                            `M ${outerStart.x} ${outerStart.y}`,
+                            `A ${outer} ${outer} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+                            `L ${innerEnd.x} ${innerEnd.y}`,
+                            `A ${inner} ${inner} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+                            'Z'
+                        ].join(' ');
+                    } else {
+                        d = [
+                            `M ${cx} ${cy}`,
+                            `L ${outerStart.x} ${outerStart.y}`,
+                            `A ${outer} ${outer} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+                            'Z'
+                        ].join(' ');
+                    }
+
+                    const path = document.createElementNS(svgNs, 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('fill', palette[index % palette.length]);
+                    path.setAttribute('stroke', '#ffffff');
+                    path.setAttribute('stroke-width', '1');
+                    svg.appendChild(path);
+
+                    start = end;
+                });
+
+                labels.forEach((label, index) => {
+                    const y = 26 + (index * 20);
+                    const swatch = document.createElementNS(svgNs, 'rect');
+                    swatch.setAttribute('x', '215');
+                    swatch.setAttribute('y', String(y - 10));
+                    swatch.setAttribute('width', '12');
+                    swatch.setAttribute('height', '12');
+                    swatch.setAttribute('rx', '2');
+                    swatch.setAttribute('fill', palette[index % palette.length]);
+                    svg.appendChild(swatch);
+
+                    const txt = document.createElementNS(svgNs, 'text');
+                    txt.setAttribute('x', '233');
+                    txt.setAttribute('y', String(y));
+                    txt.setAttribute('fill', '#334155');
+                    txt.setAttribute('font-size', '12');
+                    txt.textContent = `${label} (${values[index] ?? 0})`;
+                    svg.appendChild(txt);
+                });
+            }
+
+            function renderBarChart(svgId, labels, values) {
+                const svg = document.getElementById(svgId);
+                if (!svg) return;
+                clearSvg(svg);
+
+                const max = Math.max(...values.map((value) => Number(value || 0)), 0);
+                if (max <= 0) {
+                    const text = document.createElementNS(svgNs, 'text');
+                    text.setAttribute('x', '50%');
+                    text.setAttribute('y', '50%');
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', '#64748b');
+                    text.textContent = 'Aucune donnée';
+                    svg.appendChild(text);
+                    return;
+                }
+
+                const chartX = 28;
+                const chartY = 18;
+                const chartH = 160;
+                const slotW = 90;
+                const barW = 42;
+
+                labels.forEach((label, index) => {
+                    const value = Number(values[index] || 0);
+                    const h = (value / max) * chartH;
+                    const x = chartX + (index * slotW);
+                    const y = chartY + (chartH - h);
+
+                    const bar = document.createElementNS(svgNs, 'rect');
+                    bar.setAttribute('x', String(x));
+                    bar.setAttribute('y', String(y));
+                    bar.setAttribute('width', String(barW));
+                    bar.setAttribute('height', String(h));
+                    bar.setAttribute('rx', '8');
+                    bar.setAttribute('fill', '#1d4ed8');
+                    svg.appendChild(bar);
+
+                    const val = document.createElementNS(svgNs, 'text');
+                    val.setAttribute('x', String(x + (barW / 2)));
+                    val.setAttribute('y', String(y - 6));
+                    val.setAttribute('text-anchor', 'middle');
+                    val.setAttribute('fill', '#334155');
+                    val.setAttribute('font-size', '12');
+                    val.textContent = String(value);
+                    svg.appendChild(val);
+
+                    const lbl = document.createElementNS(svgNs, 'text');
+                    lbl.setAttribute('x', String(x + (barW / 2)));
+                    lbl.setAttribute('y', '205');
+                    lbl.setAttribute('text-anchor', 'middle');
+                    lbl.setAttribute('fill', '#334155');
+                    lbl.setAttribute('font-size', '12');
+                    lbl.textContent = label;
+                    svg.appendChild(lbl);
+                });
+            }
+
+            renderArcChart('statutPieChart', statutLabels, statutValues, false);
+            renderBarChart('typeBarChart', typeLabels, typeValues);
+            renderArcChart('workDoughnutChart', workLabels, workValues, true);
+        })();
+    </script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ pageTitle }} | VOS Admin{% endblock %}
+
+{% block body %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span>VOS Admin</span>
+            </div>
+
+            <nav class="nav-list">
+                <a class="nav-item" href="#">Gestion Users</a>
+                <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+                <a class="nav-item" href="#">Gestion Entretiens</a>
+                <a class="nav-item" href="#">Gestion Recrutements</a>
+                <a class="nav-item" href="#">Forum</a>
+                <a class="nav-item" href="#">Rapports</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="topbar">
+                <div>
+                    <h1 class="page-title" style="font-size:clamp(1.8rem, 2.5vw, 2.7rem);">{{ pageTitle }}</h1>
+                    <p class="subtitle">Bienvenue {{ currentUserName }}</p>
+                </div>
+                <a class="logout-btn" href="#">Déconnexion</a>
+            </div>
+
+            <nav class="module-nav" aria-label="Navigation offre et critere offre">
+                <a class="module-link is-active" href="{{ path('gestion_offre_dashboard') }}">Offre</a>
+                {% if offre.idOffre %}
+                    <a class="module-link" href="{{ path('gestion_offre_criteres', {idOffre: offre.idOffre}) }}">Critere Offre</a>
+                {% else %}
+                    <span class="module-link" style="opacity:0.55;cursor:not-allowed;">Critere Offre</span>
+                {% endif %}
+                <a class="module-link" href="{{ path('gestion_offre_statistique') }}">Statistique</a>
+            </nav>
+
+            {% for message in app.flashes('error') %}
+                <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#fee2e2;color:#991b1b;font-weight:600;max-width:980px;">{{ message }}</div>
+            {% endfor %}
+
+            <section style="background:var(--panel);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;max-width:980px;">
+                <form method="post" style="display:grid;gap:14px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Titre</span>
+                            <input type="text" name="titre" value="{{ offre.titre ?? '' }}" required minlength="3" maxlength="100" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Type contrat</span>
+                            {% set currentTypeContrat = offre.typeContrat ?? '' %}
+                            <select name="type_contrat" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                                <option value="">Choisir un type</option>
+                                <option value="CDI" {{ currentTypeContrat == 'CDI' ? 'selected' : '' }}>CDI</option>
+                                <option value="CDD" {{ currentTypeContrat == 'CDD' ? 'selected' : '' }}>CDD</option>
+                                <option value="Stage" {{ currentTypeContrat == 'Stage' ? 'selected' : '' }}>Stage</option>
+                                <option value="Alternance" {{ currentTypeContrat == 'Alternance' ? 'selected' : '' }}>Alternance</option>
+                                <option value="Freelance" {{ currentTypeContrat == 'Freelance' ? 'selected' : '' }}>Freelance</option>
+                                {% if currentTypeContrat not in ['', 'CDI', 'CDD', 'Stage', 'Alternance', 'Freelance'] %}
+                                    <option value="{{ currentTypeContrat }}" selected>{{ currentTypeContrat }}</option>
+                                {% endif %}
+                            </select>
+                        </label>
+                    </div>
+
+                    <label style="display:grid;gap:6px;">
+                        <span style="font-weight:600;color:#334155;">Description</span>
+                        <textarea name="description" rows="4" maxlength="5000" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;resize:vertical;">{{ offre.description ?? '' }}</textarea>
+                    </label>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Statut</span>
+                            <select name="statut_offre" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                                {% set currentStatus = offre.statutOffre ?? '' %}
+                                <option value="ACTIVE" {{ currentStatus == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
+                                <option value="INACTIVE" {{ currentStatus == 'INACTIVE' ? 'selected' : '' }}>INACTIVE</option>
+                                <option value="OUVERTE" {{ currentStatus == 'OUVERTE' ? 'selected' : '' }}>OUVERTE</option>
+                                <option value="FERMEE" {{ currentStatus == 'FERMEE' ? 'selected' : '' }}>FERMEE</option>
+                            </select>
+                        </label>
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Date publication</span>
+                            <input type="date" name="date_publication" value="{{ offre.datePublication ? offre.datePublication|date('Y-m-d') : '' }}" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
+                        </label>
+
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">ID utilisateur</span>
+                            <select name="id_utilisateur" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                                <option value="">Choisir utilisateur</option>
+                                {% for user in userOptions %}
+                                    <option value="{{ user.id }}" {{ offre.idUtilisateur == user.id ? 'selected' : '' }}>{{ user.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Work preference</span>
+                            {% set currentWorkPreference = offre.workPreference ?? '' %}
+                            <select name="work_preference" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                                <option value="">Choisir une preference</option>
+                                <option value="On-site" {{ currentWorkPreference == 'On-site' ? 'selected' : '' }}>On-site</option>
+                                <option value="Remote" {{ currentWorkPreference == 'Remote' ? 'selected' : '' }}>Remote</option>
+                                <option value="Hybrid" {{ currentWorkPreference == 'Hybrid' ? 'selected' : '' }}>Hybrid</option>
+                                {% if currentWorkPreference not in ['', 'On-site', 'Remote', 'Hybrid'] %}
+                                    <option value="{{ currentWorkPreference }}" selected>{{ currentWorkPreference }}</option>
+                                {% endif %}
+                            </select>
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-weight:600;color:#334155;">Lieu</span>
+                            <input type="text" name="lieu" value="{{ offre.lieu ?? '' }}" maxlength="255" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
+                        </label>
+                    </div>
+
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
+                        <button type="submit" style="padding:11px 18px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer;">{{ submitLabel }}</button>
+                        <a href="{{ path('gestion_offre_dashboard') }}" style="display:inline-flex;align-items:center;padding:11px 16px;border-radius:12px;background:#e2e8f0;color:#0f172a;font-weight:700;">Annuler</a>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+{% endblock %}

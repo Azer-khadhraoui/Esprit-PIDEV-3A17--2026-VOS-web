@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opportunites | VOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f8fc;
+            --panel: #ffffff;
+            --line: #e8ebf3;
+            --text: #1b2440;
+            --muted: #6c7693;
+            --primary: #4361ee;
+            --open: #16a34a;
+            --closed: #dc2626;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background: radial-gradient(1400px 620px at 90% 110%, rgba(67,97,238,0.12), transparent 55%), var(--bg);
+            color: var(--text);
+        }
+
+        .header {
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            gap: 16px;
+        }
+
+        .brand {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .nav a { text-decoration: none; color: inherit; }
+        .nav a.is-active { color: var(--primary); }
+
+        .signup {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 22px auto;
+            padding: 0 18px 26px;
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            font-size: 2.1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .flash {
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .flash.success { background: #dcfce7; color: #166534; }
+        .flash.error { background: #fee2e2; color: #991b1b; }
+
+        .filters {
+            background: #f1f3f9;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 16px;
+            display: grid;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .filters .row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .filters input,
+        .filters select {
+            border: 1px solid #d9deea;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+
+        .filter-actions {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-top: 10px;
+        }
+
+        .filter-actions .group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-start;
+            grid-column: 1;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 9px 14px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-link {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .results-count {
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .pagination {
+            margin-top: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-link {
+            min-width: 38px;
+            height: 38px;
+            border: 1px solid #d5dcf0;
+            border-radius: 10px;
+            background: #fff;
+            color: #2a3560;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 10px;
+        }
+
+        .pagination-link:hover {
+            border-color: #9fb1ff;
+            color: #2844cc;
+        }
+
+        .pagination-link.is-current {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 15px;
+            display: grid;
+            gap: 10px;
+            box-shadow: 0 8px 30px rgba(16, 24, 40, 0.05);
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            width: fit-content;
+        }
+
+        .badge.contract { background: #e0e7ff; color: #1d4ed8; }
+        .badge.open { background: #dcfce7; color: #166534; }
+        .badge.closed { background: #fee2e2; color: #991b1b; }
+
+        .meta { color: var(--muted); font-size: 0.92rem; display: grid; gap: 3px; }
+
+        .apply-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .actions-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .apply-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .details-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            background: #e0e7ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2, 6, 23, 0.52);
+            z-index: 100;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #fff;
+            width: min(520px, 100%);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .modal-card.details {
+            width: min(760px, 100%);
+            max-height: calc(100vh - 32px);
+            overflow: auto;
+        }
+
+        .modal-head {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .modal-body input,
+        .modal-body textarea {
+            border: 1px solid #d9deea;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 0.94rem;
+            width: 100%;
+        }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+        .details-head {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .details-title { margin: 0; font-size: 1.95rem; line-height: 1.1; letter-spacing: -0.02em; }
+
+        .details-meta-grid {
+            margin: 14px 18px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            background: #f4f6fc;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .details-meta-grid .meta-item { color: var(--muted); font-size: 0.92rem; }
+        .details-meta-grid strong { display: block; color: var(--text); font-size: 1.02rem; margin-top: 2px; }
+
+        .details-section { padding: 0 18px 12px; }
+        .details-section h4 { margin: 10px 0 8px; font-size: 1.25rem; }
+        .details-section p { margin: 0; color: #5b647f; line-height: 1.55; }
+        .details-list { margin: 0; padding-left: 22px; color: #5b647f; line-height: 1.8; }
+
+        .details-footer {
+            padding: 0 18px 18px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .cancel {
+            border: 0;
+            border-radius: 10px;
+            padding: 9px 12px;
+            background: #e2e8f0;
+            color: #0f172a;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 980px) {
+            .filters .row { grid-template-columns: 1fr 1fr; }
+            .filter-actions { grid-template-columns: 1fr 1fr; }
+            .cards { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 680px) {
+            .nav { display: none; }
+            .filters .row { grid-template-columns: 1fr; }
+            .filter-actions { grid-template-columns: 1fr; }
+            .cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<header class="header">
+    <div class="header-inner">
+        <div class="brand">VOS</div>
+        <nav class="nav">
+            <a href="#">Accueil</a>
+            <a class="is-active" href="{{ path('client_opportunites') }}">Opportunites</a>
+            <a href="#">Contact</a>
+            <a href="#">A propos</a>
+        </nav>
+        <button class="signup">S'inscrire</button>
+    </div>
+</header>
+
+<main class="container">
+    <h1>Opportunites</h1>
+
+    {% for message in app.flashes('success') %}
+        <div class="flash success">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="flash error">{{ message }}</div>
+    {% endfor %}
+
+    <form class="filters" method="get" action="{{ path('client_opportunites') }}">
+        <div class="row" style="grid-template-columns:1fr;">
+            <input type="text" name="q" value="{{ filters.q ?? '' }}" placeholder="Rechercher une opportunite...">
+        </div>
+        <div class="row">
+            <select name="type_contrat">
+                <option value="">Type contrat</option>
+                {% for option in filterOptions.typesContrat %}
+                    <option value="{{ option }}" {{ (filters.type_contrat ?? '') == option ? 'selected' : '' }}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <select name="work_preference">
+                <option value="">Mode travail</option>
+                {% for option in filterOptions.workPreferences %}
+                    <option value="{{ option }}" {{ (filters.work_preference ?? '') == option ? 'selected' : '' }}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="lieu" value="{{ filters.lieu ?? '' }}" placeholder="Lieu">
+            <select name="statut">
+                <option value="">Statut</option>
+                {% for option in filterOptions.statuts %}
+                    <option value="{{ option }}" {{ (filters.statut ?? '') == option ? 'selected' : '' }}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-actions">
+            <div class="group">
+                <button class="btn" type="submit">Rechercher</button>
+                <a class="btn-link" href="{{ path('client_opportunites') }}">Effacer</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="results-count">{{ pagination.total }} resultats</div>
+
+    <section class="cards">
+        {% for offer in offers %}
+            {% set critere = criteriaByOffer[offer.idOffre] ?? null %}
+            <article class="card">
+                <h3>{{ offer.titre ?? 'Offre sans titre' }}</h3>
+                <span class="badge contract">{{ offer.typeContrat ?? 'N/A' }}</span>
+
+                <div class="meta">
+                    <div>{{ offer.lieu ?? 'Lieu non precise' }}</div>
+                    <div>{{ offer.workPreference ?? 'Mode non precise' }}</div>
+                    <div>{{ offer.datePublication ? offer.datePublication|date('d/m/Y') : 'Date non precisee' }}</div>
+                </div>
+
+                <div style="color:#5b647f;line-height:1.35;min-height:42px;">
+                    {{ offer.description ? offer.description|slice(0, 120) ~ (offer.description|length > 120 ? '...' : '') : 'Aucune description.' }}
+                </div>
+
+                <div class="apply-row">
+                    <span class="badge {{ offer.statutOffre in ['ACTIVE', 'OUVERTE'] ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
+                    <div class="actions-right">
+                        <button type="button" class="details-btn open-offer-details" data-offer-id="{{ offer.idOffre }}">Voir details</button>
+                    </div>
+                </div>
+
+                <template id="offer-details-{{ offer.idOffre }}">
+                    <div class="details-head">
+                        <div>
+                            <h3 class="details-title">{{ offer.titre ?? 'Offre' }}</h3>
+                            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                                <span class="badge contract">{{ offer.typeContrat ?? 'N/A' }}</span>
+                                <span class="badge {{ offer.statutOffre in ['ACTIVE', 'OUVERTE'] ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-meta-grid">
+                        <div class="meta-item">Lieu<strong>{{ offer.lieu ?? 'Non precise' }}</strong></div>
+                        <div class="meta-item">Mode de travail<strong>{{ offer.workPreference ?? 'Non precise' }}</strong></div>
+                        <div class="meta-item">Date de publication<strong>{{ offer.datePublication ? offer.datePublication|date('d/m/Y') : 'Non precisee' }}</strong></div>
+                    </div>
+
+                    <div class="details-section">
+                        <h4>Description du poste</h4>
+                        <p>{{ offer.description ?? 'Aucune description disponible.' }}</p>
+                    </div>
+
+                    <div class="details-section">
+                        <h4>Profil recherche</h4>
+                        <ul class="details-list">
+                            {% if critere and critere.niveau_experience %}<li>{{ critere.niveau_experience }}</li>{% endif %}
+                            {% if critere and critere.niveau_etude %}<li>{{ critere.niveau_etude }}</li>{% endif %}
+                            {% if critere and critere.competences_requises %}
+                                {% for item in critere.competences_requises|replace({'\r': ''})|split('\n') %}
+                                    {% if item|trim != '' %}<li>{{ item|trim }}</li>{% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% if not critere %}<li>Profil non precise.</li>{% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="details-section" style="padding-bottom:18px;">
+                        <h4>Responsabilites</h4>
+                        <ul class="details-list">
+                            {% if critere and critere.responsibilities %}
+                                {% for item in critere.responsibilities|replace({'\r': ''})|split('\n') %}
+                                    {% if item|trim != '' %}<li>{{ item|trim }}</li>{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <li>Responsabilites non precisees.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="details-footer">
+                        <button
+                            type="button"
+                            class="apply-btn"
+                        >Postuler</button>
+                    </div>
+                </template>
+            </article>
+        {% else %}
+            <article class="card" style="grid-column:1/-1;">Aucune offre correspondante.</article>
+        {% endfor %}
+    </section>
+
+    {% if pagination.totalPages > 1 %}
+        {% set baseQuery = {
+            q: filters.q ?? null,
+            type_contrat: filters.type_contrat ?? null,
+            work_preference: filters.work_preference ?? null,
+            lieu: filters.lieu ?? null,
+            statut: filters.statut ?? null
+        } %}
+
+        <nav class="pagination" aria-label="Pagination des opportunites">
+            {% if pagination.page > 1 %}
+                <a class="pagination-link" href="{{ path('client_opportunites', baseQuery|merge({page: pagination.page - 1})) }}">&lsaquo;</a>
+            {% endif %}
+
+            {% for p in 1..pagination.totalPages %}
+                <a
+                    class="pagination-link {{ p == pagination.page ? 'is-current' : '' }}"
+                    href="{{ path('client_opportunites', baseQuery|merge({page: p})) }}"
+                >{{ p }}</a>
+            {% endfor %}
+
+            {% if pagination.page < pagination.totalPages %}
+                <a class="pagination-link" href="{{ path('client_opportunites', baseQuery|merge({page: pagination.page + 1})) }}">&rsaquo;</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</main>
+
+<div id="details-modal" class="modal">
+    <div class="modal-card details">
+        <div class="modal-head">
+            <span>Details opportunite</span>
+            <button id="close-details-modal" class="cancel" type="button">X</button>
+        </div>
+        <div id="details-modal-body"></div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const detailsModal = document.getElementById('details-modal');
+        const detailsBody = document.getElementById('details-modal-body');
+        const closeDetailsBtn = document.getElementById('close-details-modal');
+
+        const closeDetailsModal = () => {
+            if (!detailsModal || !detailsBody) return;
+            detailsModal.style.display = 'none';
+            detailsBody.innerHTML = '';
+        };
+
+        document.querySelectorAll('.open-offer-details').forEach((button) => {
+            button.addEventListener('click', () => {
+                const id = button.getAttribute('data-offer-id');
+                if (!id || !detailsModal || !detailsBody) return;
+
+                const tpl = document.getElementById('offer-details-' + id);
+                if (!tpl) return;
+
+                detailsBody.innerHTML = tpl.innerHTML;
+                detailsModal.style.display = 'flex';
+            });
+        });
+
+        if (closeDetailsBtn) closeDetailsBtn.addEventListener('click', closeDetailsModal);
+        if (detailsModal) {
+            detailsModal.addEventListener('click', (event) => {
+                if (event.target === detailsModal) {
+                    closeDetailsModal();
+                }
+            });
+        }
+    })();
+</script>
+</body>
+</html>

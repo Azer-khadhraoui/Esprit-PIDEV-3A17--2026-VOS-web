@@ -1,0 +1,176 @@
+<?php
+
+namespace App\Entity;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+class OffreEmploi
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $idOffre = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $titre = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $description = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $typeContrat = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $statutOffre = null;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeInterface $datePublication = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $idUtilisateur = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $workPreference = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lieu = null;
+
+    #[ORM\OneToMany(mappedBy: 'offreEmploi', targetEntity: CritereOffre::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $critereOffres;
+
+    public function __construct()
+    {
+        $this->critereOffres = new ArrayCollection();
+    }
+
+    public function getIdOffre(): ?int
+    {
+        return $this->idOffre;
+    }
+
+    public function getTitre(): ?string
+    {
+        return $this->titre;
+    }
+
+    public function setTitre(?string $titre): self
+    {
+        $this->titre = $titre;
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): self
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    public function getTypeContrat(): ?string
+    {
+        return $this->typeContrat;
+    }
+
+    public function setTypeContrat(?string $typeContrat): self
+    {
+        $this->typeContrat = $typeContrat;
+
+        return $this;
+    }
+
+    public function getStatutOffre(): ?string
+    {
+        return $this->statutOffre;
+    }
+
+    public function setStatutOffre(?string $statutOffre): self
+    {
+        $this->statutOffre = $statutOffre;
+
+        return $this;
+    }
+
+    public function getDatePublication(): ?\DateTimeInterface
+    {
+        return $this->datePublication;
+    }
+
+    public function setDatePublication(?\DateTimeInterface $datePublication): self
+    {
+        $this->datePublication = $datePublication;
+
+        return $this;
+    }
+
+    public function getIdUtilisateur(): ?int
+    {
+        return $this->idUtilisateur;
+    }
+
+    public function setIdUtilisateur(?int $idUtilisateur): self
+    {
+        $this->idUtilisateur = $idUtilisateur;
+
+        return $this;
+    }
+
+    public function getWorkPreference(): ?string
+    {
+        return $this->workPreference;
+    }
+
+    public function setWorkPreference(?string $workPreference): self
+    {
+        $this->workPreference = $workPreference;
+
+        return $this;
+    }
+
+    public function getLieu(): ?string
+    {
+        return $this->lieu;
+    }
+
+    public function setLieu(?string $lieu): self
+    {
+        $this->lieu = $lieu;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CritereOffre>
+     */
+    public function getCritereOffres(): Collection
+    {
+        return $this->critereOffres;
+    }
+
+    public function addCritereOffre(CritereOffre $critereOffre): self
+    {
+        if (!$this->critereOffres->contains($critereOffre)) {
+            $this->critereOffres->add($critereOffre);
+            $critereOffre->setOffreEmploi($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCritereOffre(CritereOffre $critereOffre): self
+    {
+        if ($this->critereOffres->removeElement($critereOffre) && $critereOffre->getOffreEmploi() === $this) {
+            $critereOffre->setOffreEmploi(null);
+        }
+
+        return $this;
+    }
+}
