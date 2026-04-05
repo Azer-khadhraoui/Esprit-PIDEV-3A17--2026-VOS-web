@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier User | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.querySelector('[data-profile-input="1"]');
+            const previewImage = document.querySelector('[data-profile-preview]');
+            const previewPlaceholder = document.querySelector('[data-profile-placeholder]');
+            const previewFilename = document.querySelector('[data-profile-filename]');
+
+            if (!input || !previewImage || !previewPlaceholder || !previewFilename) {
+                return;
+            }
+
+            input.addEventListener('change', () => {
+                const file = input.files && input.files[0];
+
+                if (!file) {
+                    previewFilename.textContent = 'Aucun fichier sélectionné';
+                    return;
+                }
+
+                previewFilename.textContent = file.name;
+
+                const reader = new FileReader();
+                reader.onload = event => {
+                    previewImage.src = event.target.result;
+                    previewImage.hidden = false;
+                    previewPlaceholder.hidden = true;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-dot"></span>
+            VOS Admin
+        </div>
+        <nav class="sidebar-nav">
+            <a class="active" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a href="#">Gestion Offres</a>
+            <a href="#">Gestion Entretiens</a>
+            <a href="#">Gestion Recrutements</a>
+            <a href="#">Forum</a>
+            <a href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Modifier Utilisateur</h1>
+                <p>{{ adminName }}</p>
+            </div>
+            <a class="btn-edit" href="{{ path('app_admin_dashboard') }}">Retour Dashboard</a>
+        </header>
+
+        <section class="table-card edit-page-card">
+            <h2>{{ user.prenom }} {{ user.nom }}</h2>
+            {{ form_start(editForm, {'attr': {'class': 'admin-edit-form'}}) }}
+                <div class="edit-layout">
+                    <aside class="edit-profile-panel">
+                        <h3>Photo de profil</h3>
+                        <div class="profile-upload">
+                            <div class="profile-preview profile-preview-large">
+                                <img
+                                    data-profile-preview
+                                    class="profile-preview-image"
+                                    src="{% if user.imageProfil %}{{ asset(user.imageProfil) }}{% endif %}"
+                                    alt="Aperçu de la photo de profil"
+                                    {% if not user.imageProfil %}hidden{% endif %}
+                                >
+                                <div class="profile-placeholder profile-placeholder-large" data-profile-placeholder {% if user.imageProfil %}hidden{% endif %}>
+                                    <span>Choisir une photo</span>
+                                </div>
+                            </div>
+                            <div class="profile-filename" data-profile-filename>Aucun fichier sélectionné</div>
+                            {{ form_label(editForm.imageFile) }}
+                            {{ form_widget(editForm.imageFile, {'attr': {'data-profile-input': '1', 'accept': 'image/*'}}) }}
+                            {{ form_errors(editForm.imageFile) }}
+                        </div>
+                    </aside>
+
+                    <div class="edit-form-panel">
+                        {{ form_row(editForm.nom) }}
+                        {{ form_row(editForm.prenom) }}
+                        {{ form_row(editForm.email) }}
+                        {{ form_row(editForm.role) }}
+                        <button class="btn-edit" type="submit">Enregistrer</button>
+                    </div>
+                </div>
+            {{ form_end(editForm) }}
+        </section>
+    </main>
+</div>
+{% endblock %}

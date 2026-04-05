@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Contact | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/public-pages.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="public-page">
+    <header class="top-nav">
+        <div class="brand">
+            <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="logo-img">
+        </div>
+        <nav>
+            <a href="{{ path('app_signin') }}">Accueil</a>
+            <a href="#">Opportunités</a>
+            <a href="{{ path('app_contact') }}" class="active">Contact</a>
+            <a href="{{ path('app_about') }}">À propos</a>
+        </nav>
+    </header>
+
+    <section class="public-card">
+        <div class="public-hero">
+            <h1>Contactez l'équipe VOS</h1>
+            <p>Nous sommes disponibles pour toute question sur votre compte, l'espace admin ou l'utilisation de la plateforme.</p>
+        </div>
+
+        <div class="public-content">
+            <div class="info-grid">
+                <article class="info-item">
+                    <h3>Email support</h3>
+                    <p>support@vos.tn</p>
+                    <a class="cta-link" href="mailto:support@vos.tn">Envoyer un email</a>
+                </article>
+
+                <article class="info-item">
+                    <h3>Téléphone</h3>
+                    <p>+216 70 000 000</p>
+                    <a class="cta-link" href="tel:+21670000000">Appeler maintenant</a>
+                </article>
+
+                <article class="info-item">
+                    <h3>Adresse</h3>
+                    <p>Ariana, Tunisie</p>
+                    <a class="cta-link" href="{{ path('app_about') }}">Découvrir VOS</a>
+                </article>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/signup.css') }}">
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const passwordInput = document.querySelector('input[name="signup[password]"]');
+            const strengthBar = document.querySelector('[data-password-strength-bar]');
+            const strengthText = document.querySelector('[data-password-strength-text]');
+
+            if (passwordInput && strengthBar && strengthText) {
+                function evaluatePasswordStrength(password) {
+                    let strength = 0;
+
+                    if (password.length >= 6) strength++;
+                    if (password.length >= 10) strength++;
+                    if (password.length >= 14) strength++;
+                    if (/[a-z]/.test(password)) strength++;
+                    if (/[A-Z]/.test(password)) strength++;
+                    if (/[0-9]/.test(password)) strength++;
+                    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+                    let level = 'Faible';
+                    let colorClass = 'strength-weak';
+
+                    if (strength >= 5) {
+                        level = 'Très fort';
+                        colorClass = 'strength-very-strong';
+                    } else if (strength >= 4) {
+                        level = 'Fort';
+                        colorClass = 'strength-strong';
+                    } else if (strength >= 3) {
+                        level = 'Moyen';
+                        colorClass = 'strength-medium';
+                    }
+
+                    return { strength, level, colorClass };
+                }
+
+                passwordInput.addEventListener('input', () => {
+                    const password = passwordInput.value;
+                    const { strength, level, colorClass } = evaluatePasswordStrength(password);
+
+                    strengthBar.className = 'password-strength-bar ' + colorClass;
+                    strengthBar.style.width = Math.min((strength / 7) * 100, 100) + '%';
+                    strengthText.textContent = password.length > 0 ? 'Force: ' + level : '';
+                    strengthText.className = 'password-strength-text ' + colorClass;
+                });
+            }
+
+            const input = document.querySelector('[data-profile-input="1"]');
+            const previewImage = document.querySelector('[data-profile-preview]');
+            const previewPlaceholder = document.querySelector('[data-profile-placeholder]');
+            const previewFilename = document.querySelector('[data-profile-filename]');
+
+            if (!input || !previewImage || !previewPlaceholder || !previewFilename) {
+                return;
+            }
+
+            input.addEventListener('change', () => {
+                const file = input.files && input.files[0];
+                if (!file) {
+                    previewImage.src = '';
+                    previewImage.hidden = true;
+                    previewPlaceholder.hidden = false;
+                    previewFilename.textContent = 'Aucun fichier sélectionné';
+                    return;
+                }
+
+                previewFilename.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = event => {
+                    previewImage.src = event.target.result;
+                    previewImage.hidden = false;
+                    previewPlaceholder.hidden = true;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    <div class="signup-page">
+        <header class="top-nav">
+            <div class="brand">
+                <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="logo-img">
+            </div>
+            <nav>
+                <a href="{{ path('app_signup') }}">Accueil</a>
+                <a href="#">Opportunités</a>
+                <a href="{{ path('app_contact') }}">Contact</a>
+                <a href="{{ path('app_about') }}">À propos</a>
+            </nav>
+        </header>
+
+        <main class="signup-layout">
+            <section class="visual-side">
+                <div class="visual-card">
+                    <img src="{{ asset('images/signup.png') }}" alt="Illustration inscription">
+                </div>
+            </section>
+
+            <section class="form-side">
+                <div class="form-card">
+                    <h1>Bienvenue sur VOS</h1>
+                    <p class="signin-hint">Vous avez déjà un compte ? <a href="{{ path('app_signin') }}">Se connecter</a></p>
+
+                    {% for message in app.flashes('error') %}
+                        <div class="flash flash-error">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('success') %}
+                        <div class="flash flash-success">{{ message }}</div>
+                    {% endfor %}
+
+                    {{ form_start(signupForm, {'attr': {'class': 'signup-form', 'enctype': 'multipart/form-data'}}) }}
+                        <div class="profile-upload">
+                            <div class="profile-preview">
+                                <img data-profile-preview src="" alt="Aperçu de la photo de profil" hidden>
+                                <div class="profile-placeholder" data-profile-placeholder>
+                                    <span>Choisir une photo</span>
+                                </div>
+                            </div>
+                            <div class="profile-filename" data-profile-filename>Aucun fichier sélectionné</div>
+                            {{ form_label(signupForm.imageFile) }}
+                            {{ form_widget(signupForm.imageFile, {'attr': {'class': 'profile-file-input', 'data-profile-input': '1', 'accept': 'image/*'}}) }}
+                            {{ form_errors(signupForm.imageFile) }}
+                        </div>
+                        <div class="name-row">
+                            <div class="field">{{ form_row(signupForm.nom) }}</div>
+                            <div class="field">{{ form_row(signupForm.prenom) }}</div>
+                        </div>
+                        <div class="field">{{ form_row(signupForm.email) }}</div>
+                        <div class="field">{{ form_row(signupForm.password) }}</div>
+                        <div class="password-strength-container">
+                            <div class="password-strength-bar" data-password-strength-bar></div>
+                            <span class="password-strength-text" data-password-strength-text></span>
+                        </div>
+                        <div class="field">{{ form_row(signupForm.confirmPassword) }}</div>
+
+                        <button type="submit" class="btn-primary">S'inscrire</button>
+                    {{ form_end(signupForm) }}
+                </div>
+            </section>
+        </main>
+    </div>
+{% endblock %}

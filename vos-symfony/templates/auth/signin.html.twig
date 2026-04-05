@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/signin.css') }}">
+{% endblock %}
+
+{% block body %}
+    <div class="signin-page">
+        <header class="top-nav">
+            <div class="brand">
+                <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="logo-img">
+            </div>
+            <nav>
+                <a href="{{ path('app_signin') }}">Accueil</a>
+                <a href="#">Opportunités</a>
+                <a href="{{ path('app_contact') }}">Contact</a>
+                <a href="{{ path('app_about') }}">À propos</a>
+            </nav>
+        </header>
+
+        <main class="signin-layout">
+            <section class="form-side">
+                <div class="form-card">
+                    <h1>Se connecter à VOS</h1>
+                    <p class="signup-hint">Pas encore de compte ? <a href="{{ path('app_signup') }}">S'inscrire</a></p>
+
+                    {% for message in app.flashes('error') %}
+                        <div class="flash flash-error">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('success') %}
+                        <div class="flash flash-success">{{ message }}</div>
+                    {% endfor %}
+
+                    <form method="post" class="signin-form">
+                        <div class="field">
+                            <label for="email">Adresse e-mail</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+
+                        <div class="field">
+                            <label for="password">Mot de passe</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+
+                        <div class="field-remember">
+                            <label>
+                                <input type="checkbox" name="remember" id="remember">
+                                Se souvenir de moi
+                            </label>
+                            <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Connexion</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="visual-side">
+                <div class="visual-card">
+                    <img src="{{ asset('images/signin.png') }}" alt="Illustration connexion">
+                </div>
+            </section>
+        </main>
+    </div>
+{% endblock %}

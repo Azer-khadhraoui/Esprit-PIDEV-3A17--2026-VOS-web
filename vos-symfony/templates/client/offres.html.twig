@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Offres d'Emploi | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="client-shell">
+    <header class="client-header">
+        <div class="client-header-content">
+            <div class="client-header-brand">
+                <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="client-logo-img">
+            </div>
+            <h1>VOS - Offres d'Emploi</h1>
+            <div class="client-header-right">
+                <span>Bienvenue {{ userName }}</span>
+                <a class="btn-profile-client" href="{{ path('app_client_profile') }}">Mon profil</a>
+                <form method="post" action="{{ path('app_logout') }}" class="logout-form">
+                    <button class="btn-logout-client" type="submit">Déconnexion</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="client-content">
+        <section class="offres-container">
+            <h2>Offres Disponibles</h2>
+            
+            <div class="search-section">
+                <form method="GET" class="search-form">
+                    <div class="search-bar">
+                        <input type="text" name="search" placeholder="Rechercher une offre..." class="search-field" value="{{ search }}">
+                                        <input type="hidden" name="type" id="typeFilter" value="{{ type }}">
+                    </div>
+
+                    <div class="filter-types">
+                        <button type="button" class="filter-btn filter-type-btn {% if not type %}active{% endif %}" data-type="">Tous</button>
+                        <button type="button" class="filter-btn filter-type-btn {% if type == 'CDI' %}active{% endif %}" data-type="CDI">CDI</button>
+                        <button type="button" class="filter-btn filter-type-btn {% if type == 'CDD' %}active{% endif %}" data-type="CDD">CDD</button>
+                        <button type="button" class="filter-btn filter-type-btn {% if type == 'Stage' %}active{% endif %}" data-type="Stage">Stage</button>
+                        <button type="button" class="filter-btn filter-type-btn {% if type == 'Freelance' %}active{% endif %}" data-type="Freelance">Freelance</button>
+                    </div>
+                </form>
+            </div>
+            
+            {% if offres is empty %}
+                <div class="no-offres">
+                    <p>Aucune offre trouvée.</p>
+                </div>
+            {% else %}
+                <div class="offres-grid">
+                    {% for offre in offres %}
+                        <article class="offre-card">
+                            <header class="offre-header">
+                                <h3>{{ offre.titre }}</h3>
+                                <span class="offre-type">{{ offre.type }}</span>
+                            </header>
+
+                            <div class="offre-body">
+                                <p class="offre-entreprise">
+                                    <strong>Entreprise:</strong> {{ offre.entreprise }}
+                                </p>
+                                <p class="offre-localisation">
+                                    <strong>Localisation:</strong> {{ offre.localisation }}
+                                </p>
+                                {% if offre.salaire > 0 %}
+                                <p class="offre-salaire">
+                                    <strong>Salaire:</strong> {{ offre.salaire|number_format(0, ',', ' ') }} €/an
+                                </p>
+                                {% endif %}
+                                <p class="offre-description">
+                                    {{ offre.description|slice(0, 150) }}{% if offre.description|length > 150 %}...{% endif %}
+                                </p>
+                            </div>
+
+                            <footer class="offre-footer">
+                                <small>Publié le {{ offre.dateCreation|date('d/m/Y') }}</small>
+                                <button class="btn-candidate">Postuler</button>
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+<script>
+    const searchForm = document.querySelector('.search-form');
+    const searchField = document.querySelector('.search-field');
+    const typeFilter = document.getElementById('typeFilter');
+    const filterButtons = document.querySelectorAll('.filter-type-btn');
+    let debounceTimer;
+
+    function submitForm() {
+        if (searchForm) {
+            searchForm.submit();
+        }
+    }
+
+    // Écouter les changements de recherche avec délai (debounce)
+    if (searchField) {
+        searchField.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(submitForm, 500);
+        });
+    }
+
+    // Écouter les clics sur les boutons de filtre
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const typeValue = this.getAttribute('data-type');
+            typeFilter.value = typeValue;
+            
+            // Mettre en surbrillance le bouton actif
+            filterButtons.forEach(button => button.classList.remove('active'));
+            this.classList.add('active');
+            
+            submitForm();
+        });
+    });
+</script>
+
+</div>
+{% endblock %}
