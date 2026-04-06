@@ -4,21 +4,22 @@
 
 {% block body %}
     <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">
-                <span class="brand-dot"></span>
-                <span>VOS Admin</span>
-            </div>
-
-            <nav class="nav-list">
-                <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
-                <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
-                <a class="nav-item" href="#">Gestion Entretiens</a>
-                <a class="nav-item" href="#">Gestion Recrutements</a>
-                <a class="nav-item" href="#">Forum</a>
-                <a class="nav-item" href="#">Rapports</a>
-            </nav>
-        </aside>
+       <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="#">Gestion Entretiens</a>
+            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
 
         <main class="content">
             <div class="topbar">
