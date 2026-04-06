@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Repository\EntretienRepository;
 
 #[Route('/evaluation/entretien')]
 class EvaluationEntretienController extends AbstractController
@@ -32,10 +33,20 @@ class EvaluationEntretienController extends AbstractController
     }
 
     #[Route('/new', name: 'app_evaluation_entretien_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $em): Response
-    {
-        $evaluation = new EvaluationEntretien();
-        $form = $this->createForm(EvaluationEntretienType::class, $evaluation);
+    public function new(Request $request, EntityManagerInterface $em, EntretienRepository $entretienRepo): Response
+{
+    $evaluation = new EvaluationEntretien();
+
+    // Pré-sélectionner l'entretien si l'ID est passé en paramètre
+    $entretienId = $request->query->get('entretienId');
+    if ($entretienId) {
+        $entretien = $entretienRepo->find($entretienId);
+        if ($entretien) {
+            $evaluation->setEntretien($entretien);
+        }
+    }
+
+    $form = $this->createForm(EvaluationEntretienType::class, $evaluation);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

@@ -155,17 +155,18 @@
                 </td>
                 <td>{{ entretien.lieu ?? '-' }}</td>
                 <td>{{ entretien.typeTest ?? '-' }}</td>
-                <td>
-                    <div class="d-flex gap-1 flex-wrap">
-                        <a href="{{ path('app_entretien_show', {'id': entretien.id}) }}" class="btn-voir">Voir</a>
-                        <a href="{{ path('app_entretien_edit', {'id': entretien.id}) }}" class="btn-modifier">Modifier</a>
-                        <form method="post" action="{{ path('app_entretien_delete', {'id': entretien.id}) }}"
-                              style="display:inline" onsubmit="return confirm('Supprimer ?')">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
-                            <button class="btn-supprimer">Supprimer</button>
-                        </form>
-                    </div>
-                </td>
+               <td>
+    <div class="d-flex gap-1 flex-wrap">
+        <a href="{{ path('app_entretien_show', {'id': entretien.id}) }}" class="btn-voir">Voir</a>
+        <a href="{{ path('app_entretien_edit', {'id': entretien.id}) }}" class="btn-modifier">Modifier</a>
+        <a href="{{ path('app_evaluation_entretien_new', {'entretienId': entretien.id}) }}" class="btn-modifier" style="background:#7209b7">Évaluer</a>
+        <form method="post" action="{{ path('app_entretien_delete', {'id': entretien.id}) }}"
+              style="display:inline" onsubmit="return confirm('Supprimer ?')">
+            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
+            <button class="btn-supprimer">Supprimer</button>
+        </form>
+    </div>
+</td>
             </tr>
         {% else %}
             <tr>

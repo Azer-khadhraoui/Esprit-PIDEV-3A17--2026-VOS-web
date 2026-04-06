@@ -85,7 +85,7 @@
                         Aucune évaluation
                     </div>
                 {% endif %}
-                <a href="{{ path('app_evaluation_entretien_new') }}" class="btn-add w-100 justify-content-center mt-2">
+                <a href="{{ path('app_evaluation_entretien_new', {'entretienId': entretien.id}) }}" class="btn-add w-100 justify-content-center mt-2">
                     <i class="fas fa-plus"></i> Ajouter évaluation
                 </a>
             </div>
