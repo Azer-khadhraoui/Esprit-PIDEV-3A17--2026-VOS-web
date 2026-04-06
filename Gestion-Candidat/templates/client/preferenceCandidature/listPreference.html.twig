@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Préférences | VOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f8fc;
+            --panel: #ffffff;
+            --line: #e8ebf3;
+            --text: #1b2440;
+            --muted: #6c7693;
+            --primary: #4361ee;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(1100px 520px at 14% 6%, rgba(67,97,238,0.18), transparent 50%),
+                radial-gradient(1200px 680px at 88% 110%, rgba(67,97,238,0.22), transparent 58%),
+                linear-gradient(180deg, #f9fbff 0%, #eef3ff 100%);
+            color: var(--text);
+            animation: pageFadeIn 0.45s ease;
+        }
+
+        @keyframes pageFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDownSoft {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            gap: 16px;
+            animation: slideDownSoft 0.5s ease;
+        }
+
+        .brand {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .nav a { text-decoration: none; color: inherit; }
+        .nav a.is-active { color: var(--primary); }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .profile-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: 0 8px 18px rgba(67, 97, 238, 0.24);
+        }
+
+        .profile-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .logout-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: rgba(67, 97, 238, 0.14);
+            color: #1d4ed8;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.18s ease, background 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(67, 97, 238, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 22px auto;
+            padding: 0 18px 26px;
+            animation: riseIn 0.55s ease;
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            font-size: 2.1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .flash {
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .flash.success { background: #dcfce7; color: #166534; }
+        .flash.error { background: #fee2e2; color: #991b1b; }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            gap: 12px;
+        }
+
+        .btn-new {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 16px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.18s ease, filter 0.2s ease;
+        }
+
+        .btn-new:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: riseIn 0.5s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.14);
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 1.2rem;
+            color: var(--text);
+        }
+
+        .card-detail {
+            margin: 8px 0;
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        .card-detail strong {
+            color: var(--text);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            flex: 1;
+            border: 0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            text-decoration: none;
+            transition: transform 0.18s ease, background 0.2s ease;
+        }
+
+        .btn-view {
+            background: rgba(67, 97, 238, 0.12);
+            color: var(--primary);
+        }
+
+        .btn-view:hover {
+            background: rgba(67, 97, 238, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-edit {
+            background: rgba(22, 163, 74, 0.12);
+            color: var(--success);
+        }
+
+        .btn-edit:hover {
+            background: rgba(22, 163, 74, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            background: rgba(220, 38, 38, 0.12);
+            color: var(--danger);
+        }
+
+        .btn-delete:hover {
+            background: rgba(220, 38, 38, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 18px;
+            color: var(--muted);
+        }
+
+        .empty-state h2 {
+            margin: 0 0 10px;
+            font-size: 1.5rem;
+            color: var(--text);
+        }
+
+        @media (max-width: 680px) {
+            .nav { display: none; }
+            h1 { font-size: 1.6rem; }
+            .grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'preferences' }) }}
+
+    <div class="container">
+        <h1>Mes Préférences</h1>
+
+        {% for message in app.flashes('success') %}
+            <div class="flash success">✓ {{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="flash error">✗ {{ message }}</div>
+        {% endfor %}
+
+        <div class="controls">
+            <div style="flex: 1;"></div>
+            <a href="{{ path('app_client_preference_new') }}" class="btn-new">+ Nouvelle Préférence</a>
+        </div>
+
+        {% if preferences is empty %}
+            <div class="empty-state">
+                <h2>Aucune préférence</h2>
+                <p>Créez votre première préférence pour définir vos critères de recherche.</p>
+            </div>
+        {% else %}
+            <div class="grid">
+                {% for preference in preferences %}
+                    <div class="card">
+                        <h3>{{ preference.typePosteSouhaite ?? 'Sans titre' }}</h3>
+                        <div class="card-detail">
+                            <strong>Mode de travail:</strong> {{ preference.modeTravail ?? '-' }}
+                        </div>
+                        <div class="card-detail">
+                            <strong>Disponiblité:</strong> {{ preference.disponibilite ?? '-' }}
+                        </div>
+                        <div class="card-detail">
+                            <strong>Contrat souhaité:</strong> {{ preference.typeContratSouhaite ?? '-' }}
+                        </div>
+                        <div class="card-detail">
+                            <strong>Salaire:</strong> {{ preference.pretentionSalariale ? preference.pretentionSalariale ~ ' TND' : '-' }}
+                        </div>
+                        <div class="card-actions">
+                            <a href="{{ path('app_client_preference_detail', {id_preference: preference.idPreference}) }}" class="btn-small btn-view">Voir</a>
+                            <a href="{{ path('app_client_preference_edit', {id_preference: preference.idPreference}) }}" class="btn-small btn-edit">Modifier</a>
+                            <form method="POST" action="{{ path('app_client_preference_delete', {id_preference: preference.idPreference}) }}" style="flex: 1;" onsubmit="return confirm('Êtes-vous sûr?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ preference.idPreference) }}">
+                                <button type="submit" class="btn-small btn-delete" style="width: 100%; margin: 0;">Supprimer</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

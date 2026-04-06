@@ -467,21 +467,7 @@
     </style>
 </head>
 <body>
-<header class="header">
-    <div class="header-inner">
-        <div class="brand">VOS</div>
-        <nav class="nav">
-            <a class="is-active" href="{{ path('client_opportunites') }}">Opportunites</a>
-            <a href="{{ path('app_client_candidatures') }}">Mes Candidatures</a>
-        </nav>
-        <div class="header-actions">
-            <a class="signup" href="{{ path('app_client_profile') }}">Voir profil</a>
-            <form method="post" action="{{ path('app_logout') }}" style="margin:0;">
-                <button class="logout-btn" type="submit">Déconnexion</button>
-            </form>
-        </div>
-    </div>
-</header>
+{{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'opportunites' }) }}
 
 <main class="container">
     <h1>Opportunites</h1>

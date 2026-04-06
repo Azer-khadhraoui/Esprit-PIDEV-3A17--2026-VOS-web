@@ -11,21 +11,7 @@
 
 {% block body %}
 <div class="client-shell">
-    <header class="client-header">
-        <div class="client-header-content">
-            <div class="client-header-brand">
-                <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="client-logo-img">
-            </div>
-            <h1>VOS - Offres d'Emploi</h1>
-            <div class="client-header-right">
-                <span>Bienvenue {{ userName }}</span>
-                <a class="btn-profile-client" href="{{ path('app_client_profile') }}">Mon profil</a>
-                <form method="post" action="{{ path('app_logout') }}" class="logout-form">
-                    <button class="btn-logout-client" type="submit">Déconnexion</button>
-                </form>
-            </div>
-        </div>
-    </header>
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: '' }) }}
 
     <main class="client-content">
         <section class="offres-container">

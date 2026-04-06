@@ -16,6 +16,12 @@ class ClientOffreController extends AbstractController
     #[Route('/opportunites', name: 'client_opportunites', methods: ['GET'])]
     public function index(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
+        // Vérifier que l'utilisateur est connecté
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
         $offreRepository = $entityManager->getRepository(OffreEmploi::class);
         $page = max(1, (int) $request->query->get('page', 1));
         $perPage = 6;
@@ -86,6 +92,7 @@ class ClientOffreController extends AbstractController
             'offers' => $offers,
             'criteriaByOffer' => $criteriaByOffer,
             'isClientAuthenticated' => $isClientAuthenticated,
+            'userName' => (string) $session->get('user_name', 'Utilisateur'),
             'pagination' => [
                 'page' => $page,
                 'perPage' => $perPage,

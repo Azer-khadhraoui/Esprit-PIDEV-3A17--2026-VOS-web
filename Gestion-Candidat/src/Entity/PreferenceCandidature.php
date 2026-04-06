@@ -17,55 +17,72 @@ class PreferenceCandidature
     private ?int $id_preference = null;
 
     #[ORM\Column(length: 100, nullable: true)]
-    #[Assert\NotBlank(message: "Le type de poste souhaité est obligatoire.")]
-    #[Assert\Length(max: 100, maxMessage: "100 caractères maximum.")]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: "Le type de poste ne peut pas dépasser 100 caractères."
+    )]
     private ?string $type_poste_souhaite = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-     #[Assert\Choice(
+    #[Assert\Choice(
         choices: ["100% Présentiel", "100% Télétravail", "Hybride"],
-        message: "Mode de travail invalide."
+        message: "Sélectionnez un mode de travail valide: '100% Présentiel', '100% Télétravail' ou 'Hybride'."
     )]
     private ?string $mode_travail = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-       #[Assert\Choice(
+    #[Assert\Choice(
         choices: ["Immédiatement", "Dans 1 mois", "Dans 3 mois", "Dans 6 mois"],
-        message: "Disponibilité invalide."
+        message: "Sélectionnez une disponibilité valide."
     )]
     private ?string $disponibilite = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-     #[Assert\Choice(
+    #[Assert\Choice(
         choices: ["Oui, national", "Oui, région", "Non"],
-        message: "Mobilité géographique invalide."
+        message: "Sélectionnez une option de mobilité géographique valide."
     )]
     private ?string $mobilite_geographique = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-     #[Assert\Choice(
+    #[Assert\Choice(
         choices: ["Jamais", "Occasionnel", "Fréquent"],
-        message: "Valeur invalide pour prêt au déplacement."
+        message: "Sélectionnez une option valide pour le prêt au déplacement."
     )]
     private ?string $pret_deplacement = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-     #[Assert\Choice(
+    #[Assert\Choice(
         choices: ["CDI", "CDD", "Stage", "Alternance", "Freelance"],
-        message: "Type de contrat invalide."
+        message: "Sélectionnez un type de contrat valide."
     )]
     private ?string $type_contrat_souhaite = null;
 
     #[ORM\Column(nullable: true)]
-     #[Assert\PositiveOrZero(message: "La prétention salariale doit être >= 0.")]
-    #[Assert\LessThanOrEqual(100000, message: "Valeur salariale trop élevée.")]
+    #[Assert\PositiveOrZero(
+        message: "La prétention salariale doit être supérieure ou égale à 0."
+    )]
+    #[Assert\LessThanOrEqual(
+        value: 1000000,
+        message: "La prétention salariale ne peut pas dépasser 1 000 000 TND."
+    )]
+    #[Assert\Type(
+        type: 'numeric',
+        message: "La prétention salariale doit être un nombre."
+    )]
     private ?float $pretention_salariale = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    #[Assert\GreaterThanOrEqual("today", message: "La date de disponibilité doit être dans le futur.")]
+    #[Assert\GreaterThanOrEqual(
+        value: "today",
+        message: "La date de disponibilité doit être aujourd'hui ou dans le futur."
+    )]
     private ?\DateTime $date_disponibilite = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\Positive(
+        message: "L'ID utilisateur doit être un nombre positif."
+    )]
     private ?int $id_utilisateur = null;
 
     public function getIdPreference(): ?int

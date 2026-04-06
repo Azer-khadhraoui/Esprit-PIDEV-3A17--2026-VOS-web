@@ -45,20 +45,7 @@
 
 {% block body %}
 <div class="client-shell">
-    <header class="header">
-        <div class="header-inner">
-            <div class="brand">VOS</div>
-            <nav class="nav">
-                <a href="{{ path('client_opportunites') }}">Opportunites</a>
-            </nav>
-            <div class="header-actions">
-                <a class="signup" href="{{ path('app_client_profile') }}">Voir profil</a>
-                <form method="post" action="{{ path('app_logout') }}">
-                    <button class="btn-logout-client" type="submit">Déconnexion</button>
-                </form>
-            </div>
-        </div>
-    </header>
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'profile' }) }}
 
     <main class="client-content">
         {% for message in app.flashes('error') %}

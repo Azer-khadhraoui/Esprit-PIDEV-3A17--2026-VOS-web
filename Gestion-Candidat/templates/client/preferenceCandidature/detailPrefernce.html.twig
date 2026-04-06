@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Postuler | VOS</title>
+    <title>Détails Préférence | VOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -126,7 +126,7 @@
             letter-spacing: -0.02em;
         }
 
-        .form-card {
+        .detail-card {
             background: #fff;
             border: 1px solid var(--line);
             border-radius: 14px;
@@ -134,61 +134,40 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
-        .form-card h2 {
-            margin: 0 0 6px;
+        .detail-card h2 {
+            margin: 0 0 18px;
             font-size: 1.5rem;
+            color: var(--primary);
         }
 
-        .form-card p {
-            margin: 0 0 16px;
-            color: var(--muted);
-            font-size: 0.95rem;
+        .detail-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--line);
         }
 
-        .form-group {
-            margin-bottom: 14px;
+        .detail-row:last-child {
+            border-bottom: none;
         }
 
-        label {
-            display: block;
-            margin-bottom: 6px;
+        .detail-label {
             font-weight: 600;
+            color: var(--muted);
+            min-width: 180px;
             font-size: 0.95rem;
+        }
+
+        .detail-value {
             color: var(--text);
+            flex: 1;
         }
 
-        input[type="text"],
-        input[type="number"],
-        input[type="file"],
-        select,
-        textarea {
-            width: 100%;
-            border: 1px solid #d9deea;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-family: inherit;
-            font-size: 0.94rem;
-            background: #fff;
-            color: var(--text);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        .detail-value em {
+            color: var(--muted);
+            font-style: normal;
         }
 
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        input[type="file"]:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #9fb1ff;
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-actions {
+        .actions {
             display: flex;
             gap: 10px;
             margin-top: 18px;
@@ -202,7 +181,12 @@
             font-weight: 700;
             cursor: pointer;
             font-family: 'Poppins', sans-serif;
+            text-decoration: none;
             transition: transform 0.18s ease, filter 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .btn-primary {
@@ -218,10 +202,6 @@
         .btn-secondary {
             background: #e2e8f0;
             color: var(--text);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .btn-secondary:hover {
@@ -229,91 +209,97 @@
             transform: translateY(-2px);
         }
 
-        .form-errors,
-        .form-errors li {
-            color: #b91c1c;
+        .btn-danger {
+            background: rgba(220, 38, 38, 0.12);
+            color: #dc2626;
         }
 
-        .form-errors {
-            margin: 8px 0 14px;
-            padding-left: 18px;
-        }
-
-        .form-errors li {
-            list-style: disc;
+        .btn-danger:hover {
+            background: rgba(220, 38, 38, 0.24);
+            transform: translateY(-2px);
         }
 
         @media (max-width: 680px) {
             .nav { display: none; }
             h1 { font-size: 1.6rem; }
-            .form-actions { flex-direction: column; }
+            .detail-row { flex-direction: column; }
+            .detail-label { min-width: auto; margin-bottom: 4px; }
+            .actions { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-{{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'candidatures' }) }}
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'preferences' }) }}
 
-<main class="container">
-    <h1>Postuler</h1>
+    <div class="container">
+        <h1>Détails de la Préférence</h1>
 
-    <div class="form-card">
-        <h2>Formulaire de Candidature</h2>
-        <p>Offre #{{ id_offre }} — Remplissez tous les champs obligatoires</p>
+        <div class="detail-card">
+            <h2>{{ preference.typePosteSouhaite ?? 'Préférence sans titre' }}</h2>
 
-        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
-
-            {{ form_errors(form) }}
-
-            <div class="form-group">
-                {{ form_label(form.cv) }}
-                {{ form_widget(form.cv) }}
-                {{ form_errors(form.cv) }}
+            <div class="detail-row">
+                <div class="detail-label">Type de poste:</div>
+                <div class="detail-value">{{ preference.typePosteSouhaite ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.lettre_motivation) }}
-                {{ form_widget(form.lettre_motivation) }}
-                {{ form_errors(form.lettre_motivation) }}
+            <div class="detail-row">
+                <div class="detail-label">Mode de travail:</div>
+                <div class="detail-value">{{ preference.modeTravail ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.niveau_experience) }}
-                {{ form_widget(form.niveau_experience) }}
-                {{ form_errors(form.niveau_experience) }}
+            <div class="detail-row">
+                <div class="detail-label">Disponibilité:</div>
+                <div class="detail-value">{{ preference.disponibilite ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.annees_experience) }}
-                {{ form_widget(form.annees_experience) }}
-                {{ form_errors(form.annees_experience) }}
+            <div class="detail-row">
+                <div class="detail-label">Mobilité géographique:</div>
+                <div class="detail-value">{{ preference.mobiliteGeographique ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.domaine_experience) }}
-                {{ form_widget(form.domaine_experience) }}
-                {{ form_errors(form.domaine_experience) }}
+            <div class="detail-row">
+                <div class="detail-label">Prêt au déplacement:</div>
+                <div class="detail-value">{{ preference.pretDeplacement ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.dernier_poste) }}
-                {{ form_widget(form.dernier_poste) }}
-                {{ form_errors(form.dernier_poste) }}
+            <div class="detail-row">
+                <div class="detail-label">Type de contrat souhaité:</div>
+                <div class="detail-value">{{ preference.typeContratSouhaite ?? '<em>Non renseigné</em>' }}</div>
             </div>
 
-            <div class="form-group">
-                {{ form_label(form.message_candidat) }}
-                {{ form_widget(form.message_candidat) }}
-                {{ form_errors(form.message_candidat) }}
+            <div class="detail-row">
+                <div class="detail-label">Prétention salariale:</div>
+                <div class="detail-value">
+                    {% if preference.pretentionSalariale %}
+                        {{ preference.pretentionSalariale }} TND
+                    {% else %}
+                        <em>Non renseigné</em>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Soumettre ma candidature</button>
-                <a href="{{ path('app_client_candidatures') }}" class="btn btn-secondary">Annuler</a>
+            <div class="detail-row">
+                <div class="detail-label">Date de disponibilité:</div>
+                <div class="detail-value">
+                    {% if preference.dateDisponibilite %}
+                        {{ preference.dateDisponibilite|date('d/m/Y') }}
+                    {% else %}
+                        <em>Non renseigné</em>
+                    {% endif %}
+                </div>
             </div>
 
-        {{ form_end(form) }}
+            <div class="actions">
+                <a href="{{ path('app_client_preference_edit', {id_preference: preference.idPreference}) }}" class="btn btn-primary">
+                    ✏️ Modifier
+                </a>
+                <a href="{{ path('app_client_preferences') }}" class="btn btn-secondary">Retour</a>
+                <form method="POST" action="{{ path('app_client_preference_delete', {id_preference: preference.idPreference}) }}" style="flex: 1;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette préférence?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ preference.idPreference) }}">
+                    <button type="submit" class="btn btn-danger" style="width: 100%; margin: 0;">🗑️ Supprimer</button>
+                </form>
+            </div>
+        </div>
     </div>
-</main>
-
 </body>
 </html>

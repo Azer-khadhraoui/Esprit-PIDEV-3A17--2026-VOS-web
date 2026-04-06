@@ -114,39 +114,46 @@ body {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .signup {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 0;
     border-radius: 999px;
-    padding: 10px 16px;
+    padding: 10px 18px;
     background: var(--primary);
     color: #fff;
     font-weight: 700;
     text-decoration: none;
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.header .btn-logout-client {
-    background: rgba(14, 77, 164, 0.12);
+.signup:hover {
+    background: #254ec5;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(67, 97, 238, 0.28);
+}
+
+.logout-btn {
+    border: 1px solid #c5d1f0;
+    background: #f0f3ff;
     color: var(--primary);
-    border: 1px solid rgba(14, 77, 164, 0.28);
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.18s ease;
 }
 
-.header .btn-logout-client:hover {
-    background: rgba(14, 77, 164, 0.2);
-}
-
-@keyframes clientGlowFloat {
-    0%,
-    100% {
-        transform: translate3d(0, 0, 0) scale(1);
-        opacity: 0.9;
-    }
-    50% {
-        transform: translate3d(-20px, -14px, 0) scale(1.07);
-        opacity: 1;
-    }
+.logout-btn:hover {
+    background: #e8ecff;
+    border-color: #a8b8e8;
+    transform: translateY(-2px);
 }
 
 @keyframes clientLineDrift {

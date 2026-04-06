@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Postuler | VOS</title>
+    <title>Modifier Préférence | VOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -159,9 +159,8 @@
 
         input[type="text"],
         input[type="number"],
-        input[type="file"],
-        select,
-        textarea {
+        input[type="date"],
+        select {
             width: 100%;
             border: 1px solid #d9deea;
             border-radius: 10px;
@@ -175,17 +174,24 @@
 
         input[type="text"]:focus,
         input[type="number"]:focus,
-        input[type="file"]:focus,
-        select:focus,
-        textarea:focus {
+        input[type="date"]:focus,
+        select:focus {
             outline: none;
             border-color: #9fb1ff;
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 100px;
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234361ee' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        input[type="date"] {
+            cursor: pointer;
         }
 
         .form-actions {
@@ -229,18 +235,20 @@
             transform: translateY(-2px);
         }
 
-        .form-errors,
-        .form-errors li {
-            color: #b91c1c;
-        }
-
         .form-errors {
             margin: 8px 0 14px;
-            padding-left: 18px;
+            padding: 10px 14px;
+            background-color: #fee2e2;
+            border-left: 4px solid #dc2626;
+            border-radius: 6px;
+            list-style: none;
         }
 
         .form-errors li {
-            list-style: disc;
+            color: #b91c1c;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 4px 0;
         }
 
         @media (max-width: 680px) {
@@ -251,69 +259,120 @@
     </style>
 </head>
 <body>
-{{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'candidatures' }) }}
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'preferences' }) }}
 
-<main class="container">
-    <h1>Postuler</h1>
+    <div class="container">
+        <h1>Modifier Préférence</h1>
 
-    <div class="form-card">
-        <h2>Formulaire de Candidature</h2>
-        <p>Offre #{{ id_offre }} — Remplissez tous les champs obligatoires</p>
+        <div class="form-card">
+            <h2>Mettez à jour vos critères</h2>
+            <p>Modifiez vos préférences de recherche d'emploi.</p>
 
-        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
-
-            {{ form_errors(form) }}
+            {{ form_start(form) }}
 
             <div class="form-group">
-                {{ form_label(form.cv) }}
-                {{ form_widget(form.cv) }}
-                {{ form_errors(form.cv) }}
+                {{ form_label(form.type_poste_souhaite, 'Type de poste souhaité') }}
+                {{ form_widget(form.type_poste_souhaite) }}
+                {% if form.type_poste_souhaite.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.type_poste_souhaite.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.lettre_motivation) }}
-                {{ form_widget(form.lettre_motivation) }}
-                {{ form_errors(form.lettre_motivation) }}
+                {{ form_label(form.mode_travail, 'Mode de travail') }}
+                {{ form_widget(form.mode_travail) }}
+                {% if form.mode_travail.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.mode_travail.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.niveau_experience) }}
-                {{ form_widget(form.niveau_experience) }}
-                {{ form_errors(form.niveau_experience) }}
+                {{ form_label(form.disponibilite, 'Disponibilité') }}
+                {{ form_widget(form.disponibilite) }}
+                {% if form.disponibilite.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.disponibilite.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.annees_experience) }}
-                {{ form_widget(form.annees_experience) }}
-                {{ form_errors(form.annees_experience) }}
+                {{ form_label(form.mobilite_geographique, 'Mobilité géographique') }}
+                {{ form_widget(form.mobilite_geographique) }}
+                {% if form.mobilite_geographique.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.mobilite_geographique.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.domaine_experience) }}
-                {{ form_widget(form.domaine_experience) }}
-                {{ form_errors(form.domaine_experience) }}
+                {{ form_label(form.pret_deplacement, 'Prêt au déplacement') }}
+                {{ form_widget(form.pret_deplacement) }}
+                {% if form.pret_deplacement.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.pret_deplacement.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.dernier_poste) }}
-                {{ form_widget(form.dernier_poste) }}
-                {{ form_errors(form.dernier_poste) }}
+                {{ form_label(form.type_contrat_souhaite, 'Type de contrat souhaité') }}
+                {{ form_widget(form.type_contrat_souhaite) }}
+                {% if form.type_contrat_souhaite.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.type_contrat_souhaite.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{ form_label(form.message_candidat) }}
-                {{ form_widget(form.message_candidat) }}
-                {{ form_errors(form.message_candidat) }}
+                {{ form_label(form.pretention_salariale, 'Prétention salariale') }}
+                {{ form_widget(form.pretention_salariale) }}
+                {% if form.pretention_salariale.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.pretention_salariale.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.date_disponibilite, 'Date de disponibilité') }}
+                {{ form_widget(form.date_disponibilite) }}
+                {% if form.date_disponibilite.vars.errors|length > 0 %}
+                    <ul class="form-errors">
+                        {% for error in form.date_disponibilite.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Soumettre ma candidature</button>
-                <a href="{{ path('app_client_candidatures') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Modifier</button>
+                <a href="{{ path('app_client_preferences') }}" class="btn btn-secondary">Annuler</a>
             </div>
 
-        {{ form_end(form) }}
+            {{ form_end(form) }}
+        </div>
     </div>
-</main>
-
 </body>
 </html>

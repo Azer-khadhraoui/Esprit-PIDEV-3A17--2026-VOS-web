@@ -1,31 +1,261 @@
-{% extends 'base.html.twig' %}
-{% block title %}Modifier Candidature | VOS{% endblock %}
-
-{% block stylesheets %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postuler | VOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
-{% endblock %}
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f8fc;
+            --panel: #ffffff;
+            --line: #e8ebf3;
+            --text: #1b2440;
+            --muted: #6c7693;
+            --primary: #4361ee;
+        }
 
-{% block body %}
-<div class="client-shell">
-    <header class="client-header">
-        <div class="client-header-content">
-            <div class="client-header-brand">
-                <img src="{{ asset('images/logo.png') }}" alt="VOS Logo" class="client-logo-img">
-            </div>
-            <h1>VOS - Modifier Candidature</h1>
-            <div class="client-header-right">
-                <span>Bienvenue {{ userName }}</span>
-                <a class="btn-profile-client" href="{{ path('app_client_candidatures') }}">Mes candidatures</a>
-                <form method="post" action="{{ path('app_logout') }}" class="logout-form">
-                    <button class="btn-logout-client" type="submit">Déconnexion</button>
-                </form>
-            </div>
-        </div>
-    </header>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(1100px 520px at 14% 6%, rgba(67,97,238,0.18), transparent 50%),
+                radial-gradient(1200px 680px at 88% 110%, rgba(67,97,238,0.22), transparent 58%),
+                linear-gradient(180deg, #f9fbff 0%, #eef3ff 100%);
+            color: var(--text);
+        }
 
-    <main class="client-content">
+        @keyframes slideDownSoft {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            gap: 16px;
+            animation: slideDownSoft 0.5s ease;
+        }
+
+        .brand {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .nav a { text-decoration: none; color: inherit; }
+        .nav a.is-active { color: var(--primary); }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .profile-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.18s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 18px rgba(67, 97, 238, 0.24);
+        }
+
+        .profile-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .logout-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: rgba(67, 97, 238, 0.14);
+            color: #1d4ed8;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.18s ease, background 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(67, 97, 238, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 22px auto;
+            padding: 0 18px;
+            animation: riseIn 0.55s ease;
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            font-size: 2.1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .form-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-card h2 {
+            margin: 0 0 6px;
+            font-size: 1.5rem;
+        }
+
+        .form-card p {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid #d9deea;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 0.94rem;
+            background: #fff;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #9fb1ff;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .btn {
+            flex: 1;
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.18s ease, filter 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .form-errors,
+        .form-errors li {
+            color: #b91c1c;
+        }
+
+        .form-errors {
+            margin: 8px 0 14px;
+            padding-left: 18px;
+        }
+
+        .form-errors li {
+            list-style: disc;
+        }
+
+        @media (max-width: 680px) {
+            .nav { display: none; }
+            h1 { font-size: 1.6rem; }
+            .form-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+{{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'candidatures' }) }}
+
+ <main class="container">
+    <h1>Postuler</h1>
+
         <section style="max-width:700px; margin:0 auto;">
             <div class="profile-card">
                 <div class="profile-head">
@@ -115,4 +345,3 @@
         </section>
     </main>
 </div>
-{% endblock %}

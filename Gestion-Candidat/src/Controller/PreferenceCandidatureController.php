@@ -9,73 +9,146 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/preference/candidature')]
+#[Route('/client/preference')]
 final class PreferenceCandidatureController extends AbstractController
 {
-    #[Route(name: 'app_preference_candidature_index', methods: ['GET'])]
-    public function index(PreferenceCandidatureRepository $preferenceCandidatureRepository): Response
-    {
-        return $this->render('preference_candidature/index.html.twig', [
-            'preference_candidatures' => $preferenceCandidatureRepository->findAll(),
+    // ── Liste des préférences du client ───────────────────────────────
+    #[Route('', name: 'app_client_preferences', methods: ['GET'])]
+    public function index(
+        PreferenceCandidatureRepository $repo,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $preferences = $repo->findBy(
+            ['id_utilisateur' => $idUtilisateur],
+            ['id_preference' => 'DESC']
+        );
+
+        return $this->render('client/preferenceCandidature/listPreference.html.twig', [
+            'preferences' => $preferences,
+            'userName' => $session->get('user_name', 'Utilisateur'),
         ]);
     }
 
-    #[Route('/new', name: 'app_preference_candidature_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
-    {
-        $preferenceCandidature = new PreferenceCandidature();
-        $form = $this->createForm(PreferenceCandidatureType::class, $preferenceCandidature);
+    // ── Formulaire d'ajout ────────────────────────────────────────────
+    #[Route('/new', name: 'app_client_preference_new', methods: ['GET', 'POST'])]
+    public function new(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $preference = new PreferenceCandidature();
+        $preference->setIdUtilisateur($idUtilisateur);
+
+        $form = $this->createForm(PreferenceCandidatureType::class, $preference);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($preferenceCandidature);
+            $entityManager->persist($preference);
             $entityManager->flush();
 
-            return $this->redirectToRoute('app_preference_candidature_index', [], Response::HTTP_SEE_OTHER);
+            $this->addFlash('success', 'Préférence créée avec succès !');
+            return $this->redirectToRoute('app_client_preferences');
         }
 
-        return $this->render('preference_candidature/new.html.twig', [
-            'preference_candidature' => $preferenceCandidature,
-            'form' => $form,
+        return $this->render('client/preferenceCandidature/newPreference.html.twig', [
+            'form' => $form->createView(),
+            'userName' => $session->get('user_name', 'Utilisateur'),
         ]);
     }
 
-    #[Route('/{id_preference}', name: 'app_preference_candidature_show', methods: ['GET'])]
-    public function show(PreferenceCandidature $preferenceCandidature): Response
-    {
-        return $this->render('preference_candidature/show.html.twig', [
-            'preference_candidature' => $preferenceCandidature,
-        ]);
-    }
+    // ── Formulaire d'édition ──────────────────────────────────────────
+    #[Route('/{id_preference}/edit', name: 'app_client_preference_edit', methods: ['GET', 'POST'])]
+    public function edit(
+        PreferenceCandidature $preference,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0 || $preference->getIdUtilisateur() !== $idUtilisateur) {
+            return $this->redirectToRoute('app_signin');
+        }
 
-    #[Route('/{id_preference}/edit', name: 'app_preference_candidature_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, PreferenceCandidature $preferenceCandidature, EntityManagerInterface $entityManager): Response
-    {
-        $form = $this->createForm(PreferenceCandidatureType::class, $preferenceCandidature);
+        $form = $this->createForm(PreferenceCandidatureType::class, $preference);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
-
-            return $this->redirectToRoute('app_preference_candidature_index', [], Response::HTTP_SEE_OTHER);
+            $this->addFlash('success', 'Préférence mise à jour avec succès !');
+            return $this->redirectToRoute('app_client_preferences');
         }
 
-        return $this->render('preference_candidature/edit.html.twig', [
-            'preference_candidature' => $preferenceCandidature,
-            'form' => $form,
+        return $this->render('client/preferenceCandidature/editPrefernce.html.twig', [
+            'form' => $form->createView(),
+            'preference' => $preference,
+            'userName' => $session->get('user_name', 'Utilisateur'),
         ]);
     }
 
-    #[Route('/{id_preference}', name: 'app_preference_candidature_delete', methods: ['POST'])]
-    public function delete(Request $request, PreferenceCandidature $preferenceCandidature, EntityManagerInterface $entityManager): Response
-    {
-        if ($this->isCsrfTokenValid('delete'.$preferenceCandidature->getIdPreference(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($preferenceCandidature);
-            $entityManager->flush();
+    // ── Détails d'une préférence ──────────────────────────────────────
+    #[Route('/{id_preference}/detail', name: 'app_client_preference_detail', methods: ['GET'])]
+    public function detail(
+        PreferenceCandidature $preference,
+        SessionInterface $session
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0 || $preference->getIdUtilisateur() !== $idUtilisateur) {
+            return $this->redirectToRoute('app_signin');
         }
 
-        return $this->redirectToRoute('app_preference_candidature_index', [], Response::HTTP_SEE_OTHER);
+        return $this->render('client/preferenceCandidature/detailPrefernce.html.twig', [
+            'preference' => $preference,
+            'userName' => $session->get('user_name', 'Utilisateur'),
+        ]);
+    }
+
+    // ── Suppression ───────────────────────────────────────────────────
+    #[Route('/{id_preference}/delete', name: 'app_client_preference_delete', methods: ['POST'])]
+    public function delete(
+        PreferenceCandidature $preference,
+        Request $request,
+        EntityManagerInterface $em,
+        SessionInterface $session
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0 || $preference->getIdUtilisateur() !== $idUtilisateur) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        if ($this->isCsrfTokenValid('delete'.$preference->getIdPreference(), $request->request->get('_token'))) {
+            $em->remove($preference);
+            $em->flush();
+            $this->addFlash('success', 'Préférence supprimée.');
+        }
+
+        return $this->redirectToRoute('app_client_preferences');
+    }
+
+    // ── Helper methods ────────────────────────────────────────────────
+    private function normalizeText(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 }
