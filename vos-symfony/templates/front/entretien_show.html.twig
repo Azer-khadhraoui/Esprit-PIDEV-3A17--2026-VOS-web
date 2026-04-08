@@ -1,0 +1,45 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Détail entretien{% endblock %}
+{% block hero_title %}Détail de l'entretien{% endblock %}
+{% block hero_subtitle %}Informations complètes sur votre rendez-vous{% endblock %}
+
+{% block body %}
+    <div class="grid cols-2" style="align-items:start;">
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Entretien #{{ entretien.id }}</h2>
+                    <p>Resume complet de votre rendez-vous</p>
+                </div>
+                <span class="badge {% set s = entretien.statutEntretien|lower %}{% if 'termin' in s %}b-green{% elseif 'planifi' in s %}b-blue{% elseif 'annul' in s %}b-red{% else %}b-orange{% endif %}">{{ entretien.statutEntretien ?? '-' }}</span>
+            </div>
+            <div class="detail-grid" style="padding:0 22px 22px;">
+                <article class="detail-card"><span class="label">Date</span><span class="value">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</span></article>
+                <article class="detail-card"><span class="label">Heure</span><span class="value">{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</span></article>
+                <article class="detail-card"><span class="label">Type</span><span class="value">{{ entretien.typeEntretien ?? '-' }}</span></article>
+                <article class="detail-card"><span class="label">Lieu</span><span class="value">{{ entretien.lieu ?? '-' }}</span></article>
+                <article class="detail-card"><span class="label">Type de test</span><span class="value">{{ entretien.typeTest ?? '-' }}</span></article>
+                <article class="detail-card" style="grid-column:1 / -1;"><span class="label">Questions</span><span class="value">{{ entretien.questionsEntretien ?? '-' }}</span></article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Reunion</h2>
+                    <p>Accedez rapidement a votre session</p>
+                </div>
+            </div>
+            <div style="padding:18px 22px;">
+                {% if entretien.lienReunion %}
+                    <a class="btn btn-primary" href="{{ entretien.lienReunion }}" target="_blank">Rejoindre la réunion</a>
+                {% else %}
+                    <div class="empty">Aucun lien de réunion disponible.</div>
+                {% endif %}
+                <div style="margin-top:16px;">
+                    <a class="btn btn-soft" href="{{ path('app_front_entretiens') }}">Retour à la liste</a>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}

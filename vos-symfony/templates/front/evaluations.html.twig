@@ -1,0 +1,44 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Mes Evaluations{% endblock %}
+{% block hero_title %}Mes Evaluations{% endblock %}
+{% block hero_subtitle %}Consultez les retours liés à vos entretiens{% endblock %}
+
+{% block body %}
+    <div class="panel">
+        <div class="section-head">
+            <div>
+                <h2>Evaluations recues</h2>
+                <p>Retours et decisions associes a vos entretiens</p>
+            </div>
+        </div>
+        <div class="table-wrap" style="max-height:480px;">
+            <table class="data-table" style="min-width:900px;">
+                <thead>
+                <tr>
+                    <th>Entretien</th>
+                    <th>Score</th>
+                    <th>Note</th>
+                    <th>Décision</th>
+                    <th>Commentaire</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for evaluation in evaluations %}
+                    <tr>
+                        <td>#{{ evaluation.entretien ? evaluation.entretien.id : '-' }}</td>
+                        <td><strong>{{ evaluation.scoreTest ?? '-' }}</strong></td>
+                        <td><strong>{{ evaluation.noteEntretien ?? '-' }}/5</strong></td>
+                        <td>
+                            {% set decision = (evaluation.decision ?? '-')|lower %}
+                            <span class="badge {% if 'accept' in decision %}b-green{% elseif 'refus' in decision %}b-red{% else %}b-orange{% endif %}">{{ evaluation.decision ?? '-' }}</span>
+                        </td>
+                        <td>{{ evaluation.commentaire ? evaluation.commentaire|slice(0, 80) : '-' }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--muted);">Aucune evaluation disponible.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

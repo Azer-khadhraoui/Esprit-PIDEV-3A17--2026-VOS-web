@@ -1,0 +1,65 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block hero_title %}Bonjour, Candidat{% endblock %}
+{% block hero_subtitle %}Aperçu rapide de vos entretiens et évaluations{% endblock %}
+
+{% block body %}
+    <div class="grid cols-4" style="margin-bottom:16px;">
+        <article class="kpi-card primary"><div class="kpi-title">Mes entretiens</div><div class="stat">{{ totalEntretiens }}</div></article>
+        <article class="kpi-card success"><div class="kpi-title">Terminés</div><div class="stat">{{ termines }}</div></article>
+        <article class="kpi-card warning"><div class="kpi-title">Planifiés</div><div class="stat">{{ planifies }}</div></article>
+        <article class="kpi-card purple"><div class="kpi-title">Evaluations</div><div class="stat">{{ totalEvals }}</div></article>
+    </div>
+
+    <div class="grid cols-2">
+        <div class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Derniers entretiens</h2>
+                    <p>Vos derniers rendez-vous de recrutement</p>
+                </div>
+                <a class="btn btn-soft" href="{{ path('app_front_entretiens') }}">Voir tout</a>
+            </div>
+            <div class="table-wrap" style="max-height:380px;">
+                <table class="data-table" style="min-width:unset;">
+                    <thead><tr><th>Date</th><th>Type</th><th>Statut</th><th></th></tr></thead>
+                    <tbody>
+                    {% for entretien in dernierEntretiens %}
+                        <tr>
+                            <td>{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</td>
+                            <td>{{ entretien.typeEntretien ?? '-' }}</td>
+                            <td><span class="badge {% set s = entretien.statutEntretien|lower %}{% if 'termin' in s %}b-green{% elseif 'planifi' in s %}b-blue{% elseif 'annul' in s %}b-red{% else %}b-orange{% endif %}">{{ entretien.statutEntretien ?? '-' }}</span></td>
+                            <td><a class="btn btn-soft" href="{{ path('app_front_entretien_show', {id: entretien.id}) }}">Voir</a></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" style="padding:26px 22px;color:var(--muted);">Aucun entretien trouvé.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Resume evaluations</h2>
+                    <p>Votre performance globale</p>
+                </div>
+            </div>
+            <div style="padding:0 22px 22px;">
+                <div class="grid cols-2" style="margin-bottom:14px;">
+                    <div class="card"><div class="kpi-title">Score moyen</div><div class="stat">{{ scoreMoyen }}</div></div>
+                    <div class="card"><div class="kpi-title">Note moyenne</div><div class="stat">{{ noteMoyenne }}/5</div></div>
+                </div>
+                <div style="margin-bottom:14px;"><strong>Derniere decision:</strong> <span class="badge {% set d = (derniereDecision ?? 'En attente')|lower %}{% if 'accept' in d %}b-green{% elseif 'refus' in d %}b-red{% else %}b-orange{% endif %}">{{ derniereDecision ?? 'En attente' }}</span></div>
+                <div class="grid cols-2">
+                    <div class="card"><div class="kpi-title">Techniques</div><div class="stat" style="font-size:1.4rem;">{{ evalStats[0] }}/5</div></div>
+                    <div class="card"><div class="kpi-title">Comportementales</div><div class="stat" style="font-size:1.4rem;">{{ evalStats[1] }}/5</div></div>
+                    <div class="card"><div class="kpi-title">Communication</div><div class="stat" style="font-size:1.4rem;">{{ evalStats[2] }}/5</div></div>
+                    <div class="card"><div class="kpi-title">Motivation</div><div class="stat" style="font-size:1.4rem;">{{ evalStats[3] }}/5</div></div>
+                    <div class="card"><div class="kpi-title">Experience</div><div class="stat" style="font-size:1.4rem;">{{ evalStats[4] }}/5</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

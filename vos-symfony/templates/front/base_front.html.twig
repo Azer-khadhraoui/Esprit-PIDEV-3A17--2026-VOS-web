@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOS - {% block title %}{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#f7f8fc; --panel:#fff; --line:#e8ebf3; --text:#1b2440; --muted:#6c7693; --primary:#4361ee; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:'Poppins','Segoe UI',sans-serif; color:var(--text); background:linear-gradient(180deg,#f9fbff 0%, #eef3ff 100%); }
+        a { color:inherit; text-decoration:none; }
+        .header { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line); }
+        .header-inner { max-width:1200px; margin:0 auto; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        .brand { font-size:1.55rem; font-weight:800; letter-spacing:-.04em; }
+        .nav { display:flex; gap:18px; flex-wrap:wrap; color:var(--muted); font-weight:600; }
+        .nav a.is-active { color:var(--primary); }
+        .header-actions { display:flex; align-items:center; gap:10px; }
+        .signup,.logout-btn { border:0; border-radius:999px; padding:10px 16px; font-weight:700; }
+        .signup { background:var(--primary); color:#fff; }
+        .logout-btn { background:rgba(67,97,238,.14); color:#1d4ed8; }
+        .hero { padding:28px 18px 22px; background:linear-gradient(135deg,#0f1c2e 0%, #1a2d45 60%, #162236 100%); color:#fff; }
+        .hero-inner { max-width:1200px; margin:0 auto; }
+        .hero h1 { margin:0 0 4px; font-size:1.7rem; }
+        .hero p { margin:0; color:#9fb0d0; }
+        .content { max-width:1200px; margin:0 auto; padding:24px 18px 36px; }
+        .panel { background:#fff; border-radius:20px; box-shadow:0 12px 28px rgba(15,23,42,.08); overflow:hidden; }
+        .section-head { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:22px 22px 14px; flex-wrap:wrap; }
+        .section-head h2 { margin:0; font-size:1.6rem; }
+        .section-head p { margin:6px 0 0; color:var(--muted); }
+        .card-head { padding:18px 22px; border-bottom:1px solid #edf1f6; }
+        .grid { display:grid; gap:16px; }
+        .grid.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .grid.cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .grid.cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+        .card { background:#fff; border-radius:18px; padding:18px; box-shadow:0 10px 24px rgba(15,23,42,.06); }
+        .kpi-card { background:#fff; border-radius:18px; padding:20px; box-shadow:0 10px 24px rgba(15,23,42,.08); border-left:5px solid transparent; }
+        .kpi-card.primary { border-left-color:#4361ee; }
+        .kpi-card.success { border-left-color:#14b87a; }
+        .kpi-card.warning { border-left-color:#d89015; }
+        .kpi-card.purple { border-left-color:#6d28d9; }
+        .kpi-title { color:var(--muted); font-weight:600; margin-bottom:8px; }
+        .stat { font-size:1.8rem; font-weight:800; }
+        .badge { display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px; font-size:.78rem; font-weight:700; }
+        .b-blue { background:#e8f0ff; color:#2156d8; }
+        .b-green { background:#e8fbf3; color:#0f8f62; }
+        .b-orange { background:#fff4e5; color:#c06a00; }
+        .b-red { background:#ffe8e8; color:#b42318; }
+        .search-filters { background:#f8fbff; border:1px solid var(--line); border-radius:14px; padding:1rem; margin:0 22px 1rem; }
+        .filter-form { display:grid; gap:10px; align-items:end; grid-template-columns:1.6fr 1fr 1fr auto auto; }
+        .search-input, .sort-select {
+            width:100%;
+            padding:.62rem .9rem;
+            border:1px solid var(--line);
+            border-radius:10px;
+            background:#fff;
+            font-family:'Poppins', sans-serif;
+            font-size:.9rem;
+            color:#0f172a;
+        }
+        .search-input:focus, .sort-select:focus {
+            outline:none;
+            border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(14, 77, 164, 0.1);
+        }
+        .table-wrap { max-height:560px; overflow:auto; }
+        .data-table { width:100%; border-collapse:collapse; min-width:840px; }
+        .data-table thead tr { text-align:left; color:#6b7280; background:rgba(241,245,249,.95); }
+        .data-table th {
+            position:sticky;
+            top:0;
+            z-index:2;
+            padding:16px 22px;
+            background:rgba(241,245,249,.95);
+            color:#64748b;
+            font-size:.75rem;
+            text-transform:uppercase;
+            letter-spacing:.04em;
+        }
+        .data-table td { padding:16px 22px; border-top:1px solid #edf1f6; }
+        .data-table tr:hover { background:#f8fbff; }
+        table { width:100%; border-collapse:collapse; }
+        th,td { padding:12px 10px; border-bottom:1px solid #edf1f6; text-align:left; vertical-align:middle; }
+        th { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; }
+        .actions { display:flex; gap:10px; flex-wrap:wrap; }
+        .btn { display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; border-radius:14px; font-weight:700; }
+        .btn-primary { background:var(--primary); color:#fff; }
+        .btn-soft { background:#eef2ff; color:#1d4ed8; }
+        .btn-danger { background:#fee2e2; color:#991b1b; }
+        .btn-reset { background:#e2e8f0; color:#0f172a; }
+        .flash { padding:12px 14px; border-radius:14px; margin-bottom:14px; }
+        .flash-success { background:#dcfce7; color:#166534; }
+        .flash-error { background:#fee2e2; color:#991b1b; }
+        .detail-grid { padding:0 22px 22px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .detail-card { background:#fff; border:1px solid #edf1f6; border-radius:14px; padding:14px; }
+        .detail-card.full { grid-column:1 / -1; }
+        .detail-label { font-size:.78rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+        .detail-value { font-size:1rem; color:#0f172a; font-weight:600; word-break:break-word; }
+        .empty { padding:40px 18px; text-align:center; color:#6c7693; }
+        @media (max-width: 1200px) {
+            .filter-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+        @media (max-width: 960px) {
+            .header-inner,.actions { flex-wrap:wrap; }
+            .grid.cols-2,.grid.cols-3,.grid.cols-4,.detail-grid { grid-template-columns:1fr; }
+            .filter-form { grid-template-columns:1fr; }
+            .search-filters { margin-left:0; margin-right:0; }
+        }
+    </style>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+<header class="header">
+    {% set currentRoute = app.request.attributes.get('_route') %}
+    <div class="header-inner">
+        <div class="brand">VOS</div>
+        <nav class="nav" aria-label="Navigation client">
+            <a href="{{ path('client_opportunites') }}" class="{{ currentRoute == 'client_opportunites' ? 'is-active' : '' }}">Opportunités</a>
+            <a href="{{ path('app_client_candidatures') }}" class="{{ currentRoute starts with 'app_client_candidature' ? 'is-active' : '' }}">Candidatures</a>
+            <a href="{{ path('app_client_preferences') }}" class="{{ currentRoute starts with 'app_client_preference' ? 'is-active' : '' }}">Préférences</a>
+            <a href="{{ path('app_front_dashboard') }}" class="{{ currentRoute starts with 'app_front_' ? 'is-active' : '' }}">Entretiens</a>
+        </nav>
+        <div class="header-actions">
+            <a href="{{ path('app_client_profile') }}" class="signup">{{ userName|default('Utilisateur') }}</a>
+            <form method="post" action="{{ path('app_logout') }}" style="margin:0;">
+                <button class="logout-btn" type="submit">Déconnexion</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="hero-inner">
+        <h1>{% block hero_title %}Espace Entretiens{% endblock %}</h1>
+        <p>{% block hero_subtitle %}Suivez vos entretiens et évaluations en un seul endroit{% endblock %}</p>
+    </div>
+</section>
+
+<main class="content">
+    {% for message in app.flashes('success') %}
+        <div class="flash flash-success">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="flash flash-error">{{ message }}</div>
+    {% endfor %}
+
+    {% block body %}{% endblock %}
+</main>
+</body>
+</html>

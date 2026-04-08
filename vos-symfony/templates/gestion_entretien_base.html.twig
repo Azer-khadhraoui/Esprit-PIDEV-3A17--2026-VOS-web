@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestion Entretiens | VOS{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#081533; --panel:rgba(246,248,252,.98); --text:#0c1f3f; --muted:#64748b; --primary:#2156d8; --line:rgba(16,24,40,.08); }
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; font-family:'Poppins','Segoe UI',sans-serif; color:#f8fbff; background:linear-gradient(135deg,var(--bg),#071024 65%,#050b18); }
+        a { color:inherit; text-decoration:none; }
+        .app-shell { display:flex; min-height:100vh; }
+        .sidebar {
+            padding:24px 18px;
+            width:92px;
+            overflow:hidden;
+            background:rgba(6,12,28,.9);
+            border-right:1px solid rgba(255,255,255,.06);
+            position:sticky;
+            top:0;
+            height:100vh;
+            transition:width .24s ease;
+            flex-shrink:0;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+        .sidebar:hover { width:280px; }
+        .brand { display:flex; align-items:center; gap:12px; font-weight:800; font-size:1.15rem; margin-bottom:28px; white-space:nowrap; }
+        .brand span:last-child,
+        .sidebar .nav-item {
+            opacity:0;
+            transform:translateX(-10px);
+            transition:opacity .18s ease, transform .18s ease;
+        }
+        .sidebar:hover .brand span:last-child,
+        .sidebar:hover .nav-item {
+            opacity:1;
+            transform:translateX(0);
+        }
+        .brand-dot { width:14px; height:14px; border-radius:999px; background:linear-gradient(135deg,#6ee7ff,#3b82f6); box-shadow:0 0 0 6px rgba(59,130,246,.15); }
+        .nav-list { display:grid; gap:10px; margin-top:18px; }
+        .nav-item { padding:16px 18px; border-radius:18px; color:rgba(255,255,255,.9); border:1px solid transparent; white-space:nowrap; }
+        .nav-item:hover,.nav-item.is-active { background:rgba(39,85,185,.22); border-color:rgba(255,255,255,.08); }
+        .sidebar-footer {
+            margin-top:auto;
+            background:rgba(39,85,185,.2);
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:16px;
+            text-align:center;
+            padding:14px 12px;
+            color:rgba(255,255,255,.9);
+            font-weight:600;
+            white-space:nowrap;
+        }
+        .content { flex:1; min-width:0; padding:26px 24px 36px; }
+        .topbar { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:18px; }
+        .page-title { margin:0; font-size:clamp(2rem,2.8vw,3rem); font-weight:800; letter-spacing:-.03em; }
+        .subtitle { margin:6px 0 0; color:rgba(232,240,255,.75); font-size:.98rem; }
+        .logout-btn,.btn-primary-link,.btn-secondary-link,.btn-danger-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; border-radius:14px; font-weight:600; border:0; cursor:pointer; }
+        .logout-btn { background:linear-gradient(135deg,#2156d8,#1b4ab7); color:#fff; }
+        .module-nav { margin-bottom:18px; display:inline-flex; gap:10px; padding:8px; border-radius:16px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.08); }
+        .module-link { display:inline-flex; align-items:center; justify-content:center; padding:10px 16px; border-radius:12px; font-weight:600; color:rgba(236,244,255,.88); }
+        .module-link:hover { color:#fff; background:rgba(255,255,255,.1); }
+        .module-link.is-active { background:#fff; color:#0f2b64; }
+        .panel { background:var(--panel); color:var(--text); border-radius:24px; padding:0; box-shadow:0 20px 48px rgba(6,12,31,.18); overflow:hidden; }
+        .grid { display:grid; gap:16px; }
+        .grid.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .grid.cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .grid.cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+        .card { background:#fff; border-radius:20px; padding:18px; box-shadow:0 12px 28px rgba(15,23,42,.08); }
+        .stat { font-size:1.8rem; font-weight:800; margin-top:6px; }
+        .section-head { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:24px 24px 14px; flex-wrap:wrap; }
+        .section-head h2 { margin:0; font-size:1.6rem; }
+        .section-head p { margin:6px 0 0; color:var(--muted); }
+        .search-filters { background:#f8fbff; border:1px solid var(--line); border-radius:14px; padding:1rem; margin:0 24px 1rem; }
+        .filter-form { display:grid; gap:10px; align-items:end; grid-template-columns:1.6fr 1fr 1fr auto auto; }
+        .search-input, .sort-select {
+            width:100%;
+            padding:.62rem .9rem;
+            border:1px solid var(--line);
+            border-radius:10px;
+            background:#fff;
+            font-family:'Poppins', sans-serif;
+            font-size:.9rem;
+            color:#0f172a;
+        }
+        .search-input:focus, .sort-select:focus {
+            outline:none;
+            border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(14, 77, 164, 0.1);
+        }
+        .table-wrap { max-height:560px; overflow:auto; }
+        .data-table { width:100%; border-collapse:collapse; min-width:900px; }
+        .data-table thead tr { text-align:left; color:#6b7280; background:rgba(241,245,249,.95); }
+        .data-table th {
+            position:sticky;
+            top:0;
+            z-index:2;
+            padding:16px 24px;
+            background:rgba(241,245,249,.95);
+            color:#64748b;
+            font-size:.75rem;
+            text-transform:uppercase;
+            letter-spacing:.04em;
+        }
+        .data-table td { padding:18px 24px; border-top:1px solid var(--line); }
+        .data-table tr:hover { background:#f8fbff; }
+        .badge { display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px; font-size:.78rem; font-weight:700; }
+        .b-blue { background:#e8f0ff; color:#2156d8; }
+        .b-green { background:#e8fbf3; color:#0f8f62; }
+        .b-orange { background:#fff4e5; color:#c06a00; }
+        .b-red { background:#ffe8e8; color:#b42318; }
+        .flash { padding:12px 14px; border-radius:14px; margin-bottom:14px; }
+        .flash-success { background:#dcfce7; color:#166534; }
+        .flash-error { background:#fee2e2; color:#991b1b; }
+        .form-grid { display:grid; gap:14px; }
+        .form-shell { padding: 0 24px 24px; }
+        .form-layout { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .form-field { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+        .form-field.full { grid-column:1 / -1; }
+        .form-field label { display:block; font-size:.82rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+        .form-field input, .form-field select, .form-field textarea {
+            width:100%;
+            border:1px solid #d7dde7;
+            border-radius:10px;
+            padding:10px 12px;
+            font:inherit;
+            color:#0f172a;
+            background:#fff;
+        }
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+            outline:none;
+            border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(14, 77, 164, 0.1);
+        }
+        .form-field textarea { min-height:110px; }
+        .detail-grid { padding: 0 24px 24px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .detail-card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; }
+        .detail-card.full { grid-column:1 / -1; }
+        .detail-label { font-size:.78rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+        .detail-value { font-size:1rem; color:#0f172a; font-weight:600; word-break:break-word; }
+        .field label { display:block; font-size:.86rem; font-weight:600; margin-bottom:6px; color:#334155; }
+        .field input,.field select,.field textarea { width:100%; border:1px solid #d7dde7; border-radius:14px; padding:11px 14px; font:inherit; background:#fff; }
+        .field textarea { min-height:120px; }
+        .actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .btn { display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; white-space:nowrap; }
+        .btn-primary { background:#1d4ed8; color:#fff; }
+        .btn-soft { background:#eaf2ff; color:#1d4ed8; }
+        .btn-danger { background:#fee2e2; color:#b91c1c; }
+        .btn-reset { background:#e2e8f0; color:#0f172a; }
+        .btn-filter {
+            padding:0.6rem 1.2rem;
+            border:0;
+            border-radius:8px;
+            font-family:'Poppins',sans-serif;
+            font-size:0.9rem;
+            font-weight:600;
+            cursor:pointer;
+            background:#0e4da4;
+            color:#fff;
+        }
+        .btn-filter:hover { background:#0a3a7e; }
+        .btn-edit,
+        .btn-delete {
+            border:0;
+            border-radius:10px;
+            padding:0.48rem 0.82rem;
+            text-decoration:none;
+            font-size:0.83rem;
+            cursor:pointer;
+            font-family:'Poppins',sans-serif;
+            transition:.18s ease;
+        }
+        .btn-edit {
+            background:linear-gradient(145deg,#0e4da4,#0a3a7e);
+            color:#fff;
+        }
+        .btn-edit:hover { filter:brightness(1.06); }
+        .btn-delete {
+            background:#fde8e7;
+            color:#b3261e;
+        }
+        .btn-delete:hover { background:#fcd5d2; }
+        .btn:hover { filter:brightness(.98); }
+        .kpi-card {
+            background:var(--panel);
+            color:var(--text);
+            border-radius:24px;
+            padding:22px;
+            box-shadow:0 20px 48px rgba(6,12,31,.18);
+            border-left:6px solid transparent;
+            min-height:120px;
+        }
+        .kpi-card.primary { border-left-color:var(--primary); }
+        .kpi-card.success { border-left-color:#14b87a; }
+        .kpi-card.warning { border-left-color:#d89015; }
+        .kpi-card.danger { border-left-color:#ea6d6d; }
+        .kpi-title { color:var(--muted); font-weight:600; margin-bottom:12px; }
+        .kpi-value { font-size:2.4rem; font-weight:800; line-height:1; }
+        .btn-primary-link { background:var(--primary); color:#fff; }
+        .btn-secondary-link { background:#eef2ff; color:#1d4ed8; }
+        .btn-danger-link { background:#fee2e2; color:#991b1b; }
+        @media (max-width: 1280px) {
+            .filter-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+        @media (max-width: 960px) {
+            .app-shell{display:block;}
+            .sidebar{position:static;width:100%;height:auto;overflow:visible;}
+            .sidebar:hover{width:100%;}
+            .brand span:last-child,
+            .sidebar .nav-item {
+                opacity:1;
+                transform:none;
+            }
+            .grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr;}
+            .section-head, .search-filters { margin-left:0; margin-right:0; }
+            .filter-form { grid-template-columns:1fr; }
+            .btn-reset, .btn { width:100%; }
+            .form-layout, .detail-grid { grid-template-columns:1fr; }
+            .sidebar-footer { margin-top:12px; }
+        }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+    {% set currentRoute = app.request.attributes.get('_route') %}
+    <aside class="sidebar">
+        <div class="brand"><span class="brand-dot"></span><span>VOS Admin</span></div>
+        <nav class="nav-list" aria-label="Navigation administration">
+            <a class="nav-item {% if currentRoute starts with 'app_admin_dashboard' or currentRoute starts with 'app_admin_user' or currentRoute starts with 'app_admin_users_' %}is-active{% endif %}" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item {% if currentRoute starts with 'gestion_offre_' %}is-active{% endif %}" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item {% if currentRoute starts with 'app_admin_candidature' or currentRoute starts with 'app_admin_candidatures' or currentRoute starts with 'app_admin_preferences' %}is-active{% endif %}" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item {% if currentRoute starts with 'gestion_entretien_' or currentRoute starts with 'app_evaluation_entretien_' %}is-active{% endif %}" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1 class="page-title">Gestion Entretiens</h1>
+                <p class="subtitle">Bienvenue {{ app.session.get('admin_user_name') ?: 'Admin' }}</p>
+            </div>
+            <form method="post" action="{{ path('app_logout') }}">
+                <button class="logout-btn" type="submit">Déconnexion</button>
+            </form>
+        </header>
+
+        <nav class="module-nav" aria-label="Navigation gestion entretiens">
+            <a class="module-link {% if app.request.attributes.get('_route') starts with 'gestion_entretien_' and app.request.attributes.get('_route') != 'gestion_entretien_stats' %}is-active{% endif %}" href="{{ path('gestion_entretien_dashboard') }}">Entretiens</a>
+            <a class="module-link {% if app.request.attributes.get('_route') starts with 'app_evaluation_entretien_' %}is-active{% endif %}" href="{{ path('app_evaluation_entretien_index') }}">Évaluations</a>
+            <a class="module-link {% if app.request.attributes.get('_route') == 'gestion_entretien_stats' %}is-active{% endif %}" href="{{ path('gestion_entretien_stats') }}">Statistiques</a>
+        </nav>
+
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+
+        {% block body %}{% endblock %}
+    </main>
+</div>
+{% block javascripts %}{% endblock %}
+</body>
+</html>

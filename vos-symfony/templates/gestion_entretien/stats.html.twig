@@ -1,0 +1,136 @@
+{% extends 'gestion_entretien_base.html.twig' %}
+{% block title %}Statistiques Entretiens{% endblock %}
+
+{% block body %}
+    <section class="panel" style="margin-bottom:20px;">
+        <div class="section-head">
+            <div>
+                <h2>Filtres statistiques</h2>
+                <p>Filtrer par période, plage de dates et type d'entretien</p>
+            </div>
+        </div>
+        <div class="search-filters">
+            <form method="get" action="{{ path('gestion_entretien_stats') }}" class="filter-form">
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Période rapide</span>
+                    <select class="sort-select" name="periode">
+                        <option value="" {% if not periode %}selected{% endif %}>Aucune</option>
+                        <option value="7j" {% if periode == '7j' %}selected{% endif %}>7 derniers jours</option>
+                        <option value="30j" {% if periode == '30j' %}selected{% endif %}>30 derniers jours</option>
+                        <option value="3m" {% if periode == '3m' %}selected{% endif %}>3 derniers mois</option>
+                        <option value="6m" {% if periode == '6m' %}selected{% endif %}>6 derniers mois</option>
+                        <option value="1an" {% if periode == '1an' %}selected{% endif %}>1 an</option>
+                    </select>
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Date début</span>
+                    <input class="search-input" type="date" name="dateDebut" value="{{ dateDebut ? dateDebut|date('Y-m-d') : '' }}">
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Date fin</span>
+                    <input class="search-input" type="date" name="dateFin" value="{{ dateFin ? dateFin|date('Y-m-d') : '' }}">
+                </label>
+
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Type</span>
+                    <select class="sort-select" name="type">
+                        <option value="" {% if not typeFilter %}selected{% endif %}>Tous</option>
+                        <option value="RH" {% if typeFilter == 'RH' %}selected{% endif %}>RH</option>
+                        <option value="TECHNIQUE" {% if typeFilter == 'TECHNIQUE' %}selected{% endif %}>TECHNIQUE</option>
+                    </select>
+                </label>
+
+                <button class="btn btn-primary" type="submit">Appliquer</button>
+                <a class="btn btn-reset" href="{{ path('gestion_entretien_stats') }}">Reset</a>
+            </form>
+        </div>
+    </section>
+
+    <div class="grid cols-4" style="margin-bottom:20px;">
+        <article class="kpi-card primary">
+            <div class="kpi-title">Total Entretiens</div>
+            <div class="kpi-value">{{ total }}</div>
+        </article>
+        <article class="kpi-card success">
+            <div class="kpi-title">Terminés</div>
+            <div class="kpi-value">{{ termines }}</div>
+        </article>
+        <article class="kpi-card warning">
+            <div class="kpi-title">Planifiés</div>
+            <div class="kpi-value">{{ planifies }}</div>
+        </article>
+        <article class="kpi-card danger">
+            <div class="kpi-title">Taux de réussite</div>
+            <div class="kpi-value">{{ tauxReussite }}%</div>
+        </article>
+    </div>
+
+    <div class="grid cols-2">
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Statuts</h2>
+                    <p>Répartition des statuts des entretiens</p>
+                </div>
+            </div>
+            <div class="table-wrap" style="max-height:320px;">
+                <table class="data-table" style="min-width:unset;">
+                    <thead><tr><th>Statut</th><th>Nombre</th></tr></thead>
+                    <tbody>
+                    {% if parStatutLabels|length > 0 %}
+                        {% for i in 0..(parStatutLabels|length - 1) %}
+                            <tr><td>{{ parStatutLabels[i] }}</td><td><strong>{{ parStatutData[i] }}</strong></td></tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="2" style="padding:28px 24px;color:var(--muted);">Aucune donnée.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Types</h2>
+                    <p>Répartition RH vs Technique</p>
+                </div>
+            </div>
+            <div class="table-wrap" style="max-height:320px;">
+                <table class="data-table" style="min-width:unset;">
+                    <thead><tr><th>Type</th><th>Nombre</th></tr></thead>
+                    <tbody>
+                    {% if parTypeLabels|length > 0 %}
+                        {% for i in 0..(parTypeLabels|length - 1) %}
+                            <tr><td>{{ parTypeLabels[i] }}</td><td><strong>{{ parTypeData[i] }}</strong></td></tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="2" style="padding:28px 24px;color:var(--muted);">Aucune donnée.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:20px;">
+        <div class="section-head">
+            <div>
+                <h2>Évaluations</h2>
+                <p>Synthèse des résultats des évaluations</p>
+            </div>
+        </div>
+        <div style="padding:0 24px 24px;">
+            <div class="grid cols-3">
+                <div class="card"><div class="kpi-title">Acceptés</div><div class="kpi-value" style="font-size:2rem;">{{ nbAcceptes }}</div></div>
+                <div class="card"><div class="kpi-title">Refusés</div><div class="kpi-value" style="font-size:2rem;">{{ nbRefuses }}</div></div>
+                <div class="card"><div class="kpi-title">En attente</div><div class="kpi-value" style="font-size:2rem;">{{ nbEnAttente }}</div></div>
+                <div class="card"><div class="kpi-title">Score moyen</div><div class="kpi-value" style="font-size:2rem;">{{ scoreMoyen }}</div></div>
+                <div class="card"><div class="kpi-title">Note moyenne</div><div class="kpi-value" style="font-size:2rem;">{{ noteMoyenne }}</div></div>
+                <div class="card"><div class="kpi-title">Répartition type</div><div class="kpi-value" style="font-size:1.5rem;">RH {{ nbRH }} | TECH {{ nbTechnique }}</div></div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

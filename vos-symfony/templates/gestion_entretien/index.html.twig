@@ -1,0 +1,86 @@
+{% extends 'gestion_entretien_base.html.twig' %}
+{% block title %}Dashboard Entretiens{% endblock %}
+
+{% block body %}
+    <div class="panel">
+        <div class="section-head">
+            <div>
+                <h2>Dashboard Entretiens</h2>
+                <p>Vue d'ensemble du module gestion entretiens</p>
+            </div>
+            <a class="btn btn-primary" href="{{ path('gestion_entretien_new') }}">Ajouter un entretien</a>
+        </div>
+
+        <div class="search-filters">
+            <form method="get" class="filter-form">
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Recherche</span>
+                    <input class="search-input" type="text" name="search" value="{{ search }}" placeholder="Lieu, type, test...">
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Type</span>
+                    <select class="sort-select" name="type">
+                    <option value="">Tous les types</option>
+                    <option value="RH" {% if type == 'RH' %}selected{% endif %}>RH</option>
+                    <option value="TECHNIQUE" {% if type == 'TECHNIQUE' %}selected{% endif %}>TECHNIQUE</option>
+                </select>
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Statut</span>
+                    <select class="sort-select" name="statut">
+                    <option value="">Tous les statuts</option>
+                    <option value="Planifié" {% if statut == 'Planifié' %}selected{% endif %}>Planifié</option>
+                    <option value="Terminé" {% if statut == 'Terminé' %}selected{% endif %}>Terminé</option>
+                    <option value="Annulé" {% if statut == 'Annulé' %}selected{% endif %}>Annulé</option>
+                    <option value="En attente" {% if statut == 'En attente' %}selected{% endif %}>En attente</option>
+                </select>
+                </label>
+                <button class="btn-filter" type="submit">Filtrer</button>
+                <a class="btn btn-reset" href="{{ path('gestion_entretien_dashboard') }}">Reset</a>
+            </form>
+        </div>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Type</th>
+                    <th>Type de test</th>
+                    <th>Statut</th>
+                    <th>Lieu</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for entretien in entretiens %}
+                    <tr>
+                        <td><strong>{{ entretien.id }}</strong></td>
+                        <td>{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</td>
+                        <td>{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</td>
+                        <td><span class="badge b-blue">{{ entretien.typeEntretien ?? '-' }}</span></td>
+                        <td>{{ entretien.typeTest ?? '-' }}</td>
+                        <td><span class="badge {% set s = entretien.statutEntretien|lower %}{% if 'termin' in s %}b-green{% elseif 'planifi' in s %}b-blue{% elseif 'annul' in s %}b-red{% else %}b-orange{% endif %}">{{ entretien.statutEntretien ?? '-' }}</span></td>
+                        <td>{{ entretien.lieu ?? '-' }}</td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn btn-soft" href="{{ path('gestion_entretien_show', {id: entretien.id}) }}">Voir</a>
+                                <a class="btn-edit" href="{{ path('gestion_entretien_edit', {id: entretien.id}) }}">Modifier</a>
+                                <a class="btn btn-soft" href="{{ path('app_evaluation_entretien_new', {entretienId: entretien.id}) }}">Évaluer</a>
+                                <form method="post" action="{{ path('gestion_entretien_delete', {id: entretien.id}) }}" onsubmit="return confirm('Supprimer cet entretien ?');" style="margin:0;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
+                                    <button class="btn-delete" type="submit">Supprimer</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" style="padding:28px 24px;color:var(--muted);">Aucun entretien trouvé.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

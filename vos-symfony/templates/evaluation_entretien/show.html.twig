@@ -1,0 +1,37 @@
+{% extends 'gestion_entretien_base.html.twig' %}
+{% block title %}Evaluation #{{ evaluation_entretien.id }}{% endblock %}
+
+{% block body %}
+    <div class="panel">
+        <div class="section-head">
+            <div>
+                <h2>Evaluation #{{ evaluation_entretien.id }}</h2>
+                <p>Détails complets de l'évaluation</p>
+            </div>
+            <div class="actions">
+                <a class="btn btn-primary" href="{{ path('app_evaluation_entretien_edit', {id: evaluation_entretien.id}) }}">Modifier</a>
+                <a class="btn btn-soft" href="{{ path('app_evaluation_entretien_index') }}">Retour</a>
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <div class="detail-card"><div class="detail-label">Entretien</div><div class="detail-value">#{{ evaluation_entretien.entretien ? evaluation_entretien.entretien.id : '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Score</div><div class="detail-value">{{ evaluation_entretien.scoreTest ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Note</div><div class="detail-value">{{ evaluation_entretien.noteEntretien ?? '-' }}/5</div></div>
+            <div class="detail-card"><div class="detail-label">Décision</div><div class="detail-value">{{ evaluation_entretien.decision ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Compétences techniques</div><div class="detail-value">{{ evaluation_entretien.competencesTechniques ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Compétences comportementales</div><div class="detail-value">{{ evaluation_entretien.competencesComportementales ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Communication</div><div class="detail-value">{{ evaluation_entretien.communication ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Motivation</div><div class="detail-value">{{ evaluation_entretien.motivation ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Expérience</div><div class="detail-value">{{ evaluation_entretien.experience ?? '-' }}</div></div>
+            <div class="detail-card full"><div class="detail-label">Commentaire</div><div class="detail-value">{{ evaluation_entretien.commentaire ?? '-' }}</div></div>
+        </div>
+
+        <div style="padding:0 24px 24px;">
+            <form method="post" action="{{ path('app_evaluation_entretien_delete', {id: evaluation_entretien.id}) }}" onsubmit="return confirm('Supprimer cette évaluation ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ evaluation_entretien.id) }}">
+                <button class="btn btn-danger" type="submit">Supprimer</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

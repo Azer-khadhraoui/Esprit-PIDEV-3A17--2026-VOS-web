@@ -1,0 +1,64 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Mes Entretiens{% endblock %}
+{% block hero_title %}Mes Entretiens{% endblock %}
+{% block hero_subtitle %}Consultez tous vos entretiens planifiés et passés{% endblock %}
+
+{% block body %}
+    <div class="panel" style="margin-bottom:16px;">
+        <div class="section-head">
+            <div>
+                <h2>Mes entretiens</h2>
+                <p>Suivez vos rendez-vous passes et a venir</p>
+            </div>
+        </div>
+        <div class="search-filters">
+            <form method="get" class="filter-form">
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Recherche</span>
+                    <input class="search-input" type="text" name="search" value="{{ search }}" placeholder="Lieu, type, test...">
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Type</span>
+                    <select class="sort-select" name="type">
+                    <option value="">Tous les types</option>
+                    <option value="RH" {% if type == 'RH' %}selected{% endif %}>RH</option>
+                    <option value="TECHNIQUE" {% if type == 'TECHNIQUE' %}selected{% endif %}>TECHNIQUE</option>
+                </select>
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Statut</span>
+                    <select class="sort-select" name="statut">
+                    <option value="">Tous les statuts</option>
+                    <option value="Planifié" {% if statut == 'Planifié' %}selected{% endif %}>Planifié</option>
+                    <option value="Terminé" {% if statut == 'Terminé' %}selected{% endif %}>Terminé</option>
+                    <option value="Annulé" {% if statut == 'Annulé' %}selected{% endif %}>Annulé</option>
+                    <option value="En attente" {% if statut == 'En attente' %}selected{% endif %}>En attente</option>
+                </select>
+                </label>
+                <button class="btn btn-primary" type="submit">Filtrer</button>
+                <a class="btn btn-reset" href="{{ path('app_front_entretiens') }}">Reset</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid cols-3">
+        {% for entretien in entretiens %}
+            <article class="card">
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+                    <div>
+                        <div style="font-size:.8rem;color:#6c7693;">Entretien #{{ entretien.id }}</div>
+                        <h3 style="margin:.2rem 0 0;">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</h3>
+                    </div>
+                    <span class="badge b-blue">{{ entretien.typeEntretien ?? '-' }}</span>
+                </div>
+                <p style="color:#6c7693; margin:12px 0 0;">{{ entretien.lieu ?? '-' }} - {{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</p>
+                <div style="margin-top:14px; display:flex; justify-content:space-between; gap:10px; align-items:center;">
+                    <span class="badge {% set s = entretien.statutEntretien|lower %}{% if 'termin' in s %}b-green{% elseif 'planifi' in s %}b-blue{% elseif 'annul' in s %}b-red{% else %}b-orange{% endif %}">{{ entretien.statutEntretien ?? '-' }}</span>
+                    <a class="btn btn-soft" href="{{ path('app_front_entretien_show', {id: entretien.id}) }}">Voir détail</a>
+                </div>
+            </article>
+        {% else %}
+            <div class="panel" style="grid-column:1 / -1;"><div class="empty">Aucun entretien trouvé.</div></div>
+        {% endfor %}
+    </div>
+{% endblock %}

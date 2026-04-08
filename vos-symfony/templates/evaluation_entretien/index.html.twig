@@ -1,0 +1,80 @@
+{% extends 'gestion_entretien_base.html.twig' %}
+{% block title %}Evaluations{% endblock %}
+
+{% block body %}
+    <div class="panel">
+        <div class="section-head">
+            <div>
+                <h2>Liste des évaluations</h2>
+                <p>Gestion des évaluations des entretiens</p>
+            </div>
+            <a class="btn btn-primary" href="{{ path('app_evaluation_entretien_new') }}">Ajouter une évaluation</a>
+        </div>
+
+        <div class="search-filters">
+            <form method="get" class="filter-form">
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Recherche</span>
+                    <input class="search-input" type="text" name="search" value="{{ search }}" placeholder="Commentaire, décision...">
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Décision</span>
+                    <select class="sort-select" name="decision">
+                    <option value="">Toutes les décisions</option>
+                    <option value="Accepté" {% if decision == 'Accepté' %}selected{% endif %}>Accepté</option>
+                    <option value="Refusé" {% if decision == 'Refusé' %}selected{% endif %}>Refusé</option>
+                    <option value="En attente" {% if decision == 'En attente' %}selected{% endif %}>En attente</option>
+                </select>
+                </label>
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Trier par</span>
+                    <select class="sort-select" name="sortBy">
+                    <option value="ev.scoreTest" {% if sortBy == 'ev.scoreTest' %}selected{% endif %}>Score</option>
+                    <option value="ev.noteEntretien" {% if sortBy == 'ev.noteEntretien' %}selected{% endif %}>Note</option>
+                    <option value="ev.decision" {% if sortBy == 'ev.decision' %}selected{% endif %}>Décision</option>
+                </select>
+                </label>
+                <button class="btn btn-soft" type="submit">Filtrer</button>
+                <a class="btn btn-reset" href="{{ path('app_evaluation_entretien_index') }}">Reset</a>
+            </form>
+        </div>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Entretien</th>
+                    <th>Score</th>
+                    <th>Note</th>
+                    <th>Décision</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for evaluation in evaluation_entretiens %}
+                    <tr>
+                        <td><strong>{{ evaluation.id }}</strong></td>
+                        <td>#{{ evaluation.entretien ? evaluation.entretien.id : '-' }}</td>
+                        <td>{{ evaluation.scoreTest ?? '-' }}</td>
+                        <td>{{ evaluation.noteEntretien ?? '-' }}/5</td>
+                        <td><span class="badge {% set d = evaluation.decision|lower %}{% if 'accept' in d %}b-green{% elseif 'refus' in d %}b-red{% else %}b-orange{% endif %}">{{ evaluation.decision ?? '-' }}</span></td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn btn-soft" href="{{ path('app_evaluation_entretien_show', {id: evaluation.id}) }}">Voir</a>
+                                <a class="btn btn-primary" href="{{ path('app_evaluation_entretien_edit', {id: evaluation.id}) }}">Modifier</a>
+                                <form method="post" action="{{ path('app_evaluation_entretien_delete', {id: evaluation.id}) }}" onsubmit="return confirm('Supprimer cette évaluation ?');" style="margin:0;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ evaluation.id) }}">
+                                    <button class="btn btn-danger" type="submit">Supprimer</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" style="padding:28px 24px;color:var(--muted);">Aucune évaluation trouvée.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

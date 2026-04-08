@@ -1,0 +1,40 @@
+{% extends 'gestion_entretien_base.html.twig' %}
+{% block title %}Entretien #{{ entretien.id }}{% endblock %}
+
+{% block body %}
+    <div class="panel">
+        <div class="section-head">
+            <div>
+                <h2>Entretien #{{ entretien.id }}</h2>
+                <p>Détails complets de l'entretien</p>
+            </div>
+            <div class="actions">
+                <a class="btn btn-primary" href="{{ path('gestion_entretien_edit', {id: entretien.id}) }}">Modifier</a>
+                <a class="btn btn-soft" href="{{ path('gestion_entretien_dashboard') }}">Retour</a>
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <div class="detail-card"><div class="detail-label">Date</div><div class="detail-value">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Heure</div><div class="detail-value">{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Type</div><div class="detail-value">{{ entretien.typeEntretien ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Statut</div><div class="detail-value">{{ entretien.statutEntretien ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Lieu</div><div class="detail-value">{{ entretien.lieu ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Type de test</div><div class="detail-value">{{ entretien.typeTest ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Utilisateur</div><div class="detail-value">{{ entretien.idUtilisateur ?? '-' }}</div></div>
+            <div class="detail-card"><div class="detail-label">Candidature</div><div class="detail-value">{{ entretien.idCandidature ?? '-' }}</div></div>
+            <div class="detail-card full"><div class="detail-label">Questions</div><div class="detail-value">{{ entretien.questionsEntretien ?? '-' }}</div></div>
+            <div class="detail-card full">
+                <div class="detail-label">Réunion</div>
+                <div class="detail-value">{% if entretien.lienReunion %}<a href="{{ entretien.lienReunion }}" target="_blank">{{ entretien.lienReunion }}</a>{% else %}-{% endif %}</div>
+            </div>
+        </div>
+
+        <div style="padding:0 24px 24px;">
+            <form method="post" action="{{ path('gestion_entretien_delete', {id: entretien.id}) }}" onsubmit="return confirm('Supprimer cet entretien ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ entretien.id) }}">
+                <button class="btn btn-danger" type="submit">Supprimer</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
