@@ -25,11 +25,20 @@ class EvaluationEntretienRepository extends ServiceEntityRepository
         }
 
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
-        $qb = $this->createQueryBuilder('ev');
+        $qb = $this->createQueryBuilder('ev')
+            ->leftJoin('ev.entretien', 'e');
 
         if ($search) {
-            $qb->andWhere('ev.commentaire LIKE :search OR ev.decision LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
+            // Si la recherche est un nombre, chercher par ID d'évaluation ou ID d'entretien
+            if (is_numeric($search)) {
+                $qb->andWhere('ev.id = :evalId OR e.id = :entretienId OR ev.commentaire LIKE :search OR ev.decision LIKE :search')
+                    ->setParameter('evalId', (int) $search)
+                    ->setParameter('entretienId', (int) $search)
+                    ->setParameter('search', '%' . $search . '%');
+            } else {
+                $qb->andWhere('ev.commentaire LIKE :search OR ev.decision LIKE :search')
+                    ->setParameter('search', '%' . $search . '%');
+            }
         }
 
         if ($decision) {

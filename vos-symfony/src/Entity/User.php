@@ -152,4 +152,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return $this->email;
     }
+
+    public function __toString(): string
+    {
+        $fullName = trim(($this->prenom ?? '') . ' ' . ($this->nom ?? ''));
+        return $fullName ?: $this->email ?? 'User #' . $this->id;
+    }
 }

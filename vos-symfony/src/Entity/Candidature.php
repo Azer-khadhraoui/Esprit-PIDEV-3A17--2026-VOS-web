@@ -211,4 +211,9 @@ class Candidature
 
         return $this;
     }
+
+    public function __toString(): string
+    {
+        return 'Candidature #' . $this->id_candidature . ' - ' . ($this->dernier_poste ?? $this->domaine_experience ?? 'N/A');
+    }
 }

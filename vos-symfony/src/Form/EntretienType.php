@@ -2,11 +2,13 @@
 
 namespace App\Form;
 
+use App\Entity\Candidature;
 use App\Entity\Entretien;
+use App\Entity\User;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TimeType;
@@ -59,13 +61,42 @@ class EntretienType extends AbstractType
                 'label' => 'Lien de réunion',
                 'default_protocol' => 'https',
             ])
-            ->add('idCandidature', IntegerType::class, [
+            ->add('idCandidature', EntityType::class, [
+                'class' => Candidature::class,
+                'choice_label' => function (Candidature $candidature) {
+                    $id = $candidature->getIdCandidature();
+                    $poste = $candidature->getDernierPoste() ?? $candidature->getDomaineExperience() ?? 'N/A';
+                    return "Candidature #$id - $poste";
+                },
                 'required' => false,
-                'label' => 'ID Candidature',
+                'placeholder' => '-- Sélectionner une candidature --',
+                'label' => 'Candidature',
+                'query_builder' => function ($repository) {
+                    return $repository->createQueryBuilder('c')
+                        ->orderBy('c.id_candidature', 'DESC');
+                },
+                'choice_value' => function (?Candidature $candidature) {
+                    return $candidature?->getIdCandidature();
+                },
             ])
-            ->add('idUtilisateur', IntegerType::class, [
+            ->add('idUtilisateur', EntityType::class, [
+                'class' => User::class,
+                'choice_label' => function (User $user) {
+                    $fullName = trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? ''));
+                    $name = $fullName ?: $user->getEmail();
+                    return "$name (#" . $user->getId() . ")";
+                },
                 'required' => false,
-                'label' => 'ID Utilisateur',
+                'placeholder' => '-- Sélectionner un utilisateur --',
+                'label' => 'Utilisateur',
+                'query_builder' => function ($repository) {
+                    return $repository->createQueryBuilder('u')
+                        ->orderBy('u.nom', 'ASC')
+                        ->addOrderBy('u.prenom', 'ASC');
+                },
+                'choice_value' => function (?User $user) {
+                    return $user?->getId();
+                },
             ])
             ->add('questionsEntretien', TextareaType::class, [
                 'required' => false,

@@ -31,8 +31,15 @@ class EntretienRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('e');
 
         if ($search) {
-            $qb->andWhere('e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
+            // Si la recherche est un nombre, chercher par ID aussi
+            if (is_numeric($search)) {
+                $qb->andWhere('e.id = :id OR e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
+                    ->setParameter('id', (int) $search)
+                    ->setParameter('search', '%' . $search . '%');
+            } else {
+                $qb->andWhere('e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
+                    ->setParameter('search', '%' . $search . '%');
+            }
         }
 
         if ($type) {
@@ -65,8 +72,15 @@ class EntretienRepository extends ServiceEntityRepository
             ->setParameter('userId', $userId);
 
         if ($search) {
-            $qb->andWhere('e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
+            // Si la recherche est un nombre, chercher par ID aussi
+            if (is_numeric($search)) {
+                $qb->andWhere('e.id = :id OR e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
+                    ->setParameter('id', (int) $search)
+                    ->setParameter('search', '%' . $search . '%');
+            } else {
+                $qb->andWhere('e.lieu LIKE :search OR e.typeTest LIKE :search OR e.typeEntretien LIKE :search OR e.statutEntretien LIKE :search')
+                    ->setParameter('search', '%' . $search . '%');
+            }
         }
 
         if ($type) {
