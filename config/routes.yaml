@@ -1,0 +1,70 @@
+admin_dashboard:
+  path: /admin/dashboard
+  controller: App\Controller\AdminDashboardController::dashboard
+
+gestion_offre_dashboard:
+  path: /admin/offres
+  controller: App\Controller\AdminDashboardController::offreDashboard
+
+app_admin_candidatures:
+  path: /admin/candidatures
+  controller: App\Controller\AdminDashboardController::candidatures
+
+gestion_entretien_dashboard:
+  path: /admin/entretiens
+  controller: App\Controller\AdminDashboardController::entretiens
+
+app_admin_recrutements:
+  path: /admin/recrutements/dashboard
+  controller: App\Controller\AdminDashboardController::recrutements
+
+app_admin_forum:
+  path: /admin/forum
+  controller: App\Controller\AdminDashboardController::forum
+
+app_admin_reports:
+  path: /admin/rapports
+  controller: App\Controller\AdminDashboardController::reports
+
+app_admin_users_statistique:
+  path: /admin/users/statistiques
+  controller: App\Controller\AdminDashboardController::statistiques
+
+recrutement_index:
+  path: /admin/recrutements/list
+  controller: App\Controller\RecrutementController::index
+
+recrutement_new:
+  path: /admin/recrutements/new
+  controller: App\Controller\RecrutementController::new
+
+recrutement_edit:
+  path: /admin/recrutements/{id}/edit
+  controller: App\Controller\RecrutementController::edit
+
+recrutement_delete:
+  path: /admin/recrutements/{id}/delete
+  methods: [POST]
+  controller: App\Controller\RecrutementController::delete
+
+contrat_embauche_index:
+  path: /admin/contrats
+  controller: App\Controller\ContratEmbaucheController::index
+
+contrat_embauche_new:
+  path: /admin/contrats/new
+  controller: App\Controller\ContratEmbaucheController::new
+
+contrat_embauche_edit:
+  path: /admin/contrats/{id}/edit
+  controller: App\Controller\ContratEmbaucheController::edit
+
+contrat_embauche_delete:
+  path: /admin/contrats/{id}/delete
+  methods: [POST]
+  controller: App\Controller\ContratEmbaucheController::delete
+
+app_logout:
+  path: /admin/logout
+  methods: [POST]
+  controller: App\Controller\AdminDashboardController::logout

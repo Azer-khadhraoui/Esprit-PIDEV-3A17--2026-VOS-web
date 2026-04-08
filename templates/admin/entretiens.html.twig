@@ -1,0 +1,114 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Gestion Entretiens | VOS{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item is-active" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item" href="{{ path('app_admin_recrutements') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('app_admin_forum') }}">Forum</a>
+            <a class="nav-item" href="{{ path('app_admin_reports') }}">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <div class="header-panel">
+            <div class="page-title">
+                <h1>Gestion Entretiens</h1>
+                <p>Vue d'ensemble du module gestion entretiens</p>
+            </div>
+            <div class="header-actions">
+                <a href="#" class="btn-primary">Ajouter un entretien</a>
+            </div>
+        </div>
+
+        <div class="tab-nav" role="tablist">
+            <a class="tab-link is-active" href="{{ path('gestion_entretien_dashboard') }}">Entretiens</a>
+            <a class="tab-link" href="#">Évaluations</a>
+            <a class="tab-link" href="#">Statistiques</a>
+        </div>
+
+        <section class="filter-card">
+            <form method="GET" class="filter-form">
+                <input type="text" name="search" class="search-input" placeholder="Lieu, type, test..." value="{{ search }}">
+
+                <select name="type" class="sort-select">
+                    <option value="">Tous les types</option>
+                    <option value="Technique" {% if typeFilter == 'Technique' %}selected{% endif %}>Technique</option>
+                    <option value="RH" {% if typeFilter == 'RH' %}selected{% endif %}>RH</option>
+                </select>
+
+                <select name="statut" class="sort-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="Terminé" {% if statutFilter == 'Terminé' %}selected{% endif %}>Terminé</option>
+                    <option value="En attente" {% if statutFilter == 'En attente' %}selected{% endif %}>En attente</option>
+                </select>
+
+                <button type="submit" class="btn-filter btn-primary">Filtrer</button>
+                <a href="{{ path('gestion_entretien_dashboard') }}" class="btn-secondary">Reset</a>
+            </form>
+        </section>
+
+        <section class="table-card entretien-table-card">
+            <div class="table-head">
+                <h2>Dashboard Entretiens</h2>
+                <span class="table-badge">{{ entretiens|length }} entrées</span>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>DATE</th>
+                            <th>HEURE</th>
+                            <th>TYPE</th>
+                            <th>TYPE DE TEST</th>
+                            <th>STATUT</th>
+                            <th>LIEU</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for entretien in entretiens %}
+                        <tr>
+                            <td>{{ entretien.id }}</td>
+                            <td>{{ entretien.date }}</td>
+                            <td>{{ entretien.heure }}</td>
+                            <td><span class="badge badge-type">{{ entretien.type }}</span></td>
+                            <td>{{ entretien.testType }}</td>
+                            <td><span class="badge badge-status">{{ entretien.statut }}</span></td>
+                            <td>{{ entretien.lieu }}</td>
+                            <td>
+                                <div class="actions table-actions">
+                                    <a href="#" class="btn-link">Voir</a>
+                                    <a href="#" class="btn-edit btn-sm">Modifier</a>
+                                    <a href="#" class="btn-secondary btn-sm">Évaluer</a>
+                                    <form method="post" action="#" onsubmit="return confirm('Supprimer cet entretien ?');">
+                                        <button type="submit" class="btn-delete btn-sm">Supprimer</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8">Aucun entretien trouvé.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

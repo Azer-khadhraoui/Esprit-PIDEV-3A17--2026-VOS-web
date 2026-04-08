@@ -1,0 +1,180 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Dashboard Admin | VOS{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item is-active" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('app_admin_forum') }}">Forum</a>
+            <a class="nav-item" href="{{ path('app_admin_reports') }}">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>{{ pageTitle }}</h1>
+                <p>Bienvenue {{ adminName }}</p>
+            </div>
+            <form method="post" action="{{ path('app_logout') }}">
+                <button class="btn-logout" type="submit">Déconnexion</button>
+            </form>
+        </header>
+
+        <nav class="module-nav" aria-label="Navigation users">
+            <a class="module-link is-active" href="{{ path('app_admin_dashboard') }}">Users</a>
+            <a class="module-link" href="{{ path('app_admin_users_statistique') }}">Statistique</a>
+        </nav>
+
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+
+        <section class="stats-grid">
+            <article class="stat-card stat-total">
+                <h3>Total utilisateurs</h3>
+                <p>{{ stats.total }}</p>
+            </article>
+            <article class="stat-card stat-admins">
+                <h3>Administrateurs</h3>
+                <p>{{ stats.admins }}</p>
+            </article>
+            <article class="stat-card stat-clients">
+                <h3>Clients</h3>
+                <p>{{ stats.clients }}</p>
+            </article>
+        </section>
+
+        <section class="table-card">
+            <div class="table-head">
+                <h2>Liste des utilisateurs</h2>
+                <span class="table-badge">{{ users|length }} entrées</span>
+            </div>
+
+            <div class="search-filters">
+                <form method="GET" class="filter-form">
+                    <input type="text" name="search" placeholder="Rechercher par nom, prénom ou email..." value="{{ search }}" class="search-input">
+
+                    <select name="role" class="sort-select">
+                        <option value="">Tous les rôles</option>
+                        <option value="CLIENT" {% if roleFilter == 'CLIENT' %}selected{% endif %}>Client</option>
+                        <option value="ADMIN_RH" {% if roleFilter == 'ADMIN_RH' %}selected{% endif %}>Admin RH</option>
+                        <option value="ADMIN_TECHNIQUE" {% if roleFilter == 'ADMIN_TECHNIQUE' %}selected{% endif %}>Admin technique</option>
+                    </select>
+
+                    <select name="sortBy" class="sort-select">
+                        <option value="id" {% if sortBy == 'id' %}selected{% endif %}>Trier par ID</option>
+                        <option value="nom" {% if sortBy == 'nom' %}selected{% endif %}>Trier par nom</option>
+                        <option value="prenom" {% if sortBy == 'prenom' %}selected{% endif %}>Trier par prénom</option>
+                        <option value="email" {% if sortBy == 'email' %}selected{% endif %}>Trier par email</option>
+                        <option value="role" {% if sortBy == 'role' %}selected{% endif %}>Trier par rôle</option>
+                    </select>
+
+                    <select name="sortOrder" class="sort-select">
+                        <option value="DESC" {% if sortOrder == 'DESC' %}selected{% endif %}>Descendant</option>
+                        <option value="ASC" {% if sortOrder == 'ASC' %}selected{% endif %}>Ascendant</option>
+                    </select>
+
+                    <a href="{{ path('app_admin_dashboard') }}" class="btn-reset">Réinitialiser</a>
+                </form>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Photo</th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                {% if user.imageProfil %}
+                                    <img class="avatar" src="{{ user.imageProfil }}" alt="photo user">
+                                {% else %}
+                                    <div class="avatar avatar-empty">-</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.nom ?? '-' }}</td>
+                            <td>{{ user.prenom ?? '-' }}</td>
+                            <td>{{ user.email }}</td>
+                            <td><span class="role-chip">{{ user.role }}</span></td>
+                            <td>
+                                <div class="actions">
+                                    <a class="btn-edit" href="#">Modifier</a>
+                                    <form method="post" action="{{ path('app_logout') }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                        <button class="btn-delete" type="submit">Supprimer</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7">Aucun utilisateur trouvé.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        const form = document.querySelector('.filter-form');
+        if (!form) {
+            return;
+        }
+
+        const searchInput = form.querySelector('input[name="search"]');
+        const roleSelect = form.querySelector('select[name="role"]');
+        const sortBySelect = form.querySelector('select[name="sortBy"]');
+        const sortOrderSelect = form.querySelector('select[name="sortOrder"]');
+        let debounceTimer;
+
+        const submitFilters = function () {
+            form.submit();
+        };
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(submitFilters, 350);
+            });
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', submitFilters);
+        }
+
+        if (sortBySelect) {
+            sortBySelect.addEventListener('change', submitFilters);
+        }
+
+        if (sortOrderSelect) {
+            sortOrderSelect.addEventListener('change', submitFilters);
+        }
+    })();
+</script>
+{% endblock %}

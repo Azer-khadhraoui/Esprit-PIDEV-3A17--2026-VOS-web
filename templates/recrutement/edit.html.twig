@@ -1,0 +1,34 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Modifier Recrutement | VOS{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item is-active" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('app_admin_forum') }}">Forum</a>
+            <a class="nav-item" href="{{ path('app_admin_reports') }}">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Modifier le recrutement #{{ recrutement.id }}</h1>
+                <p>Mettre à jour les informations du recrutement.</p>
+            </div>
+            <a href="{{ path('recrutement_index') }}" class="btn-logout">Retour à la liste</a>
+        </header>
+
+        <section class="table-card">
+            {{ include('recrutement/_form.html.twig', {'form': form, 'button_label': 'Mettre à jour'}) }}
+        </section>
+    </main>
+</div>
+{% endblock %}

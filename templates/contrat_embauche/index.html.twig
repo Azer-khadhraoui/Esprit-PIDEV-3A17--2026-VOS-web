@@ -1,0 +1,91 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Gestion Contrats | VOS{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('app_admin_forum') }}">Forum</a>
+            <a class="nav-item" href="{{ path('app_admin_reports') }}">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Gestion des contrats</h1>
+                <p>Liste des contrats d'embauche</p>
+            </div>
+            <a href="{{ path('contrat_embauche_new') }}" class="btn-logout">Nouveau contrat</a>
+        </header>
+
+        <div class="module-nav">
+            <a class="module-link" href="{{ path('recrutement_index') }}">Recrutements</a>
+            <a class="module-link is-active" href="{{ path('contrat_embauche_index') }}">Contrats</a>
+        </div>
+
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+
+        <section class="table-card">
+            <div class="table-head">
+                <h2>Contrats d'embauche</h2>
+                <span class="table-badge">{{ contrats|length }} entrées</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Début</th>
+                            <th>Fin</th>
+                            <th>Période</th>
+                            <th>Salaire</th>
+                            <th>Statut</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contrat in contrats %}
+                            <tr>
+                                <td>{{ contrat.id }}</td>
+                                <td>{{ contrat.typeContrat }}</td>
+                                <td>{{ contrat.dateDebut ? contrat.dateDebut|date('d/m/Y') : '-' }}</td>
+                                <td>{{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : '-' }}</td>
+                                <td>{{ contrat.periode ?: '-' }}</td>
+                                <td>{{ contrat.salaire }}</td>
+                                <td>{{ contrat.status }}</td>
+                                <td>
+                                    <div class="actions">
+                                        <a class="btn-edit" href="{{ path('contrat_embauche_edit', {id: contrat.id}) }}">Modifier</a>
+                                        <form method="post" action="{{ path('contrat_embauche_delete', {id: contrat.id}) }}" onsubmit="return confirm('Supprimer ce contrat ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_contrat_' ~ contrat.id) }}">
+                                            <button class="btn-delete" type="submit">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7">Aucun contrat trouvé.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}
