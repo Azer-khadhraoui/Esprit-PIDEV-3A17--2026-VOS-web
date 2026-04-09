@@ -151,13 +151,28 @@ class AuthController extends AbstractController
     #[Route('/logout', name: 'app_logout', methods: ['POST'])]
     public function logout(SessionInterface $session): Response
     {
-        if ($session->isStarted()) {
-            $session->invalidate();
+        if (!$session->isStarted()) {
+            $session->start();
         }
+
+        $session->remove('admin_user_id');
+        $session->remove('admin_user_role');
+        $session->remove('admin_user_name');
+        $session->remove('user_id');
+        $session->remove('user_role');
+        $session->remove('user_name');
+        $session->remove('auth_scope');
+        $session->invalidate();
 
         $this->addFlash('success', 'Déconnexion réussie.');
 
-        return $this->redirectToRoute('app_client_accueil');
+        $response = $this->redirectToRoute('app_signin');
+        $response->headers->clearCookie(session_name());
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
     }
 
     #[Route('/contact', name: 'app_contact', methods: ['GET'])]
