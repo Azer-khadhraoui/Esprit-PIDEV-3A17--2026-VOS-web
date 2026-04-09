@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Candidature;
 use App\Entity\EvaluationEntretien;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -43,7 +44,8 @@ class EvaluationEntretienRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('ev')
             ->innerJoin('ev.entretien', 'e')
-            ->andWhere('e.idUtilisateur = :userId')
+            ->leftJoin(Candidature::class, 'c', 'WITH', 'c.id_candidature = e.idCandidature')
+            ->andWhere('(e.idUtilisateur = :userId OR c.id_utilisateur = :userId)')
             ->setParameter('userId', $userId)
             ->orderBy('ev.id', 'DESC')
             ->getQuery()

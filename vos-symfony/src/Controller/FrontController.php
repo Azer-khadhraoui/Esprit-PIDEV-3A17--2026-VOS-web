@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Candidature;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -107,7 +108,8 @@ class FrontController extends AbstractController
 
         $entretien = $repo->createQueryBuilder('e')
             ->andWhere('e.id = :id')
-            ->andWhere('e.idUtilisateur = :userId')
+            ->leftJoin(Candidature::class, 'c', 'WITH', 'c.id_candidature = e.idCandidature')
+            ->andWhere('(e.idUtilisateur = :userId OR c.id_utilisateur = :userId)')
             ->setParameter('id', $id)
             ->setParameter('userId', $userId)
             ->getQuery()

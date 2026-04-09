@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Candidature;
 use App\Entity\Entretien;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -61,7 +62,8 @@ class EntretienRepository extends ServiceEntityRepository
 
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
         $qb = $this->createQueryBuilder('e')
-            ->andWhere('e.idUtilisateur = :userId')
+            ->leftJoin(Candidature::class, 'c', 'WITH', 'c.id_candidature = e.idCandidature')
+            ->andWhere('(e.idUtilisateur = :userId OR c.id_utilisateur = :userId)')
             ->setParameter('userId', $userId);
 
         if ($search) {

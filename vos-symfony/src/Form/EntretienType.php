@@ -17,6 +17,7 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Choice;
+use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -56,8 +57,15 @@ class EntretienType extends AbstractType
                 'widget' => 'single_text',
                 'required' => false,
                 'label' => 'Date de l\'entretien',
+                'attr' => [
+                    'min' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+                ],
                 'constraints' => [
                     new NotBlank(['message' => 'La date de l entretien est obligatoire.']),
+                    new GreaterThanOrEqual([
+                        'value' => 'today',
+                        'message' => 'La date de l entretien ne peut pas etre dans le passe.',
+                    ]),
                 ],
             ])
             ->add('heureEntretien', TimeType::class, [
