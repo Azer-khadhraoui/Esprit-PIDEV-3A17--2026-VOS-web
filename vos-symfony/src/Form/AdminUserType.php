@@ -23,6 +23,7 @@ class AdminUserType extends AbstractType
             ->add('nom', TextType::class, [
                 'label' => 'Nom',
                 'required' => false,
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(['message' => 'Le nom est obligatoire.']),
                     new Length(['min' => 2, 'max' => 50]),
@@ -31,6 +32,7 @@ class AdminUserType extends AbstractType
             ->add('prenom', TextType::class, [
                 'label' => 'Prénom',
                 'required' => false,
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(['message' => 'Le prenom est obligatoire.']),
                     new Length(['min' => 2, 'max' => 50]),
@@ -39,6 +41,7 @@ class AdminUserType extends AbstractType
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'required' => false,
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(['message' => 'L email est obligatoire.']),
                     new Email(['message' => 'Email invalide.']),
@@ -57,6 +60,7 @@ class AdminUserType extends AbstractType
                     'Admin Technique' => 'ADMIN_TECHNIQUE',
                 ],
                 'required' => false,
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(['message' => 'Le role est obligatoire.']),
                     new Choice(['choices' => ['CLIENT', 'ADMIN_RH', 'ADMIN_TECHNIQUE']]),

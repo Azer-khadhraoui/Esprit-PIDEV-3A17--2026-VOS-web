@@ -617,7 +617,9 @@ class GestionOffreController extends AbstractController
         }
 
         $lieu = $offre->getLieu();
-        if ($lieu !== null && mb_strlen($lieu) < 3) {
+        if ($lieu === null || $lieu === '') {
+            $errors['lieu'] = 'Le lieu est obligatoire.';
+        } elseif (mb_strlen($lieu) < 3) {
             $errors['lieu'] = 'Le lieu doit contenir au moins 3 caracteres.';
         }
         if ($lieu !== null && mb_strlen($lieu) > 255) {
@@ -625,7 +627,9 @@ class GestionOffreController extends AbstractController
         }
 
         $description = $offre->getDescription();
-        if ($description !== null && mb_strlen($description) < 10) {
+        if ($description === null || $description === '') {
+            $errors['description'] = 'La description est obligatoire.';
+        } elseif (mb_strlen($description) < 10) {
             $errors['description'] = 'La description doit contenir au moins 10 caracteres.';
         }
         if ($description !== null && mb_strlen($description) > 5000) {

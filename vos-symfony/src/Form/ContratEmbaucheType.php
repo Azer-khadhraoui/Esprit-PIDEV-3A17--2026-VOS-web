@@ -28,6 +28,7 @@ class ContratEmbaucheType extends AbstractType
             ->add('typeContrat', ChoiceType::class, [
                 'label' => 'Type de contrat',
                 'required' => false,
+                'empty_data' => '',
                 'choices' => [
                     'CDI' => 'CDI',
                     'CDD' => 'CDD',
@@ -51,11 +52,13 @@ class ContratEmbaucheType extends AbstractType
                 'widget' => 'single_text',
                 'label' => 'Date de fin',
                 'required' => false,
+                'constraints' => [new NotBlank(['message' => 'La date de fin est obligatoire.'])],
             ])
             ->add('salaire', MoneyType::class, [
                 'currency' => 'EUR',
                 'label' => 'Salaire',
                 'required' => false,
+                'empty_data' => '0',
                 'constraints' => [
                     new NotBlank(['message' => 'Le salaire est obligatoire.']),
                     new GreaterThanOrEqual(['value' => 0]),
@@ -64,6 +67,7 @@ class ContratEmbaucheType extends AbstractType
             ->add('volumeHoraire', TextType::class, [
                 'label' => 'Volume horaire',
                 'required' => false,
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(['message' => 'Le volume horaire est obligatoire.']),
                     new Length(['min' => 2, 'max' => 50]),

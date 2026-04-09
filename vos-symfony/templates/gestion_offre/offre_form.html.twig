@@ -167,12 +167,12 @@
                     const fields = {
                         titre: { required: true, minLength: 3, maxLength: 100, type: 'text', label: 'Titre' },
                         type_contrat: { required: true, type: 'select', label: 'Type contrat' },
-                        description: { required: false, minLength: 10, maxLength: 5000, type: 'textarea', label: 'Description' },
+                        description: { required: true, minLength: 10, maxLength: 5000, type: 'textarea', label: 'Description' },
                         statut_offre: { required: true, type: 'select', label: 'Statut' },
                         date_publication: { required: true, type: 'date', label: 'Date publication' },
                         id_utilisateur: { required: true, type: 'select', label: 'ID utilisateur' },
                         work_preference: { required: true, type: 'select', label: 'Work preference' },
-                        lieu: { required: false, minLength: 3, maxLength: 255, type: 'text', label: 'Lieu' }
+                        lieu: { required: true, minLength: 3, maxLength: 255, type: 'text', label: 'Lieu' }
                     };
 
                     // Track which fields have been touched
