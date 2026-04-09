@@ -36,34 +36,6 @@ class ClientController extends AbstractController
         ]);
     }
 
-    #[Route('/offres', name: 'app_client_offres')]
-    public function offres(Request $request, ClientOffreService $offreService, SessionInterface $session): Response
-    {
-        $access = $this->requireClient($session);
-        if ($access instanceof RedirectResponse) {
-            return $access;
-        }
-
-        $search = (string) $request->query->get('search', '');
-        $type = (string) $request->query->get('type', '');
-
-        if (!empty($type)) {
-            $offres = $offreService->filterByType($type);
-        } elseif (!empty($search)) {
-            $offres = $offreService->searchOffres($search);
-        } else {
-            $offres = $offreService->getAllOffres();
-        }
-
-        return $this->render('client/offres.html.twig', [
-            'offres' => $offres,
-            'userName' => (string) $session->get('user_name', 'Client'),
-            'userRole' => (string) $session->get('user_role', 'CLIENT'),
-            'search' => $search,
-            'type' => $type,
-        ]);
-    }
-
     #[Route('/profile', name: 'app_client_profile', methods: ['GET', 'POST'])]
     public function profile(
         Request $request,

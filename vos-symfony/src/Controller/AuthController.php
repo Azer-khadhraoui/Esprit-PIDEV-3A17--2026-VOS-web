@@ -101,7 +101,7 @@ class AuthController extends AbstractController
                     $session->set('auth_scope', 'client');
                     $session->save();
 
-                    return $this->redirectToRoute('app_client_offres');
+                    return $this->redirectToRoute('client_opportunites');
                 }
 
                 // Session admin
