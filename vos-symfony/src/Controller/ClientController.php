@@ -17,6 +17,19 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/client')]
 class ClientController extends AbstractController
 {
+    #[Route('/accueil', name: 'app_client_accueil', methods: ['GET'])]
+    public function accueil(SessionInterface $session): Response
+    {
+        $access = $this->requireClient($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        return $this->render('client/accueil.html.twig', [
+            'userName' => (string) $session->get('user_name', 'Client'),
+        ]);
+    }
+
     #[Route('/offres', name: 'app_client_offres')]
     public function offres(Request $request, ClientOffreService $offreService, SessionInterface $session): Response
     {

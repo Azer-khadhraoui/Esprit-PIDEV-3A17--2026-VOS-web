@@ -1,11 +1,12 @@
 <header class="header">
     <div class="header-inner">
-        <div class="brand">VOS</div>
+        <a href="{{ path('app_client_accueil') }}" class="brand">VOS</a>
         <nav class="nav">
             <a href="{{ path('client_opportunites') }}" class="{{ activePage == 'opportunites' ? 'is-active' : '' }}">Opportunités</a>
             <a href="{{ path('app_client_candidatures') }}" class="{{ activePage == 'candidatures' ? 'is-active' : '' }}">Candidatures</a>
             <a href="{{ path('app_client_preferences') }}" class="{{ activePage == 'preferences' ? 'is-active' : '' }}">Préférences</a>
             <a href="{{ path('app_front_dashboard') }}" class="{{ activePage == 'entretiens' ? 'is-active' : '' }}">Entretiens</a>
+            <a href="{{ path('client_mes_contrats') }}" class="{{ activePage == 'mes-contrats' ? 'is-active' : '' }}">Mes contrats</a>
         </nav>
         <div class="header-actions">
             <a href="{{ path('app_client_profile') }}" class="signup">{{ userName|default('Utilisateur') }}</a>

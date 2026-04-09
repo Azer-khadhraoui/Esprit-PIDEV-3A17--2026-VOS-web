@@ -43,7 +43,7 @@ class EvaluationEntretien
     private ?int $experience = null;
 
     #[ORM\ManyToOne(targetEntity: Entretien::class, inversedBy: 'evaluationEntretiens')]
-    #[ORM\JoinColumn(name: 'id_entretien', referencedColumnName: 'id_entretien')]
+    #[ORM\JoinColumn(name: 'id_entretien', referencedColumnName: 'id_entretien', onDelete: 'CASCADE')]
     private ?Entretien $entretien = null;
 
     public function getId(): ?int

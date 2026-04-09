@@ -45,7 +45,7 @@ class AdminUserService
                 @mkdir($uploadDirectory, 0775, true);
             }
 
-            $extension = $uploadedImage->guessExtension() ?: 'bin';
+            $extension = $this->validation->resolveImageExtension($uploadedImage);
             $newFileName = uniqid('profile_', true) . '.' . $extension;
 
             try {

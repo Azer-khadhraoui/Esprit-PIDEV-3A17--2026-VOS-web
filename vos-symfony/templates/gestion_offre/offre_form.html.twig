@@ -14,7 +14,7 @@
             <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
             <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
             <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
-            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
             <a class="nav-item" href="#">Forum</a>
             <a class="nav-item" href="#">Rapports</a>
         </nav>
@@ -47,16 +47,21 @@
             {% endfor %}
 
             <section style="background:var(--panel);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;max-width:980px;">
-                <form method="post" style="display:grid;gap:14px;">
+                <form method="post" id="offreForm" style="display:grid;gap:14px;">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Titre</span>
-                            <input type="text" name="titre" value="{{ offre.titre ?? '' }}" required minlength="3" maxlength="100" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
-                        </label>
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Type contrat</span>
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Titre
+                            </label>
+                            <input type="text" name="titre" id="titre" value="{{ offre.titre ?? '' }}" required minlength="3" maxlength="100" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;transition:border-color 0.2s;">
+                            <span id="titre-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Type contrat
+                            </label>
                             {% set currentTypeContrat = offre.typeContrat ?? '' %}
-                            <select name="type_contrat" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                            <select name="type_contrat" id="type_contrat" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;transition:border-color 0.2s;">
                                 <option value="">Choisir un type</option>
                                 <option value="CDI" {{ currentTypeContrat == 'CDI' ? 'selected' : '' }}>CDI</option>
                                 <option value="CDD" {{ currentTypeContrat == 'CDD' ? 'selected' : '' }}>CDD</option>
@@ -67,47 +72,65 @@
                                     <option value="{{ currentTypeContrat }}" selected>{{ currentTypeContrat }}</option>
                                 {% endif %}
                             </select>
-                        </label>
+                            <span id="type_contrat-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
                     </div>
 
-                    <label style="display:grid;gap:6px;">
-                        <span style="font-weight:600;color:#334155;">Description</span>
-                        <textarea name="description" rows="4" maxlength="5000" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;resize:vertical;">{{ offre.description ?? '' }}</textarea>
-                    </label>
+                    <div style="display:grid;gap:6px;">
+                        <label style="font-weight:600;color:#334155;">
+                            Description
+                        </label>
+                        <textarea name="description" id="description" rows="4" maxlength="5000" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;resize:vertical;transition:border-color 0.2s;">{{ offre.description ?? '' }}</textarea>
+                        <span id="description-error" style="display:none;font-size:0.875rem;color:#f59e0b;margin-top:2px;"></span>
+                    </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Statut</span>
-                            <select name="statut_offre" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Statut
+                            </label>
+                            <select name="statut_offre" id="statut_offre" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;transition:border-color 0.2s;">
                                 {% set currentStatus = offre.statutOffre ?? '' %}
-                                <option value="ACTIVE" {{ currentStatus == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
-                                <option value="INACTIVE" {{ currentStatus == 'INACTIVE' ? 'selected' : '' }}>INACTIVE</option>
-                                <option value="OUVERTE" {{ currentStatus == 'OUVERTE' ? 'selected' : '' }}>OUVERTE</option>
-                                <option value="FERMEE" {{ currentStatus == 'FERMEE' ? 'selected' : '' }}>FERMEE</option>
+                                <option value="">Choisir un statut</option>
+                                <option value="OUVERTE" {{ currentStatus in ['OUVERTE', 'ACTIVE'] ? 'selected' : '' }}>Ouverte aux candidatures</option>
+                                <option value="INACTIVE" {{ currentStatus == 'INACTIVE' ? 'selected' : '' }}>En pause (temporairement masquée)</option>
+                                <option value="FERMEE" {{ currentStatus == 'FERMEE' ? 'selected' : '' }}>Fermée</option>
+                                {% if currentStatus not in ['', 'OUVERTE', 'ACTIVE', 'INACTIVE', 'FERMEE'] %}
+                                    <option value="{{ currentStatus }}" selected>{{ currentStatus }}</option>
+                                {% endif %}
                             </select>
-                        </label>
+                            <span id="statut_offre-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
 
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Date publication</span>
-                            <input type="date" name="date_publication" value="{{ offre.datePublication ? offre.datePublication|date('Y-m-d') : '' }}" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
-                        </label>
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Date publication
+                            </label>
+                            <input type="date" name="date_publication" id="date_publication" value="{{ offre.datePublication ? offre.datePublication|date('Y-m-d') : '' }}" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;transition:border-color 0.2s;">
+                            <span id="date_publication-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
 
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">ID utilisateur</span>
-                            <select name="id_utilisateur" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                ID utilisateur
+                            </label>
+                            <select name="id_utilisateur" id="id_utilisateur" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;transition:border-color 0.2s;">
                                 <option value="">Choisir utilisateur</option>
                                 {% for user in userOptions %}
                                     <option value="{{ user.id }}" {{ offre.idUtilisateur == user.id ? 'selected' : '' }}>{{ user.label }}</option>
                                 {% endfor %}
                             </select>
-                        </label>
+                            <span id="id_utilisateur-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Work preference</span>
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Work preference
+                            </label>
                             {% set currentWorkPreference = offre.workPreference ?? '' %}
-                            <select name="work_preference" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;">
+                            <select name="work_preference" id="work_preference" required style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;transition:border-color 0.2s;">
                                 <option value="">Choisir une preference</option>
                                 <option value="On-site" {{ currentWorkPreference == 'On-site' ? 'selected' : '' }}>On-site</option>
                                 <option value="Remote" {{ currentWorkPreference == 'Remote' ? 'selected' : '' }}>Remote</option>
@@ -116,11 +139,15 @@
                                     <option value="{{ currentWorkPreference }}" selected>{{ currentWorkPreference }}</option>
                                 {% endif %}
                             </select>
-                        </label>
-                        <label style="display:grid;gap:6px;">
-                            <span style="font-weight:600;color:#334155;">Lieu</span>
-                            <input type="text" name="lieu" value="{{ offre.lieu ?? '' }}" maxlength="255" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;">
-                        </label>
+                            <span id="work_preference-error" style="display:none;font-size:0.875rem;color:#dc2626;margin-top:2px;"></span>
+                        </div>
+                        <div style="display:grid;gap:6px;">
+                            <label style="font-weight:600;color:#334155;">
+                                Lieu
+                            </label>
+                            <input type="text" name="lieu" id="lieu" value="{{ offre.lieu ?? '' }}" maxlength="255" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;transition:border-color 0.2s;">
+                            <span id="lieu-error" style="display:none;font-size:0.875rem;color:#f59e0b;margin-top:2px;"></span>
+                        </div>
                     </div>
 
                     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
@@ -129,6 +156,138 @@
                     </div>
                 </form>
             </section>
+
+            <script>
+                (function() {
+                    const form = document.getElementById('offreForm');
+                    const fields = {
+                        titre: { required: true, minLength: 3, maxLength: 100, type: 'text', label: 'Titre' },
+                        type_contrat: { required: true, type: 'select', label: 'Type contrat' },
+                        description: { required: false, minLength: 10, maxLength: 5000, type: 'textarea', label: 'Description' },
+                        statut_offre: { required: true, type: 'select', label: 'Statut' },
+                        date_publication: { required: true, type: 'date', label: 'Date publication' },
+                        id_utilisateur: { required: true, type: 'select', label: 'ID utilisateur' },
+                        work_preference: { required: true, type: 'select', label: 'Work preference' },
+                        lieu: { required: false, minLength: 3, maxLength: 255, type: 'text', label: 'Lieu' }
+                    };
+
+                    // Track which fields have been touched
+                    const touchedFields = new Set();
+                    const successTimeouts = {};
+
+                    // Validation logic
+                    function validateField(fieldName, showMessage = true) {
+                        const field = document.getElementById(fieldName);
+                        const error = document.getElementById(fieldName + '-error');
+                        const config = fields[fieldName];
+                        
+                        if (!field || !error) return true;
+
+                        const value = field.value.trim();
+                        let errorMsg = '';
+                        let isValid = true;
+
+                        // Required field validation
+                        if (config.required && !value) {
+                            errorMsg = '⚠️ Ce champ est vide';
+                            isValid = false;
+                        }
+                        // Min length validation
+                        else if (value && config.minLength && value.length < config.minLength) {
+                            errorMsg = `⚠️ Au moins ${config.minLength} caractères requis`;
+                            isValid = false;
+                        }
+                        // Max length validation
+                        else if (value && config.maxLength && value.length > config.maxLength) {
+                            errorMsg = `⚠️ Maximum ${config.maxLength} caractères (${value.length}/${config.maxLength})`;
+                            isValid = false;
+                        }
+                        // Success feedback for valid filled fields
+                        else if (value && isValid) {
+                            if (config.required || (config.minLength && value.length >= config.minLength)) {
+                                errorMsg = `✓ Valide (${value.length}/${config.maxLength || 'illimité'} caractères)`;
+                            }
+                        }
+
+                        // Clear any existing timeout for this field
+                        if (successTimeouts[fieldName]) {
+                            clearTimeout(successTimeouts[fieldName]);
+                            delete successTimeouts[fieldName];
+                        }
+
+                        // Update border color and error message
+                        if (!isValid) {
+                            field.style.borderColor = '#dc2626';
+                            if (showMessage && touchedFields.has(fieldName)) {
+                                error.style.display = 'block';
+                                error.textContent = errorMsg;
+                                error.style.color = '#dc2626';
+                            }
+                        } else if (isValid && value && (config.required || (config.minLength && value.length >= config.minLength))) {
+                            field.style.borderColor = '#16a34a';
+                            if (showMessage && touchedFields.has(fieldName)) {
+                                error.style.display = 'block';
+                                error.textContent = errorMsg;
+                                error.style.color = '#16a34a';
+                                
+                                // Auto-hide success message after 1 second
+                                successTimeouts[fieldName] = setTimeout(() => {
+                                    error.style.display = 'none';
+                                    delete successTimeouts[fieldName];
+                                }, 1000);
+                            }
+                        } else {
+                            field.style.borderColor = '#d0d8e5';
+                            error.style.display = 'none';
+                            error.style.color = '#f59e0b';
+                        }
+
+                        return isValid;
+                    }
+
+                    // Attach event listeners to all fields
+                    Object.keys(fields).forEach(fieldName => {
+                        const field = document.getElementById(fieldName);
+                        if (field) {
+                            // Mark field as touched on first interaction
+                            field.addEventListener('input', () => {
+                                touchedFields.add(fieldName);
+                                validateField(fieldName, true);
+                            });
+                            field.addEventListener('change', () => {
+                                touchedFields.add(fieldName);
+                                validateField(fieldName, true);
+                            });
+                            field.addEventListener('blur', () => {
+                                touchedFields.add(fieldName);
+                                validateField(fieldName, true);
+                            });
+                        }
+                    });
+
+                    // Form submission validation
+                    form.addEventListener('submit', function(e) {
+                        let isFormValid = true;
+
+                        Object.keys(fields).forEach(fieldName => {
+                            touchedFields.add(fieldName);
+                            if (!validateField(fieldName, true)) {
+                                isFormValid = false;
+                            }
+                        });
+
+                        if (!isFormValid) {
+                            e.preventDefault();
+                            const titleField = document.getElementById('titre');
+                            if (titleField) {
+                                titleField.focus();
+                                titleField.style.borderColor = '#dc2626';
+                            }
+                        }
+                    });
+                })();
+            </script>
         </main>
     </div>
 {% endblock %}
+

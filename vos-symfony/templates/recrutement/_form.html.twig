@@ -1,0 +1,101 @@
+{{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+    <div class="form-grid">
+        <div class="form-group">
+            {{ form_label(form.dateDecision) }}
+            {{ form_widget(form.dateDecision) }}
+            {{ form_errors(form.dateDecision) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.decisionFinale) }}
+            {{ form_widget(form.decisionFinale) }}
+            {{ form_errors(form.decisionFinale) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.idEntretien) }}
+            {{ form_widget(form.idEntretien, {'attr': {'data-entretien-by-user-url': path('recrutement_entretiens_by_user')}}) }}
+            {{ form_errors(form.idEntretien) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.idUtilisateur) }}
+            {{ form_widget(form.idUtilisateur) }}
+            {{ form_errors(form.idUtilisateur) }}
+        </div>
+    </div>
+
+    <div class="form-actions">
+        {{ form_widget(form.save, {'attr': {'class': 'btn-save'}}) }}
+        <a href="{{ path('recrutement_index') }}" class="btn-delete">Annuler</a>
+    </div>
+{{ form_end(form) }}
+
+<script>
+    (function () {
+        const userSelect = document.getElementById('{{ form.idUtilisateur.vars.id }}');
+        const entretienSelect = document.getElementById('{{ form.idEntretien.vars.id }}');
+
+        if (!userSelect || !entretienSelect) {
+            return;
+        }
+
+        const endpoint = entretienSelect.dataset.entretienByUserUrl;
+        const placeholderText = entretienSelect.options.length > 0 ? entretienSelect.options[0].text : 'Choisir un entretien termine';
+
+        function setPlaceholderOnly() {
+            entretienSelect.innerHTML = '';
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholderText;
+            entretienSelect.appendChild(placeholderOption);
+            entretienSelect.value = '';
+        }
+
+        async function reloadEntretiens(userId, selectedEntretienId) {
+            if (!endpoint || !userId) {
+                setPlaceholderOnly();
+                return;
+            }
+
+            try {
+                const response = await fetch(endpoint + '?userId=' + encodeURIComponent(userId), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    setPlaceholderOnly();
+                    return;
+                }
+
+                const data = await response.json();
+                setPlaceholderOnly();
+
+                data.forEach(function (item) {
+                    const option = document.createElement('option');
+                    option.value = String(item.value);
+                    option.textContent = item.label;
+                    entretienSelect.appendChild(option);
+                });
+
+                if (selectedEntretienId) {
+                    entretienSelect.value = String(selectedEntretienId);
+                }
+            } catch (error) {
+                setPlaceholderOnly();
+            }
+        }
+
+        userSelect.addEventListener('change', function () {
+            reloadEntretiens(userSelect.value, null);
+        });
+
+        if (userSelect.value) {
+            reloadEntretiens(userSelect.value, entretienSelect.value || null);
+        } else {
+            setPlaceholderOnly();
+        }
+    })();
+</script>

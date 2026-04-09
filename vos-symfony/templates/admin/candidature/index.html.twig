@@ -18,7 +18,7 @@
             <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
             <a class="nav-item is-active" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
             <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
-            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
             <a class="nav-item" href="#">Forum</a>
             <a class="nav-item" href="#">Rapports</a>
         </nav>
@@ -57,6 +57,13 @@
             <div class="search-filters">
                 <form method="GET" class="filter-form">
                     <input type="text" name="search" placeholder="Rechercher par nom, prénom ou offre..." value="{{ search }}" class="search-input">
+
+                    <select name="status" class="sort-select">
+                        <option value="">Tous les statuts</option>
+                        {% for status in statusOptions %}
+                            <option value="{{ status }}" {% if statusFilter == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
 
                     <select name="sortBy" class="sort-select">
                         <option value="id_candidature" {% if sortBy == 'id_candidature' %}selected{% endif %}>Trier par ID</option>
@@ -112,4 +119,43 @@
         </section>
     </main>
 </div>
+
+<script>
+    (function () {
+        const form = document.querySelector('.filter-form');
+        if (!form) {
+            return;
+        }
+
+        const searchInput = form.querySelector('input[name="search"]');
+        const statusSelect = form.querySelector('select[name="status"]');
+        const sortBySelect = form.querySelector('select[name="sortBy"]');
+        const sortOrderSelect = form.querySelector('select[name="sortOrder"]');
+        let debounceTimer;
+
+        const submitFilters = function () {
+            form.submit();
+        };
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(submitFilters, 350);
+            });
+        }
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', submitFilters);
+        }
+
+        if (sortBySelect) {
+            sortBySelect.addEventListener('change', submitFilters);
+        }
+
+        if (sortOrderSelect) {
+            sortOrderSelect.addEventListener('change', submitFilters);
+        }
+    })();
+</script>
 {% endblock %}
+

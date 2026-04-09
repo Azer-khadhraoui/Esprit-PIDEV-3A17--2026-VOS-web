@@ -1,0 +1,330 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Statistiques Recrutement & Contrat | VOS{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item is-active" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Statistiques Recrutement & Contrat</h1>
+                <p>Visualisation globale avec 3 graphiques.</p>
+            </div>
+            <a href="{{ path('recrutement_index') }}" class="btn-logout">Retour</a>
+        </header>
+
+        <div class="module-nav">
+            <a class="module-link" href="{{ path('recrutement_index') }}">Recrutements</a>
+            <a class="module-link" href="{{ path('contrat_embauche_index') }}">Contrats</a>
+            <a class="module-link is-active" href="{{ path('recrutement_statistique') }}">Statistiques</a>
+        </div>
+
+        <section class="stats-grid">
+            <article class="stat-card stat-total">
+                <h3>Total recrutements</h3>
+                <p>{{ kpis.totalRecrutements }}</p>
+            </article>
+            <article class="stat-card stat-admins">
+                <h3>Total contrats</h3>
+                <p>{{ kpis.totalContrats }}</p>
+            </article>
+            <article class="stat-card stat-clients">
+                <h3>Taux d'acceptation</h3>
+                <p>{{ kpis.acceptanceRate }}%</p>
+            </article>
+        </section>
+
+        <section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start;">
+            <article class="table-card" style="padding:16px;">
+                <div style="font-weight:700;margin-bottom:10px;">Graphique circulaire des décisions</div>
+                <svg id="decisionPieChart" viewBox="0 0 380 260" width="100%" height="260" role="img" aria-label="Graphique circulaire des decisions"></svg>
+            </article>
+
+            <article class="table-card" style="padding:16px;">
+                <div style="font-weight:700;margin-bottom:10px;">Graphique en barres des statuts contrat</div>
+                <svg id="statusBarChart" viewBox="0 0 520 260" width="100%" height="260" role="img" aria-label="Graphique en barres des statuts contrat"></svg>
+            </article>
+        </section>
+
+        <section class="table-card" style="margin-top:16px;padding:16px;">
+            <div style="font-weight:700;margin-bottom:10px;">Courbe d'évolution mensuelle (6 derniers mois)</div>
+            <svg id="evolutionLineChart" viewBox="0 0 760 280" width="100%" height="280" role="img" aria-label="Courbe d evolution mensuelle"></svg>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        const decisionLabels = {{ decisionLabels|json_encode|raw }};
+        const decisionValues = {{ decisionValues|json_encode|raw }};
+        const statusLabels = {{ statusLabels|json_encode|raw }};
+        const statusValues = {{ statusValues|json_encode|raw }};
+        const monthLabels = {{ monthLabels|json_encode|raw }};
+        const recrutementsSeries = {{ recrutementsSeries|json_encode|raw }};
+        const contratsSeries = {{ contratsSeries|json_encode|raw }};
+        const palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#334155'];
+        const svgNs = 'http://www.w3.org/2000/svg';
+
+        function clearSvg(svg) {
+            while (svg.firstChild) {
+                svg.removeChild(svg.firstChild);
+            }
+        }
+
+        function polarToCartesian(cx, cy, r, angleRad) {
+            return {
+                x: cx + r * Math.cos(angleRad),
+                y: cy + r * Math.sin(angleRad)
+            };
+        }
+
+        function renderNoData(svg) {
+            const text = document.createElementNS(svgNs, 'text');
+            text.setAttribute('x', '50%');
+            text.setAttribute('y', '50%');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', '#64748b');
+            text.textContent = 'Aucune donnée';
+            svg.appendChild(text);
+        }
+
+        function renderPieChart(svgId, labels, values) {
+            const svg = document.getElementById(svgId);
+            if (!svg) return;
+            clearSvg(svg);
+
+            const total = values.reduce((acc, value) => acc + Number(value || 0), 0);
+            if (total <= 0) {
+                renderNoData(svg);
+                return;
+            }
+
+            const cx = 130;
+            const cy = 130;
+            const outer = 88;
+            let start = -Math.PI / 2;
+
+            values.forEach((rawValue, index) => {
+                const value = Number(rawValue || 0);
+                if (value <= 0) return;
+                const angle = (value / total) * Math.PI * 2;
+                const end = start + angle;
+
+                const outerStart = polarToCartesian(cx, cy, outer, start);
+                const outerEnd = polarToCartesian(cx, cy, outer, end);
+                const largeArc = angle > Math.PI ? 1 : 0;
+
+                const d = [
+                    `M ${cx} ${cy}`,
+                    `L ${outerStart.x} ${outerStart.y}`,
+                    `A ${outer} ${outer} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+                    'Z'
+                ].join(' ');
+
+                const path = document.createElementNS(svgNs, 'path');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', palette[index % palette.length]);
+                path.setAttribute('stroke', '#ffffff');
+                path.setAttribute('stroke-width', '1');
+                svg.appendChild(path);
+
+                start = end;
+            });
+
+            labels.forEach((label, index) => {
+                const y = 28 + (index * 22);
+                const swatch = document.createElementNS(svgNs, 'rect');
+                swatch.setAttribute('x', '250');
+                swatch.setAttribute('y', String(y - 10));
+                swatch.setAttribute('width', '12');
+                swatch.setAttribute('height', '12');
+                swatch.setAttribute('rx', '2');
+                swatch.setAttribute('fill', palette[index % palette.length]);
+                svg.appendChild(swatch);
+
+                const txt = document.createElementNS(svgNs, 'text');
+                txt.setAttribute('x', '268');
+                txt.setAttribute('y', String(y));
+                txt.setAttribute('fill', '#334155');
+                txt.setAttribute('font-size', '12');
+                txt.textContent = `${label} (${values[index] ?? 0})`;
+                svg.appendChild(txt);
+            });
+        }
+
+        function renderBarChart(svgId, labels, values) {
+            const svg = document.getElementById(svgId);
+            if (!svg) return;
+            clearSvg(svg);
+
+            const max = Math.max(...values.map((value) => Number(value || 0)), 0);
+            if (max <= 0) {
+                renderNoData(svg);
+                return;
+            }
+
+            const chartX = 30;
+            const chartY = 20;
+            const chartH = 180;
+            const slotW = Math.max(70, Math.floor(420 / Math.max(1, labels.length)));
+            const barW = Math.min(42, Math.floor(slotW * 0.58));
+
+            labels.forEach((label, index) => {
+                const value = Number(values[index] || 0);
+                const h = (value / max) * chartH;
+                const x = chartX + (index * slotW);
+                const y = chartY + (chartH - h);
+
+                const bar = document.createElementNS(svgNs, 'rect');
+                bar.setAttribute('x', String(x));
+                bar.setAttribute('y', String(y));
+                bar.setAttribute('width', String(barW));
+                bar.setAttribute('height', String(h));
+                bar.setAttribute('rx', '8');
+                bar.setAttribute('fill', '#1d4ed8');
+                svg.appendChild(bar);
+
+                const val = document.createElementNS(svgNs, 'text');
+                val.setAttribute('x', String(x + (barW / 2)));
+                val.setAttribute('y', String(y - 6));
+                val.setAttribute('text-anchor', 'middle');
+                val.setAttribute('fill', '#334155');
+                val.setAttribute('font-size', '12');
+                val.textContent = String(value);
+                svg.appendChild(val);
+
+                const lbl = document.createElementNS(svgNs, 'text');
+                lbl.setAttribute('x', String(x + (barW / 2)));
+                lbl.setAttribute('y', '225');
+                lbl.setAttribute('text-anchor', 'middle');
+                lbl.setAttribute('fill', '#334155');
+                lbl.setAttribute('font-size', '11');
+                lbl.textContent = label;
+                svg.appendChild(lbl);
+            });
+        }
+
+        function renderLineChart(svgId, labels, firstSeries, secondSeries) {
+            const svg = document.getElementById(svgId);
+            if (!svg) return;
+            clearSvg(svg);
+
+            const allValues = firstSeries.concat(secondSeries).map((value) => Number(value || 0));
+            const max = Math.max(...allValues, 0);
+            if (max <= 0) {
+                renderNoData(svg);
+                return;
+            }
+
+            const left = 56;
+            const right = 20;
+            const top = 24;
+            const bottom = 48;
+            const width = 760 - left - right;
+            const height = 280 - top - bottom;
+            const steps = Math.max(1, labels.length - 1);
+
+            function pointAt(index, value) {
+                const x = left + (index * (width / steps));
+                const y = top + (height - ((Number(value || 0) / max) * height));
+                return {x, y};
+            }
+
+            function drawSeries(values, color) {
+                const points = values.map((value, index) => pointAt(index, value));
+                const pathData = points.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+
+                const path = document.createElementNS(svgNs, 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', '3');
+                svg.appendChild(path);
+
+                points.forEach((pt, idx) => {
+                    const dot = document.createElementNS(svgNs, 'circle');
+                    dot.setAttribute('cx', String(pt.x));
+                    dot.setAttribute('cy', String(pt.y));
+                    dot.setAttribute('r', '3.8');
+                    dot.setAttribute('fill', color);
+                    svg.appendChild(dot);
+
+                    const val = document.createElementNS(svgNs, 'text');
+                    val.setAttribute('x', String(pt.x));
+                    val.setAttribute('y', String(pt.y - 8));
+                    val.setAttribute('text-anchor', 'middle');
+                    val.setAttribute('fill', '#334155');
+                    val.setAttribute('font-size', '11');
+                    val.textContent = String(values[idx] || 0);
+                    svg.appendChild(val);
+                });
+            }
+
+            const axis = document.createElementNS(svgNs, 'line');
+            axis.setAttribute('x1', String(left));
+            axis.setAttribute('y1', String(top + height));
+            axis.setAttribute('x2', String(left + width));
+            axis.setAttribute('y2', String(top + height));
+            axis.setAttribute('stroke', '#cbd5e1');
+            axis.setAttribute('stroke-width', '1.2');
+            svg.appendChild(axis);
+
+            labels.forEach((label, index) => {
+                const pt = pointAt(index, 0);
+                const txt = document.createElementNS(svgNs, 'text');
+                txt.setAttribute('x', String(pt.x));
+                txt.setAttribute('y', String(top + height + 20));
+                txt.setAttribute('text-anchor', 'middle');
+                txt.setAttribute('fill', '#475569');
+                txt.setAttribute('font-size', '11');
+                txt.textContent = label;
+                svg.appendChild(txt);
+            });
+
+            drawSeries(firstSeries, '#1d4ed8');
+            drawSeries(secondSeries, '#16a34a');
+
+            const legend1 = document.createElementNS(svgNs, 'text');
+            legend1.setAttribute('x', '560');
+            legend1.setAttribute('y', '20');
+            legend1.setAttribute('fill', '#1d4ed8');
+            legend1.setAttribute('font-size', '12');
+            legend1.textContent = 'Recrutements';
+            svg.appendChild(legend1);
+
+            const legend2 = document.createElementNS(svgNs, 'text');
+            legend2.setAttribute('x', '670');
+            legend2.setAttribute('y', '20');
+            legend2.setAttribute('fill', '#16a34a');
+            legend2.setAttribute('font-size', '12');
+            legend2.textContent = 'Contrats';
+            svg.appendChild(legend2);
+        }
+
+        renderPieChart('decisionPieChart', decisionLabels, decisionValues);
+        renderBarChart('statusBarChart', statusLabels, statusValues);
+        renderLineChart('evolutionLineChart', monthLabels, recrutementsSeries, contratsSeries);
+    })();
+</script>
+{% endblock %}

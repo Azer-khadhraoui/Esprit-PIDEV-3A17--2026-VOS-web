@@ -46,6 +46,16 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes brandFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes brandShine {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
         .header {
             background: #fff;
             border-bottom: 1px solid var(--line);
@@ -69,6 +79,12 @@
             font-size: 2rem;
             font-weight: 800;
             letter-spacing: -0.04em;
+            background: linear-gradient(90deg, #0f2b64, #1d4ed8, #0f2b64);
+            background-size: 220% 220%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: brandFloat 2.3s ease-in-out infinite, brandShine 3.8s linear infinite;
         }
 
         .nav {
@@ -218,6 +234,26 @@
             color: var(--muted);
             font-weight: 600;
             margin-bottom: 10px;
+        }
+
+        .admin-back-wrap {
+            margin: 0 0 12px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .admin-back-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7px 11px;
+            border-radius: 10px;
+            border: 1px solid #c7d2fe;
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-decoration: none;
         }
 
         .pagination {
@@ -472,6 +508,12 @@
 <main class="container">
     <h1>Opportunites</h1>
 
+    {% if isAdminAuthenticated|default(false) %}
+        <div class="admin-back-wrap">
+            <a class="admin-back-btn" href="{{ path('app_admin_dashboard') }}">Retour dashboard admin</a>
+        </div>
+    {% endif %}
+
     {% for message in app.flashes('success') %}
         <div class="flash success">{{ message }}</div>
     {% endfor %}
@@ -532,7 +574,7 @@
                 </div>
 
                 <div class="apply-row">
-                    <span class="badge {{ offer.statutOffre in ['ACTIVE', 'OUVERTE'] ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
+                    <span class="badge {{ offer.statutOffre == 'OUVERTE' ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
                     <div class="actions-right">
                         <button type="button" class="details-btn open-offer-details" data-offer-id="{{ offer.idOffre }}">Voir details</button>
                     </div>
@@ -544,7 +586,7 @@
                             <h3 class="details-title">{{ offer.titre ?? 'Offre' }}</h3>
                             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
                                 <span class="badge contract">{{ offer.typeContrat ?? 'N/A' }}</span>
-                                <span class="badge {{ offer.statutOffre in ['ACTIVE', 'OUVERTE'] ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
+                                <span class="badge {{ offer.statutOffre == 'OUVERTE' ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
                             </div>
                         </div>
                     </div>
@@ -588,11 +630,15 @@
                     </div>
 
                     <div class="details-footer">
-                        <a
-                            href="{{ path('app_client_candidature_new', {id_offre: offer.idOffre}) }}"
-                            class="apply-btn"
-                            style="display:inline-block;text-align:center;text-decoration:none;"
-                        >Postuler</a>
+                        {% if isClientAuthenticated|default(false) %}
+                            <a
+                                href="{{ path('app_client_candidature_new', {id_offre: offer.idOffre}) }}"
+                                class="apply-btn"
+                                style="display:inline-block;text-align:center;text-decoration:none;"
+                            >Postuler</a>
+                        {% else %}
+                            <span style="color:#64748b;font-weight:600;">Mode lecture seule (admin)</span>
+                        {% endif %}
                     </div>
                 </template>
             </article>

@@ -9,6 +9,8 @@ use App\Repository\CandidatureRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -78,16 +80,20 @@ final class CandidatureController extends AbstractController
 
         if ($form->isSubmitted()) {
             $cvFile = $form->get('cv')->getData();
-            if ($cvFile) {
-                $candidature->setCv('uploads/cv/' . $this->uploadFile($cvFile, $slugger, 'cv'));
-            }
-
             $lettreFile = $form->get('lettre_motivation')->getData();
-            if ($lettreFile) {
-                $candidature->setLettreMotivation('uploads/lettres/' . $this->uploadFile($lettreFile, $slugger, 'lettres'));
-            }
+
+            $this->addPdfFieldValidationError($form->get('cv'), $cvFile, true, 'Le CV');
+            $this->addPdfFieldValidationError($form->get('lettre_motivation'), $lettreFile, true, 'La lettre de motivation');
 
             if ($form->isValid()) {
+                if ($cvFile instanceof UploadedFile) {
+                    $candidature->setCv('uploads/cv/' . $this->uploadFile($cvFile, $slugger, 'cv'));
+                }
+
+                if ($lettreFile instanceof UploadedFile) {
+                    $candidature->setLettreMotivation('uploads/lettres/' . $this->uploadFile($lettreFile, $slugger, 'lettres'));
+                }
+
                 $entityManager->persist($candidature);
                 $entityManager->flush();
 
@@ -125,16 +131,20 @@ final class CandidatureController extends AbstractController
 
         if ($form->isSubmitted()) {
             $cvFile = $form->get('cv')->getData();
-            if ($cvFile) {
-                $candidature->setCv('uploads/cv/' . $this->uploadFile($cvFile, $slugger, 'cv'));
-            }
-
             $lettreFile = $form->get('lettre_motivation')->getData();
-            if ($lettreFile) {
-                $candidature->setLettreMotivation('uploads/lettres/' . $this->uploadFile($lettreFile, $slugger, 'lettres'));
-            }
+
+            $this->addPdfFieldValidationError($form->get('cv'), $cvFile, false, 'Le CV');
+            $this->addPdfFieldValidationError($form->get('lettre_motivation'), $lettreFile, false, 'La lettre de motivation');
 
             if ($form->isValid()) {
+                if ($cvFile instanceof UploadedFile) {
+                    $candidature->setCv('uploads/cv/' . $this->uploadFile($cvFile, $slugger, 'cv'));
+                }
+
+                if ($lettreFile instanceof UploadedFile) {
+                    $candidature->setLettreMotivation('uploads/lettres/' . $this->uploadFile($lettreFile, $slugger, 'lettres'));
+                }
+
                 $entityManager->flush();
                 $this->addFlash('success', 'Candidature mise à jour avec succès !');
                 return $this->redirectToRoute('app_client_candidatures');
@@ -240,7 +250,11 @@ final class CandidatureController extends AbstractController
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeFilename     = $slugger->slug($originalFilename);
-        $newFilename      = time() . '_' . $safeFilename . '.' . $file->guessExtension();
+        $extension        = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
+        if ($extension === '') {
+            $extension = 'bin';
+        }
+        $newFilename      = time() . '_' . $safeFilename . '.' . $extension;
 
         $file->move(
             $this->getParameter('kernel.project_dir') . '/public/uploads/' . $folder,
@@ -248,5 +262,27 @@ final class CandidatureController extends AbstractController
         );
 
         return $newFilename;
+    }
+
+    private function addPdfFieldValidationError(mixed $formField, mixed $file, bool $required, string $label): void
+    {
+        if (!$file instanceof UploadedFile) {
+            if ($required) {
+                $formField->addError(new FormError($label . ' est obligatoire.'));
+            }
+
+            return;
+        }
+
+        $maxSize = 5 * 1024 * 1024;
+        if ($file->getSize() > $maxSize) {
+            $formField->addError(new FormError($label . ' doit faire au maximum 5 MB.'));
+            return;
+        }
+
+        $extension = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
+        if ($extension !== 'pdf') {
+            $formField->addError(new FormError($label . ' doit être un fichier PDF (.pdf).'));
+        }
     }
 }

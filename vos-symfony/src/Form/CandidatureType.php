@@ -10,7 +10,6 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
 class CandidatureType extends AbstractType
@@ -24,20 +23,18 @@ class CandidatureType extends AbstractType
                 'label' => 'CV (PDF)',
                 'mapped' => false,
                 'required' => !$isEdit,
-                'constraints' => [
-                    new NotBlank(['message' => 'Le CV est obligatoire.']),
-                    new File(['maxSize' => '5M', 'mimeTypes' => ['application/pdf']])
-                ],
+                'constraints' => $isEdit
+                    ? []
+                    : [new NotBlank(['message' => 'Le CV est obligatoire.'])],
                 'attr' => ['accept' => '.pdf']
             ])
             ->add('lettre_motivation', FileType::class, [
                 'label' => 'Lettre de Motivation (PDF)',
                 'mapped' => false,
                 'required' => !$isEdit,
-                'constraints' => [
-                    new NotBlank(['message' => 'La lettre de motivation est obligatoire.']),
-                    new File(['maxSize' => '5M', 'mimeTypes' => ['application/pdf']])
-                ],
+                'constraints' => $isEdit
+                    ? []
+                    : [new NotBlank(['message' => 'La lettre de motivation est obligatoire.'])],
                 'attr' => ['accept' => '.pdf']
             ])
             ->add('niveau_experience', ChoiceType::class, [

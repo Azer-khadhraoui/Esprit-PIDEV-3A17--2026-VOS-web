@@ -134,12 +134,51 @@ class AdminController extends AbstractController
             return $access;
         }
 
-        $search = (string) $request->query->get('search', '');
+        $search = trim((string) $request->query->get('search', ''));
+        $statusFilter = trim((string) $request->query->get('status', ''));
         $sortBy = (string) $request->query->get('sortBy', 'id_candidature');
-        $sortOrder = (string) $request->query->get('sortOrder', 'DESC');
+        $sortOrder = strtoupper((string) $request->query->get('sortOrder', 'DESC'));
 
-        $qb = $entityManager->getRepository(Candidature::class)->createQueryBuilder('c')
-            ->orderBy('c.' . $sortBy, $sortOrder);
+        $allowedSortBy = ['id_candidature', 'date_candidature', 'statut'];
+        if (!in_array($sortBy, $allowedSortBy, true)) {
+            $sortBy = 'id_candidature';
+        }
+
+        if (!in_array($sortOrder, ['ASC', 'DESC'], true)) {
+            $sortOrder = 'DESC';
+        }
+
+        $qb = $entityManager->getRepository(Candidature::class)
+            ->createQueryBuilder('c')
+            ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
+            ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+
+        if ('' !== $search) {
+            $searchExpr = $qb->expr()->orX(
+                'LOWER(c.statut) LIKE :search',
+                'LOWER(c.message_candidat) LIKE :search',
+                'LOWER(u.nom) LIKE :search',
+                'LOWER(u.prenom) LIKE :search',
+                'LOWER(o.titre) LIKE :search'
+            );
+
+            if (ctype_digit($search)) {
+                $searchExpr->add('c.id_candidature = :searchId');
+                $qb->setParameter('searchId', (int) $search);
+            }
+
+            $qb
+                ->andWhere($searchExpr)
+                ->setParameter('search', '%'.mb_strtolower($search).'%');
+        }
+
+        if ('' !== $statusFilter) {
+            $qb
+                ->andWhere('c.statut = :status')
+                ->setParameter('status', $statusFilter);
+        }
+
+        $qb->orderBy('c.'.$sortBy, $sortOrder);
         
         $candidatures = $qb->getQuery()->getResult();
         
@@ -177,6 +216,8 @@ class AdminController extends AbstractController
             'candidatures' => $candidatures,
             'adminName' => (string) $session->get('admin_user_name', 'Admin'),
             'search' => $search,
+            'statusFilter' => $statusFilter,
+            'statusOptions' => ['En attente', 'En examens', 'Acceptlee', 'Rejetee'],
             'sortBy' => $sortBy,
             'sortOrder' => $sortOrder,
             'users' => $users,

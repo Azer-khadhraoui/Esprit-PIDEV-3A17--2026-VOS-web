@@ -22,19 +22,14 @@ class SignupType extends AbstractType
                 'mapped' => false,
                 'required' => false,
                 'attr' => [
-                    'accept' => 'image/*',
+                    'accept' => '.jpg,.jpeg,.png,.gif',
                     'class' => 'profile-file-input',
                 ],
                 'constraints' => [
                     new File([
                         'maxSize' => '4M',
-                        'mimeTypes' => [
-                            'image/jpeg',
-                            'image/png',
-                            'image/webp',
-                            'image/gif',
-                        ],
-                        'mimeTypesMessage' => 'Veuillez sélectionner une image valide.',
+                        'extensions' => ['jpg', 'jpeg', 'png', 'gif'],
+                        'extensionsMessage' => 'Veuillez sélectionner une image valide (JPG, PNG, GIF).',
                     ]),
                 ],
             ])

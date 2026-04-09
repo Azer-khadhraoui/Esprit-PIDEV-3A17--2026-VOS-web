@@ -1,0 +1,222 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes contrats | VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+    <style>
+        .contracts-wrap {
+            display: grid;
+            gap: 14px;
+        }
+
+        .contracts-title {
+            margin: 0 0 2px;
+            font-size: 1.8rem;
+            color: #142145;
+            letter-spacing: -0.02em;
+        }
+
+        .contracts-subtitle {
+            margin: 0;
+            color: #5f6b82;
+            font-size: 0.95rem;
+        }
+
+        .contracts-grid {
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .contract-card {
+            background: #fff;
+            border: 1px solid #d6deec;
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 8px 22px rgba(5, 20, 45, 0.08);
+            display: grid;
+            gap: 10px;
+        }
+
+        .contract-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .contract-id {
+            font-weight: 700;
+            color: #0e4da4;
+            font-size: 0.9rem;
+        }
+
+        .contract-type {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #101828;
+        }
+
+        .status-badge {
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .status-active,
+        .status-actif {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-terminated,
+        .status-termine,
+        .status-closed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-default {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .status-accepted {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-refused {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-pending {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .contract-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
+            color: #475467;
+            font-size: 0.92rem;
+        }
+
+        .contract-meta strong {
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .contract-note {
+            margin: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px dashed #d3dcec;
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .empty-state {
+            background: #fff;
+            border: 1px dashed #c9d4ea;
+            border-radius: 14px;
+            padding: 20px;
+            color: #475467;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(5, 20, 45, 0.06);
+        }
+
+        @media (max-width: 900px) {
+            .contracts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="client-shell">
+    {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: 'mes-contrats' }) }}
+
+    <main class="client-content">
+        <section class="contracts-wrap">
+            <h1 class="contracts-title">Mes contrats</h1>
+            <p class="contracts-subtitle">Voici les contrats liés à votre compte connecté.</p>
+
+            {% if contracts is empty %}
+                <div class="empty-state">
+                    Aucun contrat trouvé pour votre profil pour le moment.
+                </div>
+            {% else %}
+                <div class="contracts-grid">
+                    {% for contract in contracts %}
+                        {% set decisionRaw = (contract.decision_finale ?? '')|lower %}
+                        {% set statusLabel = contract.status ?? 'N/A' %}
+                        {% if decisionRaw is not empty %}
+                            {% if 'accept' in decisionRaw %}
+                                {% set statusLabel = 'Accepté' %}
+                            {% elseif 'refus' in decisionRaw %}
+                                {% set statusLabel = 'Refusé' %}
+                            {% elseif 'attente' in decisionRaw %}
+                                {% set statusLabel = 'En attente' %}
+                            {% else %}
+                                {% set statusLabel = contract.decision_finale %}
+                            {% endif %}
+                        {% endif %}
+
+                        {% set statusRaw = statusLabel|lower %}
+                        {% set statusClass = 'status-default' %}
+                        {% if 'accept' in statusRaw %}
+                            {% set statusClass = 'status-accepted' %}
+                        {% elseif 'refus' in statusRaw %}
+                            {% set statusClass = 'status-refused' %}
+                        {% elseif 'attente' in statusRaw %}
+                            {% set statusClass = 'status-pending' %}
+                        {% elseif 'active' in statusRaw or 'actif' in statusRaw %}
+                            {% set statusClass = 'status-active' %}
+                        {% elseif 'termine' in statusRaw or 'closed' in statusRaw %}
+                            {% set statusClass = 'status-terminated' %}
+                        {% endif %}
+
+                        <article class="contract-card">
+                            <div class="contract-head">
+                                <span class="contract-id">Contrat #{{ contract.id_contrat }}</span>
+                                <span class="status-badge {{ statusClass }}">{{ statusLabel }}</span>
+                            </div>
+
+                            <h3 class="contract-type">{{ contract.type_contrat ?? 'Type non défini' }}</h3>
+
+                            <div class="contract-meta">
+                                <span><strong>Date début:</strong> {{ contract.date_debut ? contract.date_debut|date('d/m/Y') : '-' }}</span>
+                                <span><strong>Date fin:</strong> {{ contract.date_fin ? contract.date_fin|date('d/m/Y') : '-' }}</span>
+                                <span><strong>Salaire:</strong> {{ contract.salaire is not null ? contract.salaire ~ ' TND' : '-' }}</span>
+                                <span><strong>Volume:</strong> {{ contract.volume_horaire ?? '-' }}</span>
+                                <span><strong>Période:</strong> {{ contract.periode ?? '-' }}</span>
+                                <span><strong>Décision:</strong> {{ contract.decision_finale ?? '-' }}</span>
+                            </div>
+
+                            {% if contract.avantages %}
+                                <p class="contract-note">
+                                    <strong>Avantages:</strong> {{ contract.avantages }}
+                                </p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</div>
+{% endblock %}

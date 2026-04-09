@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\CritereOffre;
 use App\Entity\OffreEmploi;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,9 @@ class GestionOffreController extends AbstractController
         $offreRepository = $entityManager->getRepository(OffreEmploi::class);
         $search = $this->normalizeText($request->query->get('q'));
         $statutFilter = $this->normalizeText($request->query->get('statut'));
+        if ($statutFilter === 'ACTIVE') {
+            $statutFilter = 'OUVERTE';
+        }
         $typeContratFilter = $this->normalizeText($request->query->get('type_contrat'));
         $workPreferenceFilter = $this->normalizeText($request->query->get('work_preference'));
         $sortBy = $this->normalizeText($request->query->get('sortBy')) ?? 'date_publication';
@@ -80,7 +84,7 @@ class GestionOffreController extends AbstractController
         }
 
         $totalOffers = (int) $offreRepository->count([]);
-        $activeOffers = (int) $offreRepository->count(['statutOffre' => 'ACTIVE']);
+        $activeOffers = (int) $offreRepository->count(['statutOffre' => 'OUVERTE']);
         $closedOffers = (int) $offreRepository->count(['statutOffre' => 'FERMEE']);
 
         return $this->render('gestion_offre/dashboard.html.twig', [
@@ -112,7 +116,7 @@ class GestionOffreController extends AbstractController
         $offreRepository = $entityManager->getRepository(OffreEmploi::class);
 
         $totalOffers = (int) $offreRepository->count([]);
-        $activeOffers = (int) $offreRepository->count(['statutOffre' => 'ACTIVE']);
+        $activeOffers = (int) $offreRepository->count(['statutOffre' => 'OUVERTE']);
         $closedOffers = (int) $offreRepository->count(['statutOffre' => 'FERMEE']);
 
         $statutStats = $entityManager->getConnection()->executeQuery(
@@ -127,6 +131,51 @@ class GestionOffreController extends AbstractController
             "SELECT COALESCE(work_preference, 'N/A') AS label, COUNT(*) AS total FROM offre_emploi GROUP BY work_preference ORDER BY total DESC"
         )->fetchAllAssociative();
 
+        $months = [];
+        $monthKeys = [];
+        $cursor = new \DateTimeImmutable('first day of this month');
+        for ($i = 5; $i >= 0; --$i) {
+            $monthDate = $cursor->modify(sprintf('-%d months', $i));
+            $monthKeys[] = $monthDate->format('Y-m');
+            $months[] = $monthDate->format('M Y');
+        }
+
+        $evolutionRows = $entityManager->getConnection()->executeQuery(
+            "
+                SELECT
+                    DATE_FORMAT(date_publication, '%Y-%m') AS month_key,
+                    COUNT(*) AS total_offres,
+                                        SUM(CASE WHEN UPPER(COALESCE(statut_offre, '')) = 'OUVERTE' THEN 1 ELSE 0 END) AS active_offres
+                FROM offre_emploi
+                WHERE date_publication IS NOT NULL
+                  AND date_publication >= :startDate
+                GROUP BY month_key
+                ORDER BY month_key ASC
+            ",
+            ['startDate' => $cursor->modify('-5 months')->format('Y-m-01')]
+        )->fetchAllAssociative();
+
+        $evolutionMap = [];
+        foreach ($evolutionRows as $row) {
+            $monthKey = (string) ($row['month_key'] ?? '');
+            if ($monthKey === '') {
+                continue;
+            }
+
+            $evolutionMap[$monthKey] = [
+                'total' => (int) ($row['total_offres'] ?? 0),
+                'active' => (int) ($row['active_offres'] ?? 0),
+            ];
+        }
+
+        $offersSeries = [];
+        $activeSeries = [];
+        foreach ($monthKeys as $monthKey) {
+            $monthStats = $evolutionMap[$monthKey] ?? ['total' => 0, 'active' => 0];
+            $offersSeries[] = (int) $monthStats['total'];
+            $activeSeries[] = (int) $monthStats['active'];
+        }
+
         return $this->render('gestion_offre/statistique.html.twig', [
             'totalOffers' => $totalOffers,
             'activeOffers' => $activeOffers,
@@ -134,6 +183,9 @@ class GestionOffreController extends AbstractController
             'statutStats' => $statutStats,
             'typeStats' => $typeStats,
             'workPreferenceStats' => $workPreferenceStats,
+            'monthLabels' => $months,
+            'offersSeries' => $offersSeries,
+            'activeSeries' => $activeSeries,
             'currentUserName' => 'khadhraoui azer',
         ]);
     }
@@ -235,10 +287,13 @@ class GestionOffreController extends AbstractController
             return $this->redirectToRoute('gestion_offre_dashboard');
         }
 
-        $entityManager->remove($offre);
-        $entityManager->flush();
-
-        $this->addFlash('success', 'Offre supprimee avec succes.');
+        try {
+            $entityManager->remove($offre);
+            $entityManager->flush();
+            $this->addFlash('success', 'Offre supprimee avec succes.');
+        } catch (ForeignKeyConstraintViolationException) {
+            $this->addFlash('error', 'Suppression bloquee par contrainte FK. Activez ON DELETE CASCADE pour candidature.');
+        }
 
         return $this->redirectToRoute('gestion_offre_dashboard');
     }
@@ -484,7 +539,7 @@ class GestionOffreController extends AbstractController
             $errors[] = 'Type contrat invalide. Choisissez une valeur de la liste.';
         }
 
-        $allowedStatut = ['ACTIVE', 'OUVERTE', 'FERMEE', 'INACTIVE'];
+        $allowedStatut = ['OUVERTE', 'FERMEE', 'INACTIVE'];
         $statut = $offre->getStatutOffre();
         if ($statut === null || !in_array($statut, $allowedStatut, true)) {
             $errors[] = 'Statut invalide. Choisissez une valeur de la liste.';
@@ -569,7 +624,14 @@ class GestionOffreController extends AbstractController
             sprintf("SELECT DISTINCT %s AS value FROM offre_emploi WHERE %s IS NOT NULL AND %s <> '' ORDER BY %s ASC", $column, $column, $column, $column)
         )->fetchFirstColumn();
 
-        return array_values(array_map(static fn (mixed $value): string => (string) $value, $rows));
+        $values = array_map(static fn (mixed $value): string => (string) $value, $rows);
+
+        if ($column === 'statut_offre') {
+            $values = array_map(static fn (string $value): string => $value === 'ACTIVE' ? 'OUVERTE' : $value, $values);
+            $values = array_values(array_unique($values));
+        }
+
+        return array_values($values);
     }
 
     /**

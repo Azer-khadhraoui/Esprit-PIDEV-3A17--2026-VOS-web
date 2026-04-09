@@ -14,7 +14,7 @@
             <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
             <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
             <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
-            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
             <a class="nav-item" href="#">Forum</a>
             <a class="nav-item" href="#">Rapports</a>
         </nav>
@@ -44,7 +44,7 @@
                     <div style="font-size:2.2rem;font-weight:800;">{{ totalOffers }}</div>
                 </article>
                 <article style="background:var(--panel);color:var(--text);padding:20px;border-radius:18px;box-shadow:var(--shadow);">
-                    <div style="font-size:0.95rem;color:var(--muted);font-weight:600;">Offres actives</div>
+                    <div style="font-size:0.95rem;color:var(--muted);font-weight:600;">Offres ouvertes</div>
                     <div style="font-size:2.2rem;font-weight:800;">{{ activeOffers }}</div>
                 </article>
                 <article style="background:var(--panel);color:var(--text);padding:20px;border-radius:18px;box-shadow:var(--shadow);">
@@ -70,6 +70,11 @@
                 </article>
 
             </section>
+
+            <section style="margin-top:16px;background:var(--panel);color:var(--text);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:16px;">
+                <div style="font-weight:700;margin-bottom:10px;">Courbe d'évolution mensuelle (6 derniers mois)</div>
+                <svg id="offreEvolutionLineChart" viewBox="0 0 760 280" width="100%" height="280" role="img" aria-label="Courbe d evolution mensuelle des offres"></svg>
+            </section>
         </main>
     </div>
 
@@ -83,6 +88,10 @@
 
             const workLabels = {{ workPreferenceStats|map(s => s.label)|json_encode|raw }};
             const workValues = {{ workPreferenceStats|map(s => s.total)|json_encode|raw }};
+
+            const monthLabels = {{ monthLabels|json_encode|raw }};
+            const offersSeries = {{ offersSeries|json_encode|raw }};
+            const activeSeries = {{ activeSeries|json_encode|raw }};
 
             const palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#334155'];
             const svgNs = 'http://www.w3.org/2000/svg';
@@ -242,9 +251,114 @@
                 });
             }
 
+            function renderLineChart(svgId, labels, firstSeries, secondSeries) {
+                const svg = document.getElementById(svgId);
+                if (!svg) return;
+                clearSvg(svg);
+
+                const allValues = firstSeries.concat(secondSeries).map((value) => Number(value || 0));
+                const max = Math.max(...allValues, 0);
+                if (max <= 0) {
+                    const text = document.createElementNS(svgNs, 'text');
+                    text.setAttribute('x', '50%');
+                    text.setAttribute('y', '50%');
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', '#64748b');
+                    text.textContent = 'Aucune donnée';
+                    svg.appendChild(text);
+                    return;
+                }
+
+                const left = 56;
+                const right = 20;
+                const top = 24;
+                const bottom = 48;
+                const width = 760 - left - right;
+                const height = 280 - top - bottom;
+                const steps = Math.max(1, labels.length - 1);
+
+                function pointAt(index, value) {
+                    const x = left + (index * (width / steps));
+                    const y = top + (height - ((Number(value || 0) / max) * height));
+                    return {x, y};
+                }
+
+                function drawSeries(values, color) {
+                    const points = values.map((value, index) => pointAt(index, value));
+                    const pathData = points.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+
+                    const path = document.createElementNS(svgNs, 'path');
+                    path.setAttribute('d', pathData);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', color);
+                    path.setAttribute('stroke-width', '3');
+                    svg.appendChild(path);
+
+                    points.forEach((pt, idx) => {
+                        const dot = document.createElementNS(svgNs, 'circle');
+                        dot.setAttribute('cx', String(pt.x));
+                        dot.setAttribute('cy', String(pt.y));
+                        dot.setAttribute('r', '3.8');
+                        dot.setAttribute('fill', color);
+                        svg.appendChild(dot);
+
+                        const val = document.createElementNS(svgNs, 'text');
+                        val.setAttribute('x', String(pt.x));
+                        val.setAttribute('y', String(pt.y - 8));
+                        val.setAttribute('text-anchor', 'middle');
+                        val.setAttribute('fill', '#334155');
+                        val.setAttribute('font-size', '11');
+                        val.textContent = String(values[idx] || 0);
+                        svg.appendChild(val);
+                    });
+                }
+
+                const axis = document.createElementNS(svgNs, 'line');
+                axis.setAttribute('x1', String(left));
+                axis.setAttribute('y1', String(top + height));
+                axis.setAttribute('x2', String(left + width));
+                axis.setAttribute('y2', String(top + height));
+                axis.setAttribute('stroke', '#cbd5e1');
+                axis.setAttribute('stroke-width', '1.2');
+                svg.appendChild(axis);
+
+                labels.forEach((label, index) => {
+                    const pt = pointAt(index, 0);
+                    const txt = document.createElementNS(svgNs, 'text');
+                    txt.setAttribute('x', String(pt.x));
+                    txt.setAttribute('y', String(top + height + 20));
+                    txt.setAttribute('text-anchor', 'middle');
+                    txt.setAttribute('fill', '#475569');
+                    txt.setAttribute('font-size', '11');
+                    txt.textContent = label;
+                    svg.appendChild(txt);
+                });
+
+                drawSeries(firstSeries, '#1d4ed8');
+                drawSeries(secondSeries, '#16a34a');
+
+                const legend1 = document.createElementNS(svgNs, 'text');
+                legend1.setAttribute('x', '560');
+                legend1.setAttribute('y', '20');
+                legend1.setAttribute('fill', '#1d4ed8');
+                legend1.setAttribute('font-size', '12');
+                legend1.textContent = 'Offres';
+                svg.appendChild(legend1);
+
+                const legend2 = document.createElementNS(svgNs, 'text');
+                legend2.setAttribute('x', '640');
+                legend2.setAttribute('y', '20');
+                legend2.setAttribute('fill', '#16a34a');
+                legend2.setAttribute('font-size', '12');
+                legend2.textContent = 'Ouvertes';
+                svg.appendChild(legend2);
+            }
+
             renderArcChart('statutPieChart', statutLabels, statutValues, false);
             renderBarChart('typeBarChart', typeLabels, typeValues);
             renderArcChart('workDoughnutChart', workLabels, workValues, true);
+            renderLineChart('offreEvolutionLineChart', monthLabels, offersSeries, activeSeries);
         })();
     </script>
 {% endblock %}
+

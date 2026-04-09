@@ -52,46 +52,63 @@ class AuthController extends AbstractController
     ): Response
     {
         if ($request->isMethod('POST')) {
-            $email = (string) $request->request->get('email', '');
-            $password = (string) $request->request->get('password', '');
+            try {
+                $email = (string) $request->request->get('email', '');
+                $password = (string) $request->request->get('password', '');
 
-            $user = $userAccountService->authenticateAdmin($email, $password);
-            
-            if (!$user) {
-                // Essayer une connexion client
-                $user = $userAccountService->authenticateUser($email, $password);
-                
+                $user = $userAccountService->authenticateAdmin($email, $password);
+
                 if (!$user) {
-                    $this->addFlash('error', 'Email ou mot de passe invalide.');
-                    return $this->redirectToRoute('app_signin');
+                    // Essayer une connexion client
+                    $user = $userAccountService->authenticateUser($email, $password);
+
+                    if (!$user) {
+                        $this->addFlash('error', 'Email ou mot de passe invalide.');
+                        return $this->redirectToRoute('app_signin');
+                    }
+
+                    // Session client
+                    if (!$session->isStarted()) {
+                        $session->start();
+                    }
+
+                    // Ensure only one active auth context at a time.
+                    $session->remove('admin_user_id');
+                    $session->remove('admin_user_role');
+                    $session->remove('admin_user_name');
+
+                    $session->set('user_id', $user->getId());
+                    $session->set('user_role', $user->getRole());
+                    $session->set('user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
+                    $session->set('auth_scope', 'client');
+                    $session->save();
+
+                    return $this->redirectToRoute('app_client_accueil');
                 }
 
-                // Session client
+                // Session admin
                 if (!$session->isStarted()) {
                     $session->start();
                 }
 
-                $session->set('user_id', $user->getId());
-                $session->set('user_role', $user->getRole());
-                $session->set('user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
+                // Ensure only one active auth context at a time.
+                $session->remove('user_id');
+                $session->remove('user_role');
+                $session->remove('user_name');
+
+                $session->set('admin_user_id', $user->getId());
+                $session->set('admin_user_role', $user->getRole());
+                $session->set('admin_user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
+                $session->set('auth_scope', 'admin');
+
+                // Sauvegarder explicitement la session
                 $session->save();
 
-                return $this->redirectToRoute('client_opportunites');
+                return $this->redirectToRoute('app_admin_dashboard');
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Email ou mot de passe invalide.');
+                return $this->redirectToRoute('app_signin');
             }
-
-            // Session admin
-            if (!$session->isStarted()) {
-                $session->start();
-            }
-
-            $session->set('admin_user_id', $user->getId());
-            $session->set('admin_user_role', $user->getRole());
-            $session->set('admin_user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
-
-            // Sauvegarder explicitement la session
-            $session->save();
-
-            return $this->redirectToRoute('app_admin_dashboard');
         }
 
         return $this->render('auth/signin.html.twig', []);
@@ -106,6 +123,7 @@ class AuthController extends AbstractController
         $session->remove('user_id');
         $session->remove('user_role');
         $session->remove('user_name');
+        $session->remove('auth_scope');
 
         $this->addFlash('success', 'Déconnexion réussie.');
 

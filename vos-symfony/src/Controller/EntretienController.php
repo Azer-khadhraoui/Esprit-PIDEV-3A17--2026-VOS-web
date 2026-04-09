@@ -6,6 +6,7 @@ use App\Entity\Entretien;
 use App\Form\EntretienType;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -140,9 +141,13 @@ class EntretienController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('delete' . $entretien->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($entretien);
-            $entityManager->flush();
-            $this->addFlash('success', 'Entretien supprimé.');
+            try {
+                $entityManager->remove($entretien);
+                $entityManager->flush();
+                $this->addFlash('success', 'Entretien supprimé.');
+            } catch (ForeignKeyConstraintViolationException) {
+                $this->addFlash('error', 'Suppression bloquée par contrainte FK. Activez ON DELETE CASCADE pour evaluation_entretien.');
+            }
         }
 
         return $this->redirectToRoute('gestion_entretien_dashboard');

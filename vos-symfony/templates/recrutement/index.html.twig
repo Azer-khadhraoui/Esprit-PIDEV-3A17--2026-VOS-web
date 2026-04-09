@@ -1,0 +1,159 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Gestion Recrutements | VOS{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item is-active" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Gestion des recrutements</h1>
+                <p>Liste des recrutements enregistres</p>
+            </div>
+            <a href="{{ path('recrutement_new') }}" class="btn-logout">Nouveau recrutement</a>
+        </header>
+
+        <div class="module-nav">
+            <a class="module-link is-active" href="{{ path('recrutement_index') }}">Recrutements</a>
+            <a class="module-link" href="{{ path('contrat_embauche_index') }}">Contrats</a>
+            <a class="module-link" href="{{ path('recrutement_statistique') }}">Statistiques</a>
+        </div>
+
+        <section class="stats-grid">
+            <article class="stat-card stat-total">
+                <h3>Total recrutements</h3>
+                <p>{{ stats.total }}</p>
+            </article>
+            <article class="stat-card stat-admins">
+                <h3>Acceptes</h3>
+                <p>{{ stats.acceptes }}</p>
+            </article>
+            <article class="stat-card stat-clients">
+                <h3>Refuses</h3>
+                <p>{{ stats.refuses }}</p>
+            </article>
+        </section>
+
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+
+        <section class="table-card">
+            <div class="table-head">
+                <h2>Recrutements</h2>
+                <span class="table-badge">{{ recrutements|length }} entrees</span>
+            </div>
+
+            <div class="search-filters">
+                <form method="get" action="{{ path('recrutement_index') }}" class="filter-grid">
+                    <div class="filter-item">
+                        <label for="recrutement-userId">Utilisateur</label>
+                        <select id="recrutement-userId" name="userId" class="sort-select">
+                            <option value="">Tous</option>
+                            {% for userOption in userOptions %}
+                                <option value="{{ userOption.id }}" {{ filters.userId|default(0) == userOption.id ? 'selected' : '' }}>{{ userOption.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-item filter-item-search">
+                        <label for="recrutement-search">Recherche</label>
+                        <input id="recrutement-search" class="search-input" type="text" name="search" value="{{ filters.search|default('') }}" placeholder="Decision, nom utilisateur, email...">
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="recrutement-decision">Statut</label>
+                        <select id="recrutement-decision" name="decision" class="sort-select">
+                            <option value="">Tous</option>
+                            {% for option in decisionOptions %}
+                                <option value="{{ option }}" {{ filters.decision|default('') == option ? 'selected' : '' }}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="recrutement-sortBy">Trier par</label>
+                        <select id="recrutement-sortBy" name="sortBy" class="sort-select">
+                            <option value="dateDecision" {{ filters.sortBy|default('dateDecision') == 'dateDecision' ? 'selected' : '' }}>Date decision</option>
+                            <option value="decisionFinale" {{ filters.sortBy|default('dateDecision') == 'decisionFinale' ? 'selected' : '' }}>Decision finale</option>
+                            <option value="utilisateur" {{ filters.sortBy|default('dateDecision') == 'utilisateur' ? 'selected' : '' }}>Utilisateur</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="recrutement-sortOrder">Ordre</label>
+                        <select id="recrutement-sortOrder" name="sortOrder" class="sort-select">
+                            <option value="DESC" {{ filters.sortOrder|default('DESC') == 'DESC' ? 'selected' : '' }}>Decroissant</option>
+                            <option value="ASC" {{ filters.sortOrder|default('DESC') == 'ASC' ? 'selected' : '' }}>Croissant</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-filter">Filtrer</button>
+                        <a href="{{ path('recrutement_index') }}" class="btn-reset">Reset</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Date decision</th>
+                            <th>Decision finale</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recrutement in recrutements %}
+                            <tr>
+                                <td>{{ userNamesById[recrutement.idUtilisateur]|default('Utilisateur inconnu') }}</td>
+                                <td>{{ recrutement.dateDecision ? recrutement.dateDecision|date('d/m/Y') : '-' }}</td>
+                                <td>{{ recrutement.decisionFinale }}</td>
+                                <td>
+                                    <div class="actions">
+                                        <a class="btn-edit" href="{{ path('recrutement_edit', {id: recrutement.id}) }}">Modifier</a>
+                                        <form method="post" action="{{ path('recrutement_delete', {id: recrutement.id}) }}" onsubmit="return confirm('Supprimer ce recrutement ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_recrutement_' ~ recrutement.id) }}">
+                                            <button class="btn-delete" type="submit">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4">Aucun recrutement trouve.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+
 class ValidationService
 {
     /**
@@ -86,17 +88,66 @@ class ValidationService
     {
         $maxSize = 5 * 1024 * 1024; // 5 MB
 
-        if ($file->getSize() > $maxSize) {
+        $size = $file->getSize();
+        if ($size !== false && $size > $maxSize) {
             throw new \InvalidArgumentException('L\'image dépasse 5 MB.');
         }
 
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $file->getPathname());
-        finfo_close($finfo);
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
-        if (!in_array($mimeType, $allowedMimes, true)) {
+        if ($file instanceof UploadedFile) {
+            $clientMimeType = strtolower((string) $file->getClientMimeType());
+            if ($clientMimeType !== '' && in_array($clientMimeType, $allowedMimes, true)) {
+                return;
+            }
+
+            $originalExt = strtolower((string) pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
+            if ($originalExt !== '' && in_array($originalExt, $allowedExtensions, true)) {
+                return;
+            }
+        }
+
+        if (function_exists('finfo_open')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mimeType = @finfo_file($finfo, $file->getPathname());
+                finfo_close($finfo);
+                if (is_string($mimeType) && in_array(strtolower($mimeType), $allowedMimes, true)) {
+                    return;
+                }
+            }
+        }
+
+        $fileExt = strtolower((string) pathinfo($file->getPathname(), PATHINFO_EXTENSION));
+        if ($fileExt !== '' && in_array($fileExt, $allowedExtensions, true)) {
+            return;
+        }
+
+        if (!($file instanceof UploadedFile)) {
+            return;
+        }
+
+        if (!in_array(strtolower((string) pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)), $allowedExtensions, true)) {
             throw new \InvalidArgumentException('Le format d\'image n\'est pas autorisé (JPEG, PNG, GIF uniquement).');
         }
+    }
+
+    public function resolveImageExtension(UploadedFile $file): string
+    {
+        $ext = strtolower((string) pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            return $ext === 'jpeg' ? 'jpg' : $ext;
+        }
+
+        $mime = strtolower((string) $file->getClientMimeType());
+        $map = [
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+        ];
+
+        return $map[$mime] ?? 'jpg';
     }
 
     /**

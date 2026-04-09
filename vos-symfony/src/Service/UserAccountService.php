@@ -50,7 +50,7 @@ class UserAccountService
                 @mkdir($uploadDirectory, 0775, true);
             }
 
-            $extension = $uploadedImage->guessExtension() ?: 'bin';
+            $extension = $this->validation->resolveImageExtension($uploadedImage);
             $newFileName = uniqid('profile_', true) . '.' . $extension;
 
             try {
@@ -72,8 +72,18 @@ class UserAccountService
 
     public function authenticateAdmin(string $email, string $password): ?User
     {
-        $email = $this->validation->validateEmail($email);
-        $password = $this->validation->validatePassword($password);
+        try {
+            $email = $this->validation->validateEmail($email);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
+        // For signin, keep validation non-throwing to avoid exposing exception pages.
+        // Any non-empty password is accepted here and verified against the hashed password.
+        $password = trim($password);
+        if ($password == '') {
+            return null;
+        }
 
         $user = $this->userRepository->findByEmail($email);
 
@@ -94,8 +104,16 @@ class UserAccountService
 
     public function authenticateUser(string $email, string $password): ?User
     {
-        $email = $this->validation->validateEmail($email);
-        $password = $this->validation->validatePassword($password);
+        try {
+            $email = $this->validation->validateEmail($email);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
+        $password = trim($password);
+        if ($password == '') {
+            return null;
+        }
 
         $user = $this->userRepository->findByEmail($email);
 

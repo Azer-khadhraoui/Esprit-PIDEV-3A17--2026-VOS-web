@@ -1,0 +1,50 @@
+{{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+    <div class="form-grid">
+        <div class="form-group">
+            {{ form_label(form.typeContrat) }}
+            {{ form_widget(form.typeContrat) }}
+            {{ form_errors(form.typeContrat) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.dateDebut) }}
+            {{ form_widget(form.dateDebut) }}
+            {{ form_errors(form.dateDebut) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.dateFin) }}
+            {{ form_widget(form.dateFin) }}
+            {{ form_errors(form.dateFin) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.salaire) }}
+            {{ form_widget(form.salaire) }}
+            {{ form_errors(form.salaire) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.volumeHoraire) }}
+            {{ form_widget(form.volumeHoraire) }}
+            {{ form_errors(form.volumeHoraire) }}
+        </div>
+
+        <div class="form-group full-width">
+            {{ form_label(form.avantages) }}
+            {{ form_widget(form.avantages) }}
+            {{ form_errors(form.avantages) }}
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.idRecrutement) }}
+            {{ form_widget(form.idRecrutement) }}
+            {{ form_errors(form.idRecrutement) }}
+        </div>
+    </div>
+
+    <div class="form-actions">
+        {{ form_widget(form.save, {'attr': {'class': 'btn-save'}}) }}
+        <a href="{{ path('contrat_embauche_index') }}" class="btn-delete">Annuler</a>
+    </div>
+{{ form_end(form) }}

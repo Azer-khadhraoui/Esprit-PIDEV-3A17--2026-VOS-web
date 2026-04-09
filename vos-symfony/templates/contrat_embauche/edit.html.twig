@@ -1,0 +1,42 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Modifier un contrat | VOS{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list">
+            <a class="nav-item" href="{{ path('app_admin_dashboard') }}">Gestion Users</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item is-active" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Modifier le contrat #{{ contrat.id }}</h1>
+                <p>Mettez a jour les details du contrat.</p>
+            </div>
+            <a href="{{ path('contrat_embauche_index') }}" class="btn-logout">Retour a la liste</a>
+        </header>
+
+        <section class="table-card edit-page-card">
+            {{ include('contrat_embauche/_form.html.twig', {'form': form, 'button_label': 'Mettre a jour'}) }}
+        </section>
+    </main>
+</div>
+{% endblock %}

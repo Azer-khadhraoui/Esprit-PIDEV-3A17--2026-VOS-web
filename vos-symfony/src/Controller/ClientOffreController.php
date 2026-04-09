@@ -16,9 +16,19 @@ class ClientOffreController extends AbstractController
     #[Route('/opportunites', name: 'client_opportunites', methods: ['GET'])]
     public function index(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
-        // Vérifier que l'utilisateur est connecté
-        $idUtilisateur = (int) $session->get('user_id', 0);
-        if ($idUtilisateur <= 0) {
+        $authScope = (string) $session->get('auth_scope', '');
+        $hasClientSession = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $hasAdminSession = (bool) $session->get('admin_user_id') && str_starts_with((string) $session->get('admin_user_role', ''), 'ADMIN');
+
+        $isClientAuthenticated = $authScope === 'client'
+            ? $hasClientSession
+            : ($authScope === '' ? $hasClientSession && !$hasAdminSession : false);
+
+        $isAdminAuthenticated = $authScope === 'admin'
+            ? $hasAdminSession
+            : ($authScope === '' ? $hasAdminSession : false);
+
+        if (!$isClientAuthenticated && !$isAdminAuthenticated) {
             return $this->redirectToRoute('app_signin');
         }
 
@@ -31,6 +41,10 @@ class ClientOffreController extends AbstractController
         $workPreference = $this->normalizeText($request->query->get('work_preference'));
         $lieu = $this->normalizeText($request->query->get('lieu'));
         $statut = $this->normalizeText($request->query->get('statut'));
+
+        if ($statut === 'ACTIVE') {
+            $statut = 'OUVERTE';
+        }
 
         $qb = $offreRepository->createQueryBuilder('o');
 
@@ -65,7 +79,7 @@ class ClientOffreController extends AbstractController
         } else {
             $qb
                 ->andWhere('o.statutOffre IN (:openStatuts)')
-                ->setParameter('openStatuts', ['ACTIVE', 'OUVERTE']);
+                ->setParameter('openStatuts', ['OUVERTE']);
         }
 
         $countQb = clone $qb;
@@ -86,13 +100,16 @@ class ClientOffreController extends AbstractController
             ->getResult();
 
         $criteriaByOffer = $this->getLatestCriteriaByOffer($entityManager);
-        $isClientAuthenticated = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $displayName = $isClientAuthenticated
+            ? (string) $session->get('user_name', 'Utilisateur')
+            : (string) $session->get('admin_user_name', 'Admin');
 
         return $this->render('client/opportunites.html.twig', [
             'offers' => $offers,
             'criteriaByOffer' => $criteriaByOffer,
             'isClientAuthenticated' => $isClientAuthenticated,
-            'userName' => (string) $session->get('user_name', 'Utilisateur'),
+            'isAdminAuthenticated' => $isAdminAuthenticated,
+            'userName' => $displayName,
             'pagination' => [
                 'page' => $page,
                 'perPage' => $perPage,
@@ -115,12 +132,60 @@ class ClientOffreController extends AbstractController
         ]);
     }
 
+    #[Route('/opportunites/mes-contrats', name: 'client_mes_contrats', methods: ['GET'])]
+    public function mesContrats(EntityManagerInterface $entityManager, SessionInterface $session): Response
+    {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $contracts = $entityManager->getConnection()->executeQuery(
+            "
+                SELECT
+                    c.id_contrat,
+                    c.type_contrat,
+                    c.date_debut,
+                    c.date_fin,
+                    c.salaire,
+                    c.status,
+                    c.volume_horaire,
+                    c.avantages,
+                    c.periode,
+                    c.id_recrutement,
+                    r.date_decision,
+                    r.decision_finale
+                FROM contrat_embauche c
+                INNER JOIN recrutement r ON r.id_recrutement = c.id_recrutement
+                WHERE r.id_utilisateur = :userId
+                ORDER BY c.date_debut DESC, c.id_contrat DESC
+            ",
+            ['userId' => $idUtilisateur]
+        )->fetchAllAssociative();
+
+        return $this->render('client/mes_contrats.html.twig', [
+            'contracts' => $contracts,
+            'userName' => (string) $session->get('user_name', 'Utilisateur'),
+        ]);
+    }
+
     #[Route('/opportunites/{idOffre}/postuler', name: 'client_postuler_offre', methods: ['POST'])]
     public function apply(
         #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
         Request $request,
         EntityManagerInterface $entityManager,
+        SessionInterface $session,
     ): Response {
+        $isClientAuthenticated = (bool) $session->get('user_id')
+            && (string) $session->get('user_role', '') === 'CLIENT'
+            && (string) $session->get('auth_scope', '') === 'client';
+
+        if (!$isClientAuthenticated) {
+            $this->addFlash('error', 'Action reservee aux clients connectes.');
+
+            return $this->redirectToRoute('client_opportunites');
+        }
+
         $token = (string) $request->request->get('_token');
         if (!$this->isCsrfTokenValid('postuler_offre_'.$offre->getIdOffre(), $token)) {
             $this->addFlash('error', 'Token invalide. Veuillez reessayer.');
@@ -128,9 +193,9 @@ class ClientOffreController extends AbstractController
             return $this->redirectToRoute('client_opportunites');
         }
 
-        $idUtilisateur = (int) $request->request->get('id_utilisateur');
+        $idUtilisateur = (int) $session->get('user_id', 0);
         if ($idUtilisateur <= 0 || !$this->userExists($entityManager, $idUtilisateur)) {
-            $this->addFlash('error', 'Utilisateur invalide. Entrez un ID utilisateur existant.');
+            $this->addFlash('error', 'Session client invalide. Veuillez vous reconnecter.');
 
             return $this->redirectToRoute('client_opportunites');
         }
@@ -188,7 +253,14 @@ class ClientOffreController extends AbstractController
             sprintf("SELECT DISTINCT %s AS value FROM offre_emploi WHERE %s IS NOT NULL AND %s <> '' ORDER BY %s ASC", $column, $column, $column, $column)
         )->fetchFirstColumn();
 
-        return array_values(array_map(static fn (mixed $value): string => (string) $value, $rows));
+        $values = array_map(static fn (mixed $value): string => (string) $value, $rows);
+
+        if ($column === 'statut_offre') {
+            $values = array_map(static fn (string $value): string => $value === 'ACTIVE' ? 'OUVERTE' : $value, $values);
+            $values = array_values(array_unique($values));
+        }
+
+        return array_values($values);
     }
 
     private function userExists(EntityManagerInterface $entityManager, int $userId): bool

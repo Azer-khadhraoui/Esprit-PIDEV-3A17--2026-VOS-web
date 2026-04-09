@@ -83,7 +83,7 @@
             <a class="nav-item is-active" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
             <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
             <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
-            <a class="nav-item" href="#">Gestion Recrutements</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
             <a class="nav-item" href="#">Forum</a>
             <a class="nav-item" href="#">Rapports</a>
         </nav>
@@ -124,7 +124,7 @@
                     <div style="font-size:2.6rem;font-weight:800;line-height:1;">{{ totalOffers }}</div>
                 </article>
                 <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);border-left:6px solid var(--success);min-height:120px;">
-                    <div style="font-weight:600;color:var(--muted);margin-bottom:12px;">Offres Actives</div>
+                    <div style="font-weight:600;color:var(--muted);margin-bottom:12px;">Offres Ouvertes</div>
                     <div style="font-size:2.6rem;font-weight:800;line-height:1;">{{ activeOffers }}</div>
                 </article>
                 <article style="background:var(--panel);color:var(--text);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);border-left:6px solid var(--warning);min-height:120px;">
@@ -141,6 +141,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <div style="padding:10px 16px;border-radius:999px;background:#eaf2ff;color:var(--primary);font-weight:700;">{{ offers|length }} entrées</div>
+                        <a href="{{ path('client_opportunites') }}" style="display:inline-flex;padding:8px 12px;border-radius:10px;background:#eff6ff;color:#1e40af;font-weight:700;font-size:0.85rem;border:1px solid #bfdbfe;">Opportunités</a>
                         <a href="{{ path('gestion_offre_new') }}" style="display:inline-flex;padding:10px 16px;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;">Ajouter</a>
                     </div>
                 </div>
@@ -238,7 +239,7 @@
                                     <td style="padding:18px 24px;">{{ offer.lieu ?? 'N/A' }}</td>
                                     <td style="padding:18px 24px;">{{ offer.idUtilisateur ?? 'N/A' }}</td>
                                     <td style="padding:18px 24px;">
-                                        <span style="display:inline-flex;padding:8px 12px;border-radius:999px;font-weight:700;background:{{ offer.statutOffre == 'ACTIVE' ? '#e8fff5' : (offer.statutOffre == 'FERMEE' ? '#fff2e8' : '#eef2ff') }};color:{{ offer.statutOffre == 'ACTIVE' ? '#0f7a52' : (offer.statutOffre == 'FERMEE' ? '#b45309' : '#334155') }};">
+                                        <span style="display:inline-flex;padding:8px 12px;border-radius:999px;font-weight:700;background:{{ offer.statutOffre in ['OUVERTE', 'ACTIVE'] ? '#e8fff5' : (offer.statutOffre == 'FERMEE' ? '#fff2e8' : '#eef2ff') }};color:{{ offer.statutOffre in ['OUVERTE', 'ACTIVE'] ? '#0f7a52' : (offer.statutOffre == 'FERMEE' ? '#b45309' : '#334155') }};">
                                             {{ offer.statutOffre ?? 'N/A' }}
                                         </span>
                                     </td>

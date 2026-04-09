@@ -56,6 +56,9 @@
                 overflow: hidden;
                 transition: width 0.24s ease;
                 flex-shrink: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
             }
 
             .sidebar:hover {
@@ -95,6 +98,18 @@
                 display: grid;
                 gap: 10px;
                 margin-top: 18px;
+            }
+
+            .sidebar-footer {
+                margin-top: auto;
+                background: rgba(39, 85, 185, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                text-align: center;
+                padding: 14px 12px;
+                color: rgba(255, 255, 255, 0.9);
+                font-weight: 600;
+                white-space: nowrap;
             }
 
             .nav-item {
@@ -195,6 +210,10 @@
                 .brand span:last-child,
                 .sidebar .nav-item {
                     opacity: 1;
+                }
+
+                .sidebar-footer {
+                    margin-top: 12px;
                 }
             }
         </style>
