@@ -119,10 +119,13 @@
                                 ID utilisateur
                             </label>
                             <select name="id_utilisateur" id="id_utilisateur" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;background:#fff;transition:border-color 0.2s;">
-                                <option value="">Choisir utilisateur</option>
-                                {% for user in userOptions %}
-                                    <option value="{{ user.id }}" {{ offre.idUtilisateur == user.id ? 'selected' : '' }}>{{ user.label }}</option>
-                                {% endfor %}
+                                {% if userOptions is not empty %}
+                                    {% for user in userOptions %}
+                                        <option value="{{ user.id }}" selected>{{ user.label }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="">Aucun administrateur connecté</option>
+                                {% endif %}
                             </select>
                             <span id="id_utilisateur-error" style="display:{{ fieldErrors.id_utilisateur is defined ? 'block' : 'none' }};font-size:0.875rem;color:#dc2626;margin-top:2px;">{{ fieldErrors.id_utilisateur|default('') }}</span>
                         </div>

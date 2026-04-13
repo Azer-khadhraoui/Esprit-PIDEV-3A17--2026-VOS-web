@@ -10,6 +10,7 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 class GestionOffreController extends AbstractController
@@ -191,10 +192,21 @@ class GestionOffreController extends AbstractController
     }
 
     #[Route('/gestion-offre/new', name: 'gestion_offre_new', methods: ['GET', 'POST'])]
-    public function newOffre(Request $request, EntityManagerInterface $entityManager): Response
+    public function newOffre(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
         $offre = new OffreEmploi();
-        $userOptions = $this->getUserOptions($entityManager);
+        $adminUserId = $this->requireAdminUserId($session);
+        if ($adminUserId === null) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $userOptions = $this->getCurrentAdminUserOption($entityManager, $adminUserId);
+        if ($userOptions === []) {
+            $this->addFlash('error', 'Session administrateur invalide. Veuillez vous reconnecter.');
+
+            return $this->redirectToRoute('app_signin');
+        }
+
         $csrfTokenId = 'offre_form_new';
 
         if ($request->isMethod('POST')) {
@@ -213,8 +225,8 @@ class GestionOffreController extends AbstractController
                 ]);
             }
 
-            $this->hydrateOffreFromRequest($offre, $request);
-            $errors = $this->validateOffreInput($offre, $entityManager);
+            $this->hydrateOffreFromRequest($offre, $request, $adminUserId);
+            $errors = $this->validateOffreInput($offre, $entityManager, $adminUserId);
 
             if ($errors !== []) {
                 return $this->render('gestion_offre/offre_form.html.twig', [
@@ -252,8 +264,20 @@ class GestionOffreController extends AbstractController
         #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
         Request $request,
         EntityManagerInterface $entityManager,
+        SessionInterface $session,
     ): Response {
-        $userOptions = $this->getUserOptions($entityManager);
+        $adminUserId = $this->requireAdminUserId($session);
+        if ($adminUserId === null) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $userOptions = $this->getCurrentAdminUserOption($entityManager, $adminUserId);
+        if ($userOptions === []) {
+            $this->addFlash('error', 'Session administrateur invalide. Veuillez vous reconnecter.');
+
+            return $this->redirectToRoute('app_signin');
+        }
+
         $csrfTokenId = 'offre_form_edit_'.$offre->getIdOffre();
 
         if ($request->isMethod('POST')) {
@@ -272,8 +296,8 @@ class GestionOffreController extends AbstractController
                 ]);
             }
 
-            $this->hydrateOffreFromRequest($offre, $request);
-            $errors = $this->validateOffreInput($offre, $entityManager);
+            $this->hydrateOffreFromRequest($offre, $request, $adminUserId);
+            $errors = $this->validateOffreInput($offre, $entityManager, $adminUserId);
 
             if ($errors !== []) {
                 return $this->render('gestion_offre/offre_form.html.twig', [
@@ -546,7 +570,7 @@ class GestionOffreController extends AbstractController
         return $value === '' ? null : $value;
     }
 
-    private function hydrateOffreFromRequest(OffreEmploi $offre, Request $request): void
+    private function hydrateOffreFromRequest(OffreEmploi $offre, Request $request, int $adminUserId): void
     {
         $datePublicationInput = $this->normalizeText($request->request->get('date_publication'));
         $datePublication = null;
@@ -558,16 +582,13 @@ class GestionOffreController extends AbstractController
             }
         }
 
-        $idUtilisateurInput = $this->normalizeText($request->request->get('id_utilisateur'));
-        $idUtilisateur = $idUtilisateurInput !== null ? (int) $idUtilisateurInput : null;
-
         $offre
             ->setTitre($this->normalizeText($request->request->get('titre')))
             ->setDescription($this->normalizeText($request->request->get('description')))
             ->setTypeContrat($this->normalizeText($request->request->get('type_contrat')))
             ->setStatutOffre($this->normalizeText($request->request->get('statut_offre')))
             ->setDatePublication($datePublication)
-            ->setIdUtilisateur($idUtilisateur)
+            ->setIdUtilisateur($adminUserId)
             ->setWorkPreference($this->normalizeText($request->request->get('work_preference')))
             ->setLieu($this->normalizeText($request->request->get('lieu')));
     }
@@ -575,7 +596,7 @@ class GestionOffreController extends AbstractController
     /**
      * @return list<string>
      */
-    private function validateOffreInput(OffreEmploi $offre, EntityManagerInterface $entityManager): array
+    private function validateOffreInput(OffreEmploi $offre, EntityManagerInterface $entityManager, int $adminUserId): array
     {
         $errors = [];
 
@@ -612,7 +633,7 @@ class GestionOffreController extends AbstractController
         }
 
         $idUtilisateur = $offre->getIdUtilisateur();
-        if ($idUtilisateur === null || !$this->userExists($entityManager, $idUtilisateur)) {
+        if ($idUtilisateur === null || $idUtilisateur !== $adminUserId || !$this->userExists($entityManager, $idUtilisateur)) {
             $errors['id_utilisateur'] = 'Veuillez choisir un utilisateur existant.';
         }
 
@@ -642,10 +663,11 @@ class GestionOffreController extends AbstractController
     /**
      * @return array<int, array{id: int, label: string}>
      */
-    private function getUserOptions(EntityManagerInterface $entityManager): array
+    private function getCurrentAdminUserOption(EntityManagerInterface $entityManager, int $adminUserId): array
     {
         $rows = $entityManager->getConnection()->executeQuery(
-            'SELECT id_utilisateur, nom, prenom, email FROM utilisateur ORDER BY id_utilisateur ASC'
+            'SELECT id_utilisateur, nom, prenom, email FROM utilisateur WHERE id_utilisateur = :id LIMIT 1',
+            ['id' => $adminUserId]
         )->fetchAllAssociative();
 
         $options = [];
@@ -664,6 +686,18 @@ class GestionOffreController extends AbstractController
         }
 
         return $options;
+    }
+
+    private function requireAdminUserId(SessionInterface $session): ?int
+    {
+        $adminUserId = (int) $session->get('admin_user_id', 0);
+        $adminRole = (string) $session->get('admin_user_role', '');
+
+        if ($adminUserId <= 0 || !str_starts_with($adminRole, 'ADMIN')) {
+            return null;
+        }
+
+        return $adminUserId;
     }
 
     private function userExists(EntityManagerInterface $entityManager, int $userId): bool
