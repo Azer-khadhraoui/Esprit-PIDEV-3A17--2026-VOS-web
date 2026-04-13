@@ -21,6 +21,9 @@ class RecrutementType extends AbstractType
                 'widget' => 'single_text',
                 'label' => 'Date de decision',
                 'required' => false,
+                'attr' => [
+                    'min' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+                ],
                 'constraints' => [new NotBlank(['message' => 'La date de decision est obligatoire.'])],
             ])
             ->add('decisionFinale', ChoiceType::class, [

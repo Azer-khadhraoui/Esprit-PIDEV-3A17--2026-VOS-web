@@ -157,7 +157,9 @@ class ClientOffreController extends AbstractController
                     r.decision_finale
                 FROM contrat_embauche c
                 INNER JOIN recrutement r ON r.id_recrutement = c.id_recrutement
-                WHERE r.id_utilisateur = :userId
+                INNER JOIN entretien e ON e.id_entretien = r.id_entretien
+                INNER JOIN candidature ca ON ca.id_candidature = e.id_candidature
+                WHERE ca.id_utilisateur = :userId
                 ORDER BY c.date_debut DESC, c.id_contrat DESC
             ",
             ['userId' => $idUtilisateur]

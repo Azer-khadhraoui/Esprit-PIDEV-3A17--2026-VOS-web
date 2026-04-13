@@ -110,7 +110,7 @@
                             <label style="font-weight:600;color:#334155;">
                                 Date publication
                             </label>
-                            <input type="date" name="date_publication" id="date_publication" value="{{ offre.datePublication ? offre.datePublication|date('Y-m-d') : '' }}" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;transition:border-color 0.2s;">
+                            <input type="date" name="date_publication" id="date_publication" value="{{ offre.datePublication ? offre.datePublication|date('Y-m-d') : '' }}" min="{{ 'now'|date('Y-m-d') }}" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;transition:border-color 0.2s;">
                             <span id="date_publication-error" style="display:{{ fieldErrors.date_publication is defined ? 'block' : 'none' }};font-size:0.875rem;color:#dc2626;margin-top:2px;">{{ fieldErrors.date_publication|default('') }}</span>
                         </div>
 

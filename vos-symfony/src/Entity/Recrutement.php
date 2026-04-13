@@ -16,6 +16,7 @@ class Recrutement
 
     #[ORM\Column(name: 'date_decision', type: 'date', nullable: true)]
     #[Assert\NotNull(message: 'La date de decision est requise.')]
+    #[Assert\GreaterThanOrEqual(value: 'today', message: 'La date de decision ne peut pas etre dans le passe.')]
     private ?\DateTimeInterface $dateDecision = null;
 
     #[ORM\Column(name: 'decision_finale', type: 'string', length: 50, nullable: true)]

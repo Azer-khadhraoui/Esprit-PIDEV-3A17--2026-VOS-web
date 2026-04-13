@@ -5,6 +5,7 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 class OffreEmploi
@@ -27,6 +28,7 @@ class OffreEmploi
     private ?string $statutOffre = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
+    #[Assert\GreaterThanOrEqual(value: 'today', message: 'La date de publication ne peut pas etre dans le passe.')]
     private ?\DateTimeInterface $datePublication = null;
 
     #[ORM\Column(nullable: true)]

@@ -10,65 +10,132 @@
     <style>
         .contracts-wrap {
             display: grid;
-            gap: 14px;
+            gap: 18px;
+        }
+
+        .contracts-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid #d4def1;
+            padding: 22px;
+            background:
+                radial-gradient(circle at 88% 20%, rgba(14, 77, 164, 0.2) 0%, rgba(14, 77, 164, 0) 42%),
+                linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%);
+            box-shadow: 0 18px 40px rgba(9, 26, 61, 0.1);
+        }
+
+        .contracts-hero::after {
+            content: "";
+            position: absolute;
+            right: -34px;
+            top: -34px;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 16px solid rgba(14, 77, 164, 0.08);
         }
 
         .contracts-title {
-            margin: 0 0 2px;
-            font-size: 1.8rem;
-            color: #142145;
-            letter-spacing: -0.02em;
+            margin: 0;
+            font-size: clamp(1.75rem, 3.8vw, 2.4rem);
+            color: #102347;
+            letter-spacing: -0.03em;
         }
 
         .contracts-subtitle {
-            margin: 0;
-            color: #5f6b82;
+            margin: 8px 0 0;
+            color: #4d607f;
+            font-size: 1rem;
+            max-width: 62ch;
+        }
+
+        .contracts-kpis {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .contracts-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            border: 1px solid #c9d8f3;
+            background: #ffffff;
+            color: #1e3768;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 12px;
+        }
+
+        .contracts-pill strong {
+            color: #0c4aa0;
             font-size: 0.95rem;
         }
 
         .contracts-grid {
-            margin-top: 8px;
+            margin-top: 4px;
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 16px;
         }
 
         .contract-card {
-            background: #fff;
-            border: 1px solid #d6deec;
-            border-radius: 14px;
-            padding: 14px;
-            box-shadow: 0 8px 22px rgba(5, 20, 45, 0.08);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, #ffffff 0%, #f9fbff 100%);
+            border: 1px solid #d8e2f3;
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 10px 24px rgba(5, 20, 45, 0.08);
             display: grid;
-            gap: 10px;
+            gap: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .contract-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 5px;
+            background: linear-gradient(180deg, #0e4da4, #5a9bff);
+        }
+
+        .contract-card:hover {
+            transform: translateY(-3px);
+            border-color: #bdd0f3;
+            box-shadow: 0 16px 34px rgba(11, 35, 77, 0.15);
         }
 
         .contract-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
         }
 
         .contract-id {
             font-weight: 700;
-            color: #0e4da4;
+            color: #0a4b9f;
             font-size: 0.9rem;
         }
 
         .contract-type {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.14rem;
             color: #101828;
         }
 
         .status-badge {
             border-radius: 999px;
-            padding: 4px 10px;
+            padding: 5px 10px;
             font-size: 0.74rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
+            white-space: nowrap;
         }
 
         .status-active,
@@ -107,9 +174,13 @@
         .contract-meta {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px 12px;
+            gap: 9px 12px;
             color: #475467;
             font-size: 0.92rem;
+            background: #f4f8ff;
+            border: 1px solid #d9e5f8;
+            border-radius: 12px;
+            padding: 10px;
         }
 
         .contract-meta strong {
@@ -129,17 +200,49 @@
         }
 
         .empty-state {
-            background: #fff;
-            border: 1px dashed #c9d4ea;
-            border-radius: 14px;
-            padding: 20px;
-            color: #475467;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #ffffff, #f8fbff);
+            border: 1px dashed #bfcfeb;
+            border-radius: 18px;
+            padding: 28px 20px;
+            color: #465a78;
             text-align: center;
-            box-shadow: 0 8px 20px rgba(5, 20, 45, 0.06);
+            box-shadow: 0 10px 24px rgba(5, 20, 45, 0.07);
+        }
+
+        .empty-state::before {
+            content: "";
+            position: absolute;
+            left: -30px;
+            bottom: -34px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(14, 77, 164, 0.08);
+        }
+
+        .empty-state h3 {
+            margin: 0;
+            color: #16335f;
+            font-size: 1.2rem;
+        }
+
+        .empty-state p {
+            margin: 8px 0 0;
+            font-size: 0.95rem;
         }
 
         @media (max-width: 900px) {
             .contracts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contracts-hero {
+                padding: 18px;
+            }
+
+            .contract-meta {
                 grid-template-columns: 1fr;
             }
         }
@@ -152,12 +255,19 @@
 
     <main class="client-content">
         <section class="contracts-wrap">
-            <h1 class="contracts-title">Mes contrats</h1>
-            <p class="contracts-subtitle">Voici les contrats liés à votre compte connecté.</p>
+            <div class="contracts-hero">
+                <h1 class="contracts-title">Mes contrats</h1>
+                <p class="contracts-subtitle">Retrouvez ici l'ensemble de vos contrats, leurs dates importantes et les conditions associées.</p>
+                <div class="contracts-kpis">
+                    <span class="contracts-pill">Total contrats <strong>{{ contracts|length }}</strong></span>
+                    <span class="contracts-pill">Compte <strong>{{ userName|default('Utilisateur') }}</strong></span>
+                </div>
+            </div>
 
             {% if contracts is empty %}
                 <div class="empty-state">
-                    Aucun contrat trouvé pour votre profil pour le moment.
+                    <h3>Aucun contrat pour le moment</h3>
+                    <p>Vos contrats apparaîtront ici dès qu'un recrutement est finalisé et qu'un contrat est créé.</p>
                 </div>
             {% else %}
                 <div class="contracts-grid">
