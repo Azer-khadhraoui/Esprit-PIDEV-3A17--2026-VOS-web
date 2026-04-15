@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Document administratif</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: DejaVu Sans, Arial, sans-serif;
+            color: #0f1d35;
+            font-size: 12.5px;
+            line-height: 1.45;
+            background: #f4f8ff;
+        }
+
+        .sheet {
+            margin: 18px;
+            background: #ffffff;
+            border: 1px solid #d8e4f6;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #0a2f72, #1f5db7);
+            color: #ffffff;
+            padding: 22px 28px;
+        }
+
+        .hero-top {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .hero-top td {
+            vertical-align: middle;
+        }
+
+        .brand-logo {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(222,234,255,0.72));
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            text-align: center;
+            box-shadow: 0 8px 22px rgba(8, 21, 51, 0.16);
+            position: relative;
+        }
+
+        .brand-logo .logo-mark {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #123c8a;
+            letter-spacing: 1px;
+        }
+
+        .brand-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            margin: 0;
+        }
+
+        .brand-subtitle {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: rgba(245, 250, 255, 0.92);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-demission { background: rgba(217, 70, 70, 0.24); }
+        .badge-conge { background: rgba(22, 163, 74, 0.24); }
+
+        .content {
+            padding: 24px 28px 18px;
+        }
+
+        .meta {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 16px;
+            border: 1px solid #d6e2f4;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .meta td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #e5edf9;
+        }
+
+        .meta tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .meta .label {
+            width: 30%;
+            font-weight: 700;
+            color: #18396e;
+            background: #f3f7ff;
+        }
+
+        .section-title {
+            margin: 16px 0 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #133364;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .box {
+            border: 1px solid #d6e2f4;
+            background: #fbfdff;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .reason {
+            min-height: 150px;
+            white-space: pre-wrap;
+        }
+
+        .timeline {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 14px;
+        }
+
+        .timeline td {
+            width: 50%;
+            vertical-align: top;
+            padding-right: 10px;
+        }
+
+        .mini {
+            border: 1px solid #d6e2f4;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #ffffff;
+        }
+
+        .mini .k {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #60769b;
+            margin-bottom: 4px;
+        }
+
+        .mini .v {
+            font-size: 14px;
+            font-weight: 700;
+            color: #15386f;
+        }
+
+        .signature {
+            margin-top: 28px;
+            text-align: right;
+        }
+
+        .signature .line {
+            margin-top: 36px;
+            display: inline-block;
+            min-width: 230px;
+            border-top: 1px solid #48618b;
+            text-align: center;
+            padding-top: 6px;
+            color: #30486f;
+        }
+
+        .footer {
+            margin-top: 18px;
+            border-top: 1px solid #e5edf9;
+            padding: 12px 0 2px;
+            color: #60769b;
+            font-size: 10.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="hero">
+            <table class="hero-top" role="presentation">
+                <tr>
+                    <td style="width:72px;">
+                        <div class="brand-logo">
+                            <div class="logo-mark">VOS</div>
+                        </div>
+                    </td>
+                    <td>
+                        <h1 class="brand-title">Service Administratif - VOS</h1>
+                        <p class="brand-subtitle">Document officiel genere le {{ submittedAt|date('d/m/Y H:i') }}</p>
+                    </td>
+                    <td style="text-align:right; width:170px;">
+                        <span class="badge {{ formData.request_type == 'demission' ? 'badge-demission' : 'badge-conge' }}">
+                            {{ formData.request_type == 'demission' ? 'DEMISSION' : 'CONGE' }}
+                        </span>
+                        <div style="font-size:11px;margin-top:10px;opacity:0.92;">Ref: {{ reference }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="content">
+            <table class="meta" role="presentation">
+                <tr>
+                    <td class="label">Nom complet</td>
+                    <td>{{ formData.full_name }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Email professionnel</td>
+                    <td>{{ formData.email }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Poste</td>
+                    <td>{{ formData.position }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Departement</td>
+                    <td>{{ formData.department is not empty ? formData.department : '-' }}</td>
+                </tr>
+            </table>
+
+            <table class="timeline" role="presentation">
+                <tr>
+                    <td>
+                        <div class="mini">
+                            <div class="k">Date de debut / effet</div>
+                            <div class="v">{{ formData.start_date|date('d/m/Y') }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="mini">
+                            <div class="k">Date de fin</div>
+                            <div class="v">
+                                {% if formData.request_type == 'conge' and formData.end_date is not empty %}
+                                    {{ formData.end_date|date('d/m/Y') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="section-title">Objet</div>
+            <div class="box">
+                {{ formData.request_type == 'demission' ? 'Notification de demission' : 'Demande de conge' }}
+            </div>
+
+            <div class="section-title">Motif / details</div>
+            <div class="box reason">{{ formData.reason }}</div>
+
+            <div class="signature">
+                <div>Fait le {{ submittedAt|date('d/m/Y') }}</div>
+                <div class="line">Signature du demandeur</div>
+            </div>
+
+            <div class="footer">
+                Ce document a ete genere automatiquement depuis le backoffice VOS.<br>
+                Reference interne: {{ reference }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,237 @@
+{% extends 'gestion_offre_base.html.twig' %}
+
+{% block title %}Service administrative | VOS{% endblock %}
+
+{% block styles %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+    <style>
+        .service-card {
+            background: var(--panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .service-field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .service-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .service-field label {
+            font-weight: 600;
+            color: #20365d;
+        }
+
+        .service-field input,
+        .service-field select,
+        .service-field textarea {
+            width: 100%;
+            border: 1px solid #d7dfef;
+            border-radius: 10px;
+            padding: 11px 13px;
+            font-family: 'Poppins', sans-serif;
+            background: #ffffff;
+        }
+
+        .service-field textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .service-field input:focus,
+        .service-field select:focus,
+        .service-field textarea:focus {
+            outline: none;
+            border-color: #9ec0f2;
+            box-shadow: 0 0 0 4px rgba(70, 129, 215, 0.16);
+        }
+
+        .field-error {
+            color: #c62828;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .service-help {
+            margin: 0 0 16px;
+            color: #4f5f79;
+        }
+
+        .service-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        @media (max-width: 880px) {
+            .service-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="admin-shell">
+    <aside class="sidebar" aria-label="Navigation principale de l'administration">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>VOS Admin</span>
+        </div>
+        <nav class="nav-list" aria-label="Sections de l'administration">
+            <a class="nav-item is-active" href="{{ path('app_admin_dashboard') }}">Gestion des utilisateurs</a>
+            <a class="nav-item" href="{{ path('gestion_offre_dashboard') }}">Gestion Offres</a>
+            <a class="nav-item" href="{{ path('app_admin_candidatures') }}">Gestion Candidatures</a>
+            <a class="nav-item" href="{{ path('gestion_entretien_dashboard') }}">Gestion Entretiens</a>
+            <a class="nav-item" href="{{ path('recrutement_index') }}">Gestion Recrutements</a>
+            <a class="nav-item" href="#">Forum</a>
+            <a class="nav-item" href="#">Rapports</a>
+        </nav>
+        <div class="sidebar-footer">Panel Administration</div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h1>Service administrative</h1>
+                <p>Bienvenue {{ adminName }}</p>
+            </div>
+            <a class="btn-edit" href="{{ path('app_admin_dashboard') }}">Retour au tableau de bord</a>
+        </header>
+
+        <nav class="module-nav" aria-label="Navigation utilisateurs">
+            <a class="module-link" href="{{ path('app_admin_dashboard') }}">Utilisateurs</a>
+            <a class="module-link" href="{{ path('app_admin_users_statistique') }}">Statistiques</a>
+            <a class="module-link is-active" href="{{ path('app_admin_users_administrative_service') }}">Service administrative</a>
+        </nav>
+
+        {% if errors._form is defined %}
+            <div class="flash flash-error">{{ errors._form }}</div>
+        {% endif %}
+        {% for message in app.flashes('success') %}
+            <div class="flash flash-success">{{ message }}</div>
+        {% endfor %}
+
+        <section class="service-card">
+            <h2>Demission / Demande de conge</h2>
+            <p class="service-help">Remplissez le formulaire puis cliquez sur "Generer PDF" pour telecharger votre document officiel.</p>
+
+            <form method="post" novalidate>
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_administrative_service') }}">
+
+                <div class="service-grid">
+                    <div class="service-field">
+                        <label for="request_type">Type de demande</label>
+                        <select id="request_type" name="request_type" required>
+                            <option value="conge" {% if formData.request_type == 'conge' %}selected{% endif %}>Demande de conge</option>
+                            <option value="demission" {% if formData.request_type == 'demission' %}selected{% endif %}>Demission</option>
+                        </select>
+                        {% if errors.request_type is defined %}<div class="field-error">{{ errors.request_type }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field">
+                        <label for="full_name">Nom complet</label>
+                        <input id="full_name" type="text" name="full_name" value="{{ formData.full_name }}" required>
+                        {% if errors.full_name is defined %}<div class="field-error">{{ errors.full_name }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field">
+                        <label for="email">Email professionnel</label>
+                        <input id="email" type="email" name="email" value="{{ formData.email }}" required>
+                        {% if errors.email is defined %}<div class="field-error">{{ errors.email }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field">
+                        <label for="position">Poste</label>
+                        <input id="position" type="text" name="position" value="{{ formData.position }}" required>
+                        {% if errors.position is defined %}<div class="field-error">{{ errors.position }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field">
+                        <label for="department">Departement (optionnel)</label>
+                        <input id="department" type="text" name="department" value="{{ formData.department }}">
+                        {% if errors.department is defined %}<div class="field-error">{{ errors.department }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field">
+                        <label for="start_date">Date de debut / date d'effet</label>
+                        <input id="start_date" type="date" name="start_date" value="{{ formData.start_date }}" min="{{ today }}" required>
+                        {% if errors.start_date is defined %}<div class="field-error">{{ errors.start_date }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field" data-end-date-wrapper>
+                        <label for="end_date">Date de fin (conge)</label>
+                        <input id="end_date" type="date" name="end_date" value="{{ formData.end_date }}" min="{{ today }}">
+                        {% if errors.end_date is defined %}<div class="field-error">{{ errors.end_date }}</div>{% endif %}
+                    </div>
+
+                    <div class="service-field full">
+                        <label for="reason">Motif / details</label>
+                        <textarea id="reason" name="reason" required>{{ formData.reason }}</textarea>
+                        {% if errors.reason is defined %}<div class="field-error">{{ errors.reason }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="service-actions">
+                    <button class="btn-edit" type="submit" name="_action" value="generate_pdf">Generer PDF</button>
+                    <button class="btn-filter" type="submit" name="_action" value="enhance_reason" {% if not isGroqConfigured %}disabled title="Configurez GROQ_API_KEY dans .env.local"{% endif %}>Ameliorer avec IA</button>
+                    <span class="table-badge">Le fichier sera telecharge automatiquement.</span>
+                </div>
+                {% if not isGroqConfigured %}
+                    <div class="field-error" style="margin-top:10px;">IA indisponible: ajoutez GROQ_API_KEY dans .env.local.</div>
+                {% endif %}
+            </form>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        const requestType = document.getElementById('request_type');
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        const endDateWrapper = document.querySelector('[data-end-date-wrapper]');
+        if (!requestType || !startDateInput || !endDateInput || !endDateWrapper) {
+            return;
+        }
+
+        const today = '{{ today }}';
+        startDateInput.min = today;
+        endDateInput.min = today;
+
+        const syncEndDateMin = function () {
+            const startValue = startDateInput.value || today;
+            endDateInput.min = startValue < today ? today : startValue;
+        };
+
+        const syncType = function () {
+            const isConge = requestType.value === 'conge';
+            endDateWrapper.style.display = isConge ? 'grid' : 'none';
+            endDateInput.required = isConge;
+            if (!isConge) {
+                endDateInput.value = '';
+            }
+            syncEndDateMin();
+        };
+
+        requestType.addEventListener('change', syncType);
+        startDateInput.addEventListener('change', syncEndDateMin);
+        syncType();
+    })();
+</script>
+{% endblock %}

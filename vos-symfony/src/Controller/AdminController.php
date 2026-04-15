@@ -8,12 +8,16 @@ use App\Entity\PreferenceCandidature;
 use App\Entity\User;
 use App\Form\AdminUserType;
 use App\Service\AdminDashboardService;
+use App\Service\GroqReasonEnhancer;
 use App\Service\AdminUserService;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -123,6 +127,165 @@ class AdminController extends AbstractController
             'stats' => $stats,
             'roleStats' => $roleStats,
             'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+        ]);
+    }
+
+    #[Route('/users/service-administratif', name: 'app_admin_users_administrative_service', methods: ['GET', 'POST'])]
+    public function administrativeService(Request $request, SessionInterface $session, GroqReasonEnhancer $reasonEnhancer): Response
+    {
+        $access = $this->requireAdmin($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $formData = [
+            'request_type' => 'conge',
+            'full_name' => (string) $session->get('admin_user_name', 'Admin'),
+            'email' => '',
+            'position' => '',
+            'department' => '',
+            'start_date' => $today,
+            'end_date' => $today,
+            'reason' => '',
+        ];
+        $errors = [];
+
+        if ($request->isMethod('POST')) {
+            $token = (string) $request->request->get('_token', '');
+            if (!$this->isCsrfTokenValid('admin_administrative_service', $token)) {
+                $errors['_form'] = 'Token CSRF invalide. Merci de reessayer.';
+            }
+
+            $formData['request_type'] = trim((string) $request->request->get('request_type', ''));
+            $formData['full_name'] = trim((string) $request->request->get('full_name', ''));
+            $formData['email'] = trim((string) $request->request->get('email', ''));
+            $formData['position'] = trim((string) $request->request->get('position', ''));
+            $formData['department'] = trim((string) $request->request->get('department', ''));
+            $formData['start_date'] = trim((string) $request->request->get('start_date', ''));
+            $formData['end_date'] = trim((string) $request->request->get('end_date', ''));
+            $formData['reason'] = trim((string) $request->request->get('reason', ''));
+
+            if (!in_array($formData['request_type'], ['demission', 'conge'], true)) {
+                $errors['request_type'] = 'Type de demande invalide.';
+            }
+
+            if (mb_strlen($formData['full_name']) < 3 || mb_strlen($formData['full_name']) > 120) {
+                $errors['full_name'] = 'Le nom complet doit contenir entre 3 et 120 caracteres.';
+            }
+
+            if ($formData['email'] === '' || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = 'Adresse email invalide.';
+            }
+
+            if (mb_strlen($formData['position']) < 2 || mb_strlen($formData['position']) > 100) {
+                $errors['position'] = 'Le poste doit contenir entre 2 et 100 caracteres.';
+            }
+
+            if ($formData['department'] !== '' && mb_strlen($formData['department']) > 100) {
+                $errors['department'] = 'Le departement ne doit pas depasser 100 caracteres.';
+            }
+
+            $action = (string) $request->request->get('_action', 'generate_pdf');
+            $isEnhanceAction = $action === 'enhance_reason';
+
+            if ($isEnhanceAction) {
+                if (mb_strlen($formData['reason']) < 5 || mb_strlen($formData['reason']) > 2000) {
+                    $errors['reason'] = 'Le motif doit contenir entre 5 et 2000 caracteres pour etre ameliore.';
+                }
+            } else {
+                if (mb_strlen($formData['reason']) < 10 || mb_strlen($formData['reason']) > 2000) {
+                    $errors['reason'] = 'Le motif doit contenir entre 10 et 2000 caracteres.';
+                }
+            }
+
+            $startDate = null;
+            if ($formData['start_date'] === '') {
+                $errors['start_date'] = 'La date de debut est obligatoire.';
+            } else {
+                try {
+                    $startDate = new \DateTimeImmutable($formData['start_date']);
+                } catch (\Throwable) {
+                    $errors['start_date'] = 'Date de debut invalide.';
+                }
+            }
+
+            $endDate = null;
+            if ($formData['request_type'] === 'conge') {
+                if ($formData['end_date'] === '') {
+                    $errors['end_date'] = 'La date de fin est obligatoire pour une demande de conge.';
+                } else {
+                    try {
+                        $endDate = new \DateTimeImmutable($formData['end_date']);
+                    } catch (\Throwable) {
+                        $errors['end_date'] = 'Date de fin invalide.';
+                    }
+                }
+
+                if ($startDate instanceof \DateTimeImmutable && $endDate instanceof \DateTimeImmutable && $endDate < $startDate) {
+                    $errors['end_date'] = 'La date de fin doit etre superieure ou egale a la date de debut.';
+                }
+            } else {
+                $formData['end_date'] = '';
+            }
+
+            if ($startDate instanceof \DateTimeImmutable) {
+                $todayDate = new \DateTimeImmutable('today');
+                if ($startDate < $todayDate) {
+                    $errors['start_date'] = 'La date de debut ne peut pas etre dans le passe.';
+                }
+            }
+
+            if ($formData['request_type'] === 'conge' && $endDate instanceof \DateTimeImmutable) {
+                $todayDate = new \DateTimeImmutable('today');
+                if ($endDate < $todayDate) {
+                    $errors['end_date'] = 'La date de fin ne peut pas etre dans le passe.';
+                }
+            }
+
+            if ($isEnhanceAction && $errors === []) {
+                try {
+                    $formData['reason'] = $reasonEnhancer->enhance($formData['reason'], $formData['request_type']);
+                    $this->addFlash('success', 'Motif ameliore avec IA. Verifiez puis cliquez sur Generer PDF.');
+                } catch (\Throwable $exception) {
+                    $errors['_form'] = $exception->getMessage();
+                }
+            }
+
+            if (!$isEnhanceAction && $errors === []) {
+                $reference = sprintf('ADM-%s-%s', (new \DateTimeImmutable())->format('Ymd'), strtoupper(substr(sha1($formData['email'] . microtime(true)), 0, 6)));
+                $pdfHtml = $this->renderView('admin/administrative_service_pdf.html.twig', [
+                    'formData' => $formData,
+                    'submittedAt' => new \DateTimeImmutable(),
+                    'reference' => $reference,
+                ]);
+
+                $options = new Options();
+                $options->set('isRemoteEnabled', false);
+
+                $dompdf = new Dompdf($options);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->loadHtml($pdfHtml, 'UTF-8');
+                $dompdf->render();
+
+                $typePrefix = $formData['request_type'] === 'demission' ? 'demission' : 'conge';
+                $filename = sprintf('%s_%s.pdf', $typePrefix, (new \DateTimeImmutable())->format('Ymd_His'));
+
+                $response = new Response($dompdf->output());
+                $disposition = $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);
+                $response->headers->set('Content-Type', 'application/pdf');
+                $response->headers->set('Content-Disposition', $disposition);
+
+                return $response;
+            }
+        }
+
+        return $this->render('admin/administrative_service.html.twig', [
+            'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            'formData' => $formData,
+            'errors' => $errors,
+            'today' => $today,
+            'isGroqConfigured' => $reasonEnhancer->isConfigured(),
         ]);
     }
 
