@@ -647,6 +647,113 @@ class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_preferences');
     }
 
+    // ── Statistiques Candidatures et Préférences ──────────────────────
+    #[Route('/candidatures-preferences/statistics', name: 'app_admin_statistics', methods: ['GET'])]
+    public function statistics(EntityManagerInterface $entityManager, SessionInterface $session): Response
+    {
+        $access = $this->requireAdmin($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        // ── Statistiques Candidatures ──
+        $candidatures = $entityManager->getRepository(Candidature::class)->findAll();
+        
+        $totalCandidatures = count($candidatures);
+        $candidaturesByStatus = [];
+        $candidaturesByOffers = [];
+        
+        foreach ($candidatures as $candidature) {
+            // Par statut
+            $status = $candidature->getStatut() ?: 'Non spécifié';
+            if (!isset($candidaturesByStatus[$status])) {
+                $candidaturesByStatus[$status] = 0;
+            }
+            $candidaturesByStatus[$status]++;
+            
+            // Par offre
+            $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+            if ($offre) {
+                $offreTitre = $offre->getTitre();
+                if (!isset($candidaturesByOffers[$offreTitre])) {
+                    $candidaturesByOffers[$offreTitre] = 0;
+                }
+                $candidaturesByOffers[$offreTitre]++;
+            }
+        }
+        
+        // ── Statistiques Préférences ──
+        $preferences = $entityManager->getRepository(PreferenceCandidature::class)->findAll();
+        
+        $totalPreferences = count($preferences);
+        $preferencesByType = [];
+        $preferencesByMode = [];
+        $preferencesByDisponibilite = [];
+        
+        foreach ($preferences as $preference) {
+            // Par type de poste
+            $type = $preference->getTypePosteSouhaite() ?: 'Non spécifié';
+            if (!isset($preferencesByType[$type])) {
+                $preferencesByType[$type] = 0;
+            }
+            $preferencesByType[$type]++;
+            
+            // Par mode de travail
+            $mode = $preference->getModeTravail() ?: 'Non spécifié';
+            if (!isset($preferencesByMode[$mode])) {
+                $preferencesByMode[$mode] = 0;
+            }
+            $preferencesByMode[$mode]++;
+            
+            // Par disponibilité
+            $dispo = $preference->getDisponibilite() ?: 'Non spécifié';
+            if (!isset($preferencesByDisponibilite[$dispo])) {
+                $preferencesByDisponibilite[$dispo] = 0;
+            }
+            $preferencesByDisponibilite[$dispo]++;
+        }
+        
+        // Statistiques croisées
+        $totalUsers = count($entityManager->getRepository(User::class)->findAll());
+        $totalOffers = count($entityManager->getRepository(OffreEmploi::class)->findAll());
+        
+        // Taux de candidature (candidatures / utilisateurs)
+        $rateOfCandidature = $totalUsers > 0 ? round(($totalCandidatures / $totalUsers) * 100, 2) : 0;
+        
+        // Taux de préférence (préférences / utilisateurs)
+        $rateOfPreference = $totalUsers > 0 ? round(($totalPreferences / $totalUsers) * 100, 2) : 0;
+        
+        // Calculer les valeurs maximales pour les graphiques
+        $maxStatus = count($candidaturesByStatus) > 0 ? max($candidaturesByStatus) : 0;
+        $maxOffers = count($candidaturesByOffers) > 0 ? max($candidaturesByOffers) : 0;
+        $maxType = count($preferencesByType) > 0 ? max($preferencesByType) : 0;
+        $maxMode = count($preferencesByMode) > 0 ? max($preferencesByMode) : 0;
+        $maxDispo = count($preferencesByDisponibilite) > 0 ? max($preferencesByDisponibilite) : 0;
+        
+        return $this->render('admin/candidature/statistics.html.twig', [
+            'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            // Candidatures
+            'totalCandidatures' => $totalCandidatures,
+            'candidaturesByStatus' => $candidaturesByStatus,
+            'candidaturesByOffers' => $candidaturesByOffers,
+            'maxStatus' => $maxStatus,
+            'maxOffers' => $maxOffers,
+            // Préférences
+            'totalPreferences' => $totalPreferences,
+            'preferencesByType' => $preferencesByType,
+            'preferencesByMode' => $preferencesByMode,
+            'preferencesByDisponibilite' => $preferencesByDisponibilite,
+            'maxType' => $maxType,
+            'maxMode' => $maxMode,
+            'maxDispo' => $maxDispo,
+            // Données croisées
+            'totalUsers' => $totalUsers,
+            'totalOffers' => $totalOffers,
+            'rateOfCandidature' => $rateOfCandidature,
+            'rateOfPreference' => $rateOfPreference,
+        ]);
+    }
+
     private function requireAdmin(SessionInterface $session): RedirectResponse|null
     {
         $adminId = $session->get('admin_user_id');
