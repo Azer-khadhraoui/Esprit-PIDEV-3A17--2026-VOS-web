@@ -4,10 +4,14 @@ namespace App\Controller;
 
 use App\Entity\CritereOffre;
 use App\Entity\OffreEmploi;
+use App\Service\CriteriaSuggestionAiService;
+use App\Service\OffreDescriptionAiService;
+use App\Service\OffreNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -15,6 +19,12 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class GestionOffreController extends AbstractController
 {
+    public function __construct(
+        private readonly CriteriaSuggestionAiService $criteriaSuggestionAiService,
+        private readonly OffreDescriptionAiService $offreDescriptionAiService,
+    ) {
+    }
+
     #[Route('/gestion-offre', name: 'gestion_offre_dashboard', methods: ['GET'])]
     public function dashboard(Request $request, EntityManagerInterface $entityManager): Response
     {
@@ -192,7 +202,12 @@ class GestionOffreController extends AbstractController
     }
 
     #[Route('/gestion-offre/new', name: 'gestion_offre_new', methods: ['GET', 'POST'])]
-    public function newOffre(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
+    public function newOffre(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        OffreNotificationService $offreNotificationService,
+    ): Response
     {
         $offre = new OffreEmploi();
         $adminUserId = $this->requireAdminUserId($session);
@@ -208,8 +223,10 @@ class GestionOffreController extends AbstractController
         }
 
         $csrfTokenId = 'offre_form_new';
+        $sendNotification = true;
 
         if ($request->isMethod('POST')) {
+            $sendNotification = (string) $request->request->get('send_notification', '0') === '1';
             $token = (string) $request->request->get('_token');
             if (!$this->isCsrfTokenValid($csrfTokenId, $token)) {
                 $this->addFlash('error', 'Token invalide. Veuillez reessayer.');
@@ -220,6 +237,7 @@ class GestionOffreController extends AbstractController
                     'submitLabel' => 'Ajouter',
                     'userOptions' => $userOptions,
                     'fieldErrors' => ['_form' => 'Token invalide. Veuillez reessayer.'],
+                    'sendNotification' => $sendNotification,
                     'csrfTokenId' => $csrfTokenId,
                     'currentUserName' => 'khadhraoui azer',
                 ]);
@@ -235,6 +253,7 @@ class GestionOffreController extends AbstractController
                     'submitLabel' => 'Ajouter',
                     'userOptions' => $userOptions,
                     'fieldErrors' => $errors,
+                    'sendNotification' => $sendNotification,
                     'csrfTokenId' => $csrfTokenId,
                     'currentUserName' => 'khadhraoui azer',
                 ]);
@@ -243,7 +262,29 @@ class GestionOffreController extends AbstractController
             $entityManager->persist($offre);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Offre ajoutee avec succes.');
+            if ($sendNotification) {
+                $mailingStats = $offreNotificationService->notifyClientsForNewOffer($offre);
+
+                if ($mailingStats['total'] === 0) {
+                    $this->addFlash('warning', 'Offre ajoutee avec succes. Aucun compte client a notifier.');
+                } elseif ($mailingStats['failed'] > 0) {
+                    $this->addFlash(
+                        'warning',
+                        sprintf(
+                            'Offre ajoutee avec succes. Notifications envoyees: %d/%d clients.',
+                            $mailingStats['sent'],
+                            $mailingStats['total'],
+                        ),
+                    );
+                } else {
+                    $this->addFlash(
+                        'success',
+                        sprintf('Offre ajoutee avec succes. Notification envoyee a %d client(s).', $mailingStats['sent']),
+                    );
+                }
+            } else {
+                $this->addFlash('success', 'Offre ajoutee avec succes. Notification email desactivee.');
+            }
 
             return $this->redirectToRoute('gestion_offre_dashboard');
         }
@@ -254,6 +295,7 @@ class GestionOffreController extends AbstractController
             'submitLabel' => 'Ajouter',
             'userOptions' => $userOptions,
             'fieldErrors' => [],
+            'sendNotification' => $sendNotification,
             'csrfTokenId' => $csrfTokenId,
             'currentUserName' => 'khadhraoui azer',
         ]);
@@ -559,6 +601,64 @@ class GestionOffreController extends AbstractController
         ]);
     }
 
+    #[Route('/gestion-offre/criteres/suggestions', name: 'gestion_offre_criteres_suggestions', methods: ['GET'])]
+    public function suggestCritere(Request $request, SessionInterface $session): JsonResponse
+    {
+        $adminUserId = $this->requireAdminUserId($session);
+        if ($adminUserId === null) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $title = $this->normalizeText($request->query->get('titre'));
+        $niveauExperience = $this->normalizeText($request->query->get('niveau_experience'));
+        $niveauEtude = $this->normalizeText($request->query->get('niveau_etude'));
+
+        if ($title === null || $niveauExperience === null || $niveauEtude === null) {
+            return $this->json([
+                'message' => 'titre, niveau_experience et niveau_etude sont obligatoires.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $aiSuggestion = $this->criteriaSuggestionAiService->suggest($title, $niveauExperience, $niveauEtude);
+        if ($aiSuggestion !== null) {
+            return $this->json($aiSuggestion);
+        }
+
+        return $this->json([
+            'competences_requises' => $this->buildCompetencesSuggestion($title, $niveauExperience, $niveauEtude),
+            'responsibilities' => $this->buildResponsibilitiesSuggestion($title, $niveauExperience, $niveauEtude),
+        ]);
+    }
+
+    #[Route('/gestion-offre/description/suggestion', name: 'gestion_offre_description_suggestion', methods: ['GET'])]
+    public function suggestOffreDescription(Request $request, SessionInterface $session): JsonResponse
+    {
+        $adminUserId = $this->requireAdminUserId($session);
+        if ($adminUserId === null) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $title = $this->normalizeText($request->query->get('titre'));
+        if ($title === null || mb_strlen($title) < 3) {
+            return $this->json([
+                'message' => 'Le titre est obligatoire (min 3 caracteres).',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $description = $this->offreDescriptionAiService->suggest($title);
+        if ($description === null) {
+            $description = $this->buildOffreDescriptionFallback($title);
+        }
+
+        return $this->json([
+            'description' => $description,
+        ]);
+    }
+
     private function normalizeText(mixed $value): ?string
     {
         if (!is_string($value)) {
@@ -568,6 +668,269 @@ class GestionOffreController extends AbstractController
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function buildCompetencesSuggestion(string $title, string $niveauExperience, string $niveauEtude): string
+    {
+        $roleFamily = $this->detectRoleFamily($title);
+
+        $baseSkillsByFamily = [
+            'backend' => ['API REST', 'Conception orientee objet', 'SQL', 'Git', 'Tests unitaires', 'Clean code'],
+            'frontend' => ['HTML5', 'CSS3', 'JavaScript', 'TypeScript', 'Responsive Design', 'Git'],
+            'fullstack' => ['Architecture web', 'API REST', 'JavaScript', 'SQL', 'Git', 'CI/CD'],
+            'data' => ['Python', 'SQL', 'Data analysis', 'Data visualization', 'Statistiques', 'Reporting'],
+            'devops' => ['Docker', 'CI/CD', 'Linux', 'Monitoring', 'Cloud', 'Infrastructure as Code'],
+            'default' => ['Communication', 'Resolution de problemes', 'Travail en equipe', 'Organisation', 'Autonomie'],
+        ];
+
+        $skills = $baseSkillsByFamily[$roleFamily] ?? $baseSkillsByFamily['default'];
+        $skills = array_merge($skills, $this->extractSkillsFromTitle($title));
+
+        if ($this->isSeniorExperience($niveauExperience)) {
+            $skills[] = 'Architecture logicielle';
+            $skills[] = 'Revue de code';
+            $skills[] = 'Mentorat technique';
+        } elseif ($this->isJuniorExperience($niveauExperience)) {
+            $skills[] = 'Bonnes pratiques de developpement';
+            $skills[] = 'Capacite d apprentissage rapide';
+        }
+
+        if (str_contains(mb_strtolower($niveauEtude), 'master') || str_contains(mb_strtolower($niveauEtude), 'ingenieur')) {
+            $skills[] = 'Conception de solutions complexes';
+            $skills[] = 'Modelisation et documentation technique';
+        }
+
+        $skills = array_values(array_unique($skills));
+
+        return implode("\n", array_map(static fn (string $skill): string => '- '.$skill, $skills));
+    }
+
+    private function buildResponsibilitiesSuggestion(string $title, string $niveauExperience, string $niveauEtude): string
+    {
+        $roleFamily = $this->detectRoleFamily($title);
+        $titleSkills = array_slice($this->extractSkillsFromTitle($title), 0, 3);
+
+        $baseResponsibilitiesByFamily = [
+            'backend' => [
+                'Concevoir et developper des fonctionnalites backend robustes.',
+                'Concevoir, documenter et maintenir des API performantes.',
+                'Collaborer avec les equipes frontend et produit.',
+            ],
+            'frontend' => [
+                'Developper des interfaces utilisateur responsives et accessibles.',
+                'Transformer les maquettes en composants reutilisables.',
+                'Collaborer avec UX/UI pour ameliorer l experience client.',
+            ],
+            'fullstack' => [
+                'Prendre en charge des fonctionnalites de bout en bout.',
+                'Contribuer au backend, frontend et a l integration.',
+                'Participer aux revues de code et aux tests applicatifs.',
+            ],
+            'data' => [
+                'Collecter, nettoyer et analyser les donnees metier.',
+                'Produire des tableaux de bord et recommandations actionnables.',
+                'Collaborer avec les equipes pour definir les KPIs.',
+            ],
+            'devops' => [
+                'Automatiser les pipelines de build, test et deploiement.',
+                'Surveiller la disponibilite et les performances des environnements.',
+                'Ameliorer la securite et la fiabilite de l infrastructure.',
+            ],
+            'default' => [
+                'Contribuer a la realisation des objectifs de l equipe.',
+                'Assurer la qualite des livrables et le respect des delais.',
+                'Communiquer regulierement sur l avancement des travaux.',
+            ],
+        ];
+
+        $responsibilities = $baseResponsibilitiesByFamily[$roleFamily] ?? $baseResponsibilitiesByFamily['default'];
+        $responsibilities = array_merge($responsibilities, $this->buildTitleBasedResponsibilities($title));
+
+        if ($titleSkills !== []) {
+            $responsibilities[] = 'Utiliser au quotidien '.implode(', ', $titleSkills).' dans un contexte de production.';
+        }
+
+        if ($this->isSeniorExperience($niveauExperience)) {
+            $responsibilities[] = 'Encadrer les profils juniors et contribuer aux choix techniques.';
+        } elseif ($this->isJuniorExperience($niveauExperience)) {
+            $responsibilities[] = 'Participer activement a la montee en competence sous supervision.';
+        }
+
+        if (str_contains(mb_strtolower($niveauEtude), 'licence')) {
+            $responsibilities[] = 'Appliquer les fondamentaux techniques avec rigueur et progression continue.';
+        }
+
+        return implode(' ', array_values(array_unique($responsibilities)));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractSkillsFromTitle(string $title): array
+    {
+        $normalizedTitle = mb_strtolower($title);
+        $skillRules = [
+            'python' => ['Python', 'Django', 'FastAPI', 'Pandas'],
+            'django' => ['Python', 'Django', 'Django REST Framework'],
+            'fastapi' => ['Python', 'FastAPI', 'OpenAPI'],
+            'php' => ['PHP', 'Composer', 'Unit testing'],
+            'symfony' => ['Symfony', 'Doctrine ORM', 'Twig'],
+            'laravel' => ['Laravel', 'Eloquent ORM', 'PHP'],
+            'java' => ['Java', 'Spring Boot', 'JPA'],
+            'spring' => ['Spring Boot', 'Microservices', 'JUnit'],
+            'c#' => ['C#', '.NET', 'Entity Framework'],
+            '.net' => ['C#', '.NET', 'ASP.NET Core'],
+            'node' => ['Node.js', 'Express.js', 'REST API'],
+            'react' => ['React', 'TypeScript', 'State management'],
+            'angular' => ['Angular', 'TypeScript', 'RxJS'],
+            'vue' => ['Vue.js', 'JavaScript', 'Component architecture'],
+            'flutter' => ['Flutter', 'Dart', 'Mobile architecture'],
+            'android' => ['Kotlin', 'Android SDK', 'Mobile testing'],
+            'ios' => ['Swift', 'iOS SDK', 'Mobile architecture'],
+            'devops' => ['Docker', 'Kubernetes', 'CI/CD'],
+            'aws' => ['AWS', 'Cloud security', 'Monitoring'],
+            'azure' => ['Azure', 'Cloud services', 'Monitoring'],
+            'gcp' => ['GCP', 'Cloud services', 'Monitoring'],
+            'data' => ['Python', 'SQL', 'Data visualization'],
+            'analyst' => ['SQL', 'Power BI', 'Reporting'],
+            'ai' => ['Machine Learning', 'Python', 'Model evaluation'],
+            'ml' => ['Machine Learning', 'Feature engineering', 'Model deployment'],
+        ];
+
+        $skills = [];
+        foreach ($skillRules as $keyword => $mappedSkills) {
+            if (str_contains($normalizedTitle, $keyword)) {
+                $skills = array_merge($skills, $mappedSkills);
+            }
+        }
+
+        if ($skills === []) {
+            if ($this->containsAny($normalizedTitle, ['developpeur', 'developer', 'engineer'])) {
+                $skills = ['Git', 'Algorithmique', 'Tests unitaires'];
+            }
+        }
+
+        return array_values(array_unique($skills));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildTitleBasedResponsibilities(string $title): array
+    {
+        $normalizedTitle = mb_strtolower($title);
+        $items = [];
+
+        if ($this->containsAny($normalizedTitle, ['python', 'django', 'fastapi'])) {
+            $items[] = 'Developper des services backend Python maintenables et tests.';
+        }
+
+        if ($this->containsAny($normalizedTitle, ['react', 'angular', 'vue', 'frontend', 'front'])) {
+            $items[] = 'Construire des composants UI performants et reutilisables.';
+        }
+
+        if ($this->containsAny($normalizedTitle, ['data', 'analyst', 'bi'])) {
+            $items[] = 'Fournir des analyses metier et tableaux de bord exploitables.';
+        }
+
+        if ($this->containsAny($normalizedTitle, ['devops', 'cloud', 'sre', 'aws', 'azure', 'gcp'])) {
+            $items[] = 'Ameliorer les pipelines CI/CD et la fiabilite de la plateforme.';
+        }
+
+        if ($this->containsAny($normalizedTitle, ['mobile', 'android', 'ios', 'flutter'])) {
+            $items[] = 'Garantir une experience mobile fluide et stable en production.';
+        }
+
+        return array_values(array_unique($items));
+    }
+
+    /**
+     * @param list<string> $needles
+     */
+    private function containsAny(string $haystack, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function detectRoleFamily(string $title): string
+    {
+        $normalizedTitle = mb_strtolower($title);
+
+        if (str_contains($normalizedTitle, 'fullstack') || str_contains($normalizedTitle, 'full stack')) {
+            return 'fullstack';
+        }
+
+        if (str_contains($normalizedTitle, 'backend') || str_contains($normalizedTitle, 'api')) {
+            return 'backend';
+        }
+
+        if (str_contains($normalizedTitle, 'front') || str_contains($normalizedTitle, 'ui') || str_contains($normalizedTitle, 'ux')) {
+            return 'frontend';
+        }
+
+        if (str_contains($normalizedTitle, 'data') || str_contains($normalizedTitle, 'bi') || str_contains($normalizedTitle, 'analyst')) {
+            return 'data';
+        }
+
+        if (str_contains($normalizedTitle, 'devops') || str_contains($normalizedTitle, 'sre') || str_contains($normalizedTitle, 'cloud')) {
+            return 'devops';
+        }
+
+        return 'default';
+    }
+
+    private function isSeniorExperience(string $niveauExperience): bool
+    {
+        $normalized = mb_strtolower($niveauExperience);
+
+        return str_contains($normalized, 'senior')
+            || str_contains($normalized, '5')
+            || str_contains($normalized, '6')
+            || str_contains($normalized, '7')
+            || str_contains($normalized, '8')
+            || str_contains($normalized, '9');
+    }
+
+    private function isJuniorExperience(string $niveauExperience): bool
+    {
+        $normalized = mb_strtolower($niveauExperience);
+
+        return str_contains($normalized, 'junior')
+            || str_contains($normalized, 'debutant')
+            || str_contains($normalized, '0')
+            || str_contains($normalized, '1')
+            || str_contains($normalized, '2');
+    }
+
+    private function buildOffreDescriptionFallback(string $title): string
+    {
+        $normalized = mb_strtolower($title);
+        $family = $this->detectRoleFamily($title);
+
+        $context = match ($family) {
+            'backend' => 'Vous contribuerez a la conception de services backend evolutifs et a l optimisation des APIs metier.',
+            'frontend' => 'Vous developperez des interfaces modernes, performantes et orientees experience utilisateur.',
+            'fullstack' => 'Vous interviendrez sur l ensemble de la chaine applicative, du backend au frontend.',
+            'data' => 'Vous transformerez les donnees en insights actionnables pour orienter les decisions metier.',
+            'devops' => 'Vous renforcerez la fiabilite des environnements, l automatisation et la qualite des deploiements.',
+            default => 'Vous participerez a la realisation de projets a fort impact en collaboration avec les equipes metier et techniques.',
+        };
+
+        $impact = 'Le poste de '.$title.' vise a accelerer la livraison de valeur, garantir la qualite des solutions et soutenir les objectifs de croissance.';
+
+        $collaboration = 'Vous travaillerez en coordination avec les equipes produit, QA et engineering dans un cadre agile.';
+
+        if (str_contains($normalized, 'stage') || str_contains($normalized, 'intern')) {
+            $collaboration = 'Vous serez accompagne pour monter en competence tout en contribuant concretement aux livrables de l equipe.';
+        }
+
+        return trim($impact.' '.$context.' '.$collaboration);
     }
 
     private function hydrateOffreFromRequest(OffreEmploi $offre, Request $request, int $adminUserId): void

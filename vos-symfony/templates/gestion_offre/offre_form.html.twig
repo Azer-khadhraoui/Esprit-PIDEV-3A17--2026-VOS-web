@@ -86,6 +86,9 @@
                         </label>
                         <textarea name="description" id="description" rows="4" maxlength="5000" style="border:1px solid #d0d8e5;border-radius:12px;padding:12px;resize:vertical;transition:border-color 0.2s;">{{ offre.description ?? '' }}</textarea>
                         <span id="description-error" style="display:{{ fieldErrors.description is defined ? 'block' : 'none' }};font-size:0.875rem;color:#dc2626;margin-top:2px;">{{ fieldErrors.description|default('') }}</span>
+                        {% if submitLabel == 'Ajouter' %}
+                            <small id="description-ai-feedback" style="font-size:0.82rem;color:#64748b;">Description auto-generee selon le titre de l offre.</small>
+                        {% endif %}
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
@@ -156,6 +159,15 @@
                             <span id="lieu-error" style="display:{{ fieldErrors.lieu is defined ? 'block' : 'none' }};font-size:0.875rem;color:#dc2626;margin-top:2px;">{{ fieldErrors.lieu|default('') }}</span>
                         </div>
                     </div>
+
+                    {% if submitLabel == 'Ajouter' %}
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #d0d8e5;border-radius:12px;background:#f8fafc;">
+                            <input type="checkbox" name="send_notification" id="send_notification" value="1" {{ sendNotification|default(true) ? 'checked' : '' }} style="width:18px;height:18px;">
+                            <label for="send_notification" style="font-weight:600;color:#334155;cursor:pointer;">
+                                Envoyer un email a tous les comptes client apres la creation
+                            </label>
+                        </div>
+                    {% endif %}
 
                     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
                         <button type="submit" style="padding:11px 18px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer;">{{ submitLabel }}</button>
@@ -281,6 +293,102 @@
                             });
                         }
                     });
+
+                    const enableAutoDescription = {{ submitLabel == 'Ajouter' ? 'true' : 'false' }};
+                    const titleInput = document.getElementById('titre');
+                    const descriptionInput = document.getElementById('description');
+                    const descriptionFeedback = document.getElementById('description-ai-feedback');
+                    let autoDescriptionTimer = null;
+                    let lastGeneratedTitle = '';
+                    let descriptionManuallyEdited = descriptionInput ? descriptionInput.value.trim() !== '' : false;
+                    let isAutoUpdatingDescription = false;
+
+                    const setDescriptionFeedback = (message, color) => {
+                        if (!descriptionFeedback) return;
+                        descriptionFeedback.textContent = message;
+                        descriptionFeedback.style.color = color;
+                    };
+
+                    const generateDescription = async () => {
+                        if (!enableAutoDescription || !titleInput || !descriptionInput) return;
+
+                        const title = titleInput.value.trim();
+                        if (title.length < 3) {
+                            setDescriptionFeedback('Le titre doit contenir au moins 3 caracteres pour generer la description.', '#b91c1c');
+                            return;
+                        }
+
+                        if (descriptionManuallyEdited) {
+                            setDescriptionFeedback('Description modifiee manuellement. Videz le champ pour reactiver l auto-generation.', '#64748b');
+                            return;
+                        }
+
+                        if (title === lastGeneratedTitle) {
+                            return;
+                        }
+
+                        try {
+                            setDescriptionFeedback('Generation automatique en cours...', '#475569');
+
+                            const params = new URLSearchParams({ titre: title });
+                            const response = await fetch(`{{ path('gestion_offre_description_suggestion') }}?${params.toString()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            const payload = await response.json();
+                            if (!response.ok) {
+                                throw new Error(payload.message || 'Impossible de generer la description.');
+                            }
+
+                            const generatedDescription = (payload.description || '').trim();
+                            if (generatedDescription !== '') {
+                                isAutoUpdatingDescription = true;
+                                descriptionInput.value = generatedDescription;
+                                descriptionInput.dispatchEvent(new Event('input'));
+                                isAutoUpdatingDescription = false;
+                                lastGeneratedTitle = title;
+                                setDescriptionFeedback('Description generee automatiquement depuis le titre.', '#15803d');
+                            }
+                        } catch (error) {
+                            setDescriptionFeedback(error.message || 'Erreur API pendant la generation de description.', '#b91c1c');
+                        }
+                    };
+
+                    const scheduleDescriptionGeneration = () => {
+                        if (!enableAutoDescription) return;
+
+                        if (autoDescriptionTimer) {
+                            clearTimeout(autoDescriptionTimer);
+                        }
+
+                        autoDescriptionTimer = setTimeout(() => {
+                            generateDescription();
+                        }, 500);
+                    };
+
+                    if (enableAutoDescription && descriptionInput) {
+                        descriptionInput.addEventListener('input', () => {
+                            if (isAutoUpdatingDescription) {
+                                return;
+                            }
+
+                            descriptionManuallyEdited = descriptionInput.value.trim() !== '';
+
+                            if (!descriptionManuallyEdited) {
+                                lastGeneratedTitle = '';
+                                setDescriptionFeedback('Champ vide detecte. L auto-generation est reactivee.', '#475569');
+                                scheduleDescriptionGeneration();
+                            }
+                        });
+                    }
+
+                    if (enableAutoDescription && titleInput) {
+                        titleInput.addEventListener('input', scheduleDescriptionGeneration);
+                        titleInput.addEventListener('blur', scheduleDescriptionGeneration);
+                    }
 
                     // Form submission validation
                     form.addEventListener('submit', function() {
