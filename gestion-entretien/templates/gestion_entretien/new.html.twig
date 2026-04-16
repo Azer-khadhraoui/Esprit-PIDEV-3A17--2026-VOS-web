@@ -23,7 +23,17 @@
                 <div class="form-field">{{ form_row(form.lienReunion) }}</div>
                 <div class="form-field">{{ form_row(form.idCandidature) }}</div>
                 <div class="form-field">{{ form_row(form.idUtilisateur) }}</div>
-                <div class="form-field full">{{ form_row(form.questionsEntretien) }}</div>
+                <div class="form-field full">
+                    {{ form_label(form.questionsEntretien) }}
+                    {{ form_widget(form.questionsEntretien) }}
+                    {{ form_errors(form.questionsEntretien) }}
+                    <button type="button" id="btn-generate-ai"
+                            style="margin-top:10px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;">
+                        <span aria-hidden="true">✨</span> Générer avec IA
+                    </button>
+                    <span id="ai-status" style="margin-left:10px;font-size:.85rem;color:#6d28d9;display:none;">Génération en cours…</span>
+                    <span id="ai-error"  style="margin-left:10px;font-size:.85rem;color:#b91c1c;display:none;"></span>
+                </div>
             </div>
             <div class="actions" style="margin-top:18px;">
                 <button class="btn btn-primary" type="submit">Enregistrer</button>
@@ -31,4 +41,57 @@
             {{ form_end(form) }}
         </div>
     </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    const btn       = document.getElementById('btn-generate-ai');
+    const status    = document.getElementById('ai-status');
+    const errorSpan = document.getElementById('ai-error');
+    const textarea  = document.getElementById('entretien_questionsEntretien');
+    const selectCandidature  = document.getElementById('entretien_idCandidature');
+    const selectType         = document.getElementById('entretien_typeEntretien');
+
+    btn.addEventListener('click', async function () {
+        const candidatureId = selectCandidature ? selectCandidature.value : '';
+        const typeEntretien = selectType ? selectType.value : '';
+
+        errorSpan.style.display = 'none';
+        errorSpan.textContent   = '';
+
+        if (!candidatureId || !typeEntretien) {
+            errorSpan.textContent   = 'Veuillez sélectionner une candidature et un type d\'entretien.';
+            errorSpan.style.display = 'inline';
+            return;
+        }
+
+        btn.disabled        = true;
+        status.style.display = 'inline';
+
+        try {
+            const response = await fetch('{{ path('gestion_entretien_generate_questions') }}', {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify({ candidatureId, typeEntretien }),
+            });
+
+            const data = await response.json();
+
+            if (data.questions) {
+                textarea.value = data.questions;
+            } else {
+                errorSpan.textContent   = data.error ?? 'Erreur inconnue.';
+                errorSpan.style.display = 'inline';
+            }
+        } catch (e) {
+            errorSpan.textContent   = 'Erreur réseau, veuillez réessayer.';
+            errorSpan.style.display = 'inline';
+        } finally {
+            btn.disabled         = false;
+            status.style.display = 'none';
+        }
+    });
+}());
+</script>
 {% endblock %}
