@@ -26,6 +26,11 @@ services:
         arguments:
             $groqApiKey: '%env(default::GROQ_API_KEY)%'
 
+    App\Service\PasswordResetService:
+        arguments:
+            $mailerFrom: '%env(default::MAILER_FROM)%'
+            $appName: '%env(default::APP_NAME)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 

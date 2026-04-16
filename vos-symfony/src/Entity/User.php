@@ -43,6 +43,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'signature_url', type: 'string', length: 500, nullable: true)]
     private ?string $signatureUrl = null;
 
+    #[ORM\Column(name: 'reset_token_hash', type: 'string', length: 64, nullable: true)]
+    private ?string $resetTokenHash = null;
+
+    #[ORM\Column(name: 'reset_requested_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $resetRequestedAt = null;
+
+    #[ORM\Column(name: 'reset_expires_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $resetExpiresAt = null;
+
     private ?string $plainPassword = null;
 
     public function getId(): ?int
@@ -129,6 +138,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setSignatureUrl(?string $signatureUrl): static
     {
         $this->signatureUrl = $signatureUrl;
+        return $this;
+    }
+
+    public function getResetTokenHash(): ?string
+    {
+        return $this->resetTokenHash;
+    }
+
+    public function setResetTokenHash(?string $resetTokenHash): static
+    {
+        $this->resetTokenHash = $resetTokenHash;
+
+        return $this;
+    }
+
+    public function getResetRequestedAt(): ?\DateTimeImmutable
+    {
+        return $this->resetRequestedAt;
+    }
+
+    public function setResetRequestedAt(?\DateTimeImmutable $resetRequestedAt): static
+    {
+        $this->resetRequestedAt = $resetRequestedAt;
+
+        return $this;
+    }
+
+    public function getResetExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->resetExpiresAt;
+    }
+
+    public function setResetExpiresAt(?\DateTimeImmutable $resetExpiresAt): static
+    {
+        $this->resetExpiresAt = $resetExpiresAt;
+
         return $this;
     }
 

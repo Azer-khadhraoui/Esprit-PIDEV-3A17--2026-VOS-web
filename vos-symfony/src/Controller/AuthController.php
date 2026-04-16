@@ -4,7 +4,9 @@ namespace App\Controller;
 
 use App\Dto\SignupDto;
 use App\Form\SignupType;
+use App\Service\PasswordResetService;
 use App\Service\UserAccountService;
+use App\Service\ValidationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -188,15 +190,84 @@ class AuthController extends AbstractController
     }
 
     #[Route('/forgot-password', name: 'app_forgot_password', methods: ['GET', 'POST'])]
-    public function forgotPassword(): Response
+    public function forgotPassword(Request $request, PasswordResetService $passwordResetService, ValidationService $validation): Response
     {
-        return $this->render('auth/forgot_password.html.twig');
+        $emailValue = '';
+
+        if ($request->isMethod('POST')) {
+            $token = (string) $request->request->get('_token', '');
+            if (!$this->isCsrfTokenValid('forgot_password_request', $token)) {
+                $this->addFlash('error', 'Session invalide, veuillez reessayer.');
+                return $this->redirectToRoute('app_forgot_password');
+            }
+
+            $emailValue = trim((string) $request->request->get('email', ''));
+
+            try {
+                $email = $validation->validateEmail($emailValue);
+                $passwordResetService->requestReset($email, $request->getClientIp());
+
+                // Message volontairement generique pour eviter l'enumeration d'emails.
+                $this->addFlash('success', 'Si un compte existe avec cet email, un code de reinitialisation a ete envoye.');
+                return $this->redirectToRoute('app_reset_password', ['email' => $email]);
+            } catch (\Throwable $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            }
+        }
+
+        return $this->render('auth/forgot_password.html.twig', [
+            'emailValue' => $emailValue,
+        ]);
     }
 
     #[Route('/reset-password', name: 'app_reset_password', methods: ['GET', 'POST'])]
-    public function resetPassword(): Response
+    public function resetPassword(Request $request, PasswordResetService $passwordResetService, ValidationService $validation): Response
     {
-        return $this->render('auth/reset_password.html.twig');
+        $emailValue = trim((string) $request->query->get('email', ''));
+
+        if ($request->isMethod('POST')) {
+            $csrfToken = (string) $request->request->get('_token', '');
+            if (!$this->isCsrfTokenValid('reset_password_form', $csrfToken)) {
+                $this->addFlash('error', 'Session invalide, veuillez reessayer.');
+                return $this->redirectToRoute('app_reset_password');
+            }
+
+            $emailValue = trim((string) $request->request->get('email', ''));
+            $code = preg_replace('/\D+/', '', (string) $request->request->get('code', ''));
+
+            $password = (string) $request->request->get('password', '');
+            $confirmPassword = (string) $request->request->get('confirmPassword', '');
+
+            if ($password !== $confirmPassword) {
+                $this->addFlash('error', 'Les mots de passe ne correspondent pas.');
+                return $this->redirectToRoute('app_reset_password', ['email' => $emailValue]);
+            }
+
+            try {
+                $email = $validation->validateEmail($emailValue);
+                if (strlen((string) $code) !== 6) {
+                    throw new \RuntimeException('Le code de reinitialisation doit contenir 6 chiffres.');
+                }
+
+                $validPassword = $validation->validatePassword($password, 8, 'mot de passe');
+                $changed = $passwordResetService->resetPasswordWithCode($email, (string) $code, $validPassword);
+
+                if (!$changed) {
+                    $this->addFlash('error', 'Code invalide ou expire. Veuillez refaire une demande.');
+                    return $this->redirectToRoute('app_forgot_password');
+                }
+
+                $this->addFlash('success', 'Mot de passe reinitialise avec succes. Vous pouvez maintenant vous connecter.');
+                return $this->redirectToRoute('app_signin');
+            } catch (\Throwable $exception) {
+                $this->addFlash('error', $exception->getMessage());
+                return $this->redirectToRoute('app_reset_password', ['email' => $emailValue]);
+            }
+        }
+
+        return $this->render('auth/reset_password.html.twig', [
+            'emailValue' => $emailValue,
+        ]);
     }
 
     private function redirectAuthenticatedUser(SessionInterface $session): ?RedirectResponse

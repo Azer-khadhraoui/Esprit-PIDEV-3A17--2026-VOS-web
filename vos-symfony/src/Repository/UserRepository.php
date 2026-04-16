@@ -20,4 +20,16 @@ class UserRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['email' => $email]);
     }
+
+    public function findActiveByResetTokenHash(string $tokenHash): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.resetTokenHash = :tokenHash')
+            ->andWhere('u.resetExpiresAt > :now')
+            ->setParameter('tokenHash', $tokenHash)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }
