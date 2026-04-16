@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Notification Entretien</title>
+</head>
+<body style="margin:0;padding:24px;background:#f4f7fb;font-family:Segoe UI,Arial,sans-serif;color:#1f2937;">
+<div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+
+    {# En-tête : teal pour création, bleu ardoise pour mise à jour #}
+    {% if action == 'mise_a_jour' %}
+        <div style="padding:20px 24px;background:linear-gradient(90deg,#1e40af,#3b82f6);color:#ffffff;">
+            <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Mise à jour</p>
+            <h1 style="margin:0;font-size:20px;line-height:1.2;">Entretien modifié</h1>
+            <p style="margin:8px 0 0 0;font-size:13px;opacity:.92;">Dossier #{{ entretienId }}</p>
+        </div>
+    {% else %}
+        <div style="padding:20px 24px;background:linear-gradient(90deg,#0f766e,#0891b2);color:#ffffff;">
+            <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Nouveau</p>
+            <h1 style="margin:0;font-size:20px;line-height:1.2;">Entretien planifié</h1>
+            <p style="margin:8px 0 0 0;font-size:13px;opacity:.92;">Dossier #{{ entretienId }}</p>
+        </div>
+    {% endif %}
+
+    <div style="padding:24px;">
+        <p style="margin:0 0 12px 0;font-size:15px;">Bonjour {{ recipientName }},</p>
+
+        {% if action == 'mise_a_jour' %}
+            {% if recipientRole == 'candidat' %}
+                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;">
+                    Les informations de votre entretien ont été mises à jour. Veuillez consulter les nouveaux détails ci-dessous.
+                </p>
+            {% else %}
+                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;">
+                    Une modification a été apportée à cet entretien. Voici les informations actualisées.
+                </p>
+            {% endif %}
+        {% else %}
+            {% if recipientRole == 'candidat' %}
+                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;">
+                    Un entretien a été planifié pour votre candidature. Veuillez prendre note des informations ci-dessous.
+                </p>
+            {% else %}
+                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;">
+                    Vous êtes notifié en tant qu'administrateur de la planification de cet entretien.
+                </p>
+            {% endif %}
+        {% endif %}
+
+        <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:16px;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="display:none;"><th scope="col">Champ</th><th scope="col">Valeur</th></tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #e5e7eb;">
+                        <th scope="row" style="width:40%;padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Type</th>
+                        <td style="width:60%;padding:10px 12px;font-size:13px;">{{ type }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e5e7eb;">
+                        <th scope="row" style="padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Date</th>
+                        <td style="padding:10px 12px;font-size:13px;">{{ date }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e5e7eb;">
+                        <th scope="row" style="padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Heure</th>
+                        <td style="padding:10px 12px;font-size:13px;">{{ heure }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e5e7eb;">
+                        <th scope="row" style="padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Lieu</th>
+                        <td style="padding:10px 12px;font-size:13px;">{{ lieu }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e5e7eb;">
+                        <th scope="row" style="padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Statut</th>
+                        <td style="padding:10px 12px;font-size:13px;">{{ statut }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row" style="padding:10px 12px;background:#f9fafb;font-size:13px;font-weight:600;text-align:left;">Lien réunion</th>
+                        <td style="padding:10px 12px;font-size:13px;">
+                            {% if lienReunion != 'Aucun lien' %}
+                                <a href="{{ lienReunion }}" style="color:#0f766e;text-decoration:none;">{{ lienReunion }}</a>
+                            {% else %}
+                                {{ lienReunion }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p style="margin:0;font-size:12px;color:#6b7280;">Message automatique, merci de ne pas y répondre.</p>
+    </div>
+</div>
+</body>
+</html>

@@ -6,6 +6,7 @@ use App\Entity\EvaluationEntretien;
 use App\Form\EvaluationEntretienType;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
+use App\Service\EntretienNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -40,7 +41,7 @@ class EvaluationEntretienController extends AbstractController
     }
 
     #[Route('/new', name: 'app_evaluation_entretien_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, EntretienRepository $entretienRepository, SessionInterface $session): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, EntretienRepository $entretienRepository, EntretienNotificationService $notificationService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -63,6 +64,18 @@ class EvaluationEntretienController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($evaluation);
             $entityManager->flush();
+
+            try {
+                $sentCount = $notificationService->notifyEvaluationCreated($evaluation);
+                if ($sentCount > 0) {
+                    $this->addFlash('success', sprintf('Notification email evaluation envoyee a %d destinataire(s).', $sentCount));
+                } else {
+                    $this->addFlash('warning', 'Evaluation enregistree, mais aucun email destinataire trouve.');
+                }
+            } catch (\Throwable $e) {
+                $this->addFlash('warning', 'Evaluation enregistree, mais echec de notification email.');
+            }
+
             $this->addFlash('success', 'Évaluation ajoutée avec succès.');
 
             return $this->redirectToRoute('app_evaluation_entretien_index');
@@ -88,7 +101,7 @@ class EvaluationEntretienController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_evaluation_entretien_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, EvaluationEntretien $evaluationEntretien, EntityManagerInterface $entityManager, SessionInterface $session): Response
+    public function edit(Request $request, EvaluationEntretien $evaluationEntretien, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -100,6 +113,16 @@ class EvaluationEntretienController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
+
+            try {
+                $sentCount = $notificationService->notifyEvaluationUpdated($evaluationEntretien);
+                if ($sentCount > 0) {
+                    $this->addFlash('success', sprintf('Notification de mise a jour evaluation envoyee a %d destinataire(s).', $sentCount));
+                }
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Evaluation modifiee, mais echec de notification email.');
+            }
+
             $this->addFlash('success', 'Évaluation modifiée avec succès.');
 
             return $this->redirectToRoute('app_evaluation_entretien_index');

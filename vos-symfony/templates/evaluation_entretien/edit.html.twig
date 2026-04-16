@@ -32,3 +32,52 @@
         </div>
     </div>
 {% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    'use strict';
+
+    var FIELDS = [
+        'evaluation_entretien_competencesTechniques',
+        'evaluation_entretien_competencesComportementales',
+        'evaluation_entretien_communication',
+        'evaluation_entretien_motivation',
+        'evaluation_entretien_experience'
+    ];
+
+    function getIntVal(id) {
+        var el = document.getElementById(id);
+        return (el && el.value !== '') ? parseInt(el.value, 10) : 0;
+    }
+
+    function setVal(id, value) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.value = value;
+            el.style.transition = 'background .3s';
+            el.style.background = '#eef4ff';
+            setTimeout(function () { el.style.background = ''; }, 800);
+        }
+    }
+
+    function recalculate() {
+        var sum = FIELDS.reduce(function (acc, id) { return acc + getIntVal(id); }, 0);
+        var score = Math.round((sum / 25) * 1000) / 10;
+
+        setVal('evaluation_entretien_scoreTest', score.toFixed(1));
+
+        var decision = score >= 70 ? 'Accepté' : (score >= 50 ? 'En attente' : 'Refusé');
+        setVal('evaluation_entretien_decision', decision);
+
+        var note = score >= 80 ? 5 : (score >= 60 ? 4 : (score >= 40 ? 3 : (score >= 20 ? 2 : 1)));
+        setVal('evaluation_entretien_noteEntretien', note);
+    }
+
+    FIELDS.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.addEventListener('change', recalculate); }
+    });
+}());
+</script>
+{% endblock %}

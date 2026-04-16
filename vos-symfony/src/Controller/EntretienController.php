@@ -3,12 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Entretien;
+use App\Entity\OffreEmploi;
+use App\Exception\AnthropicApiException;
 use App\Form\EntretienType;
+use App\Repository\CandidatureRepository;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
+use App\Service\EntretienNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,7 +76,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/new', name: 'gestion_entretien_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -84,6 +90,18 @@ class EntretienController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($entretien);
             $entityManager->flush();
+
+            try {
+                $sentCount = $notificationService->notifyEntretienCreated($entretien);
+                if ($sentCount > 0) {
+                    $this->addFlash('success', sprintf('Notification email envoyee a %d destinataire(s).', $sentCount));
+                } else {
+                    $this->addFlash('warning', 'Entretien enregistre, mais aucun email destinataire trouve.');
+                }
+            } catch (\Throwable $e) {
+                $this->addFlash('warning', 'Entretien enregistre, mais echec de notification email.');
+            }
+
             $this->addFlash('success', 'Entretien ajouté avec succès.');
 
             return $this->redirectToRoute('gestion_entretien_dashboard');
@@ -93,6 +111,157 @@ class EntretienController extends AbstractController
             'form' => $form->createView(),
             'entretien' => $entretien,
         ]);
+    }
+
+    #[Route('/candidature-info/{id}', name: 'gestion_entretien_candidature_info', methods: ['GET'])]
+    public function candidatureInfo(int $id, CandidatureRepository $candidatureRepo, EntityManagerInterface $em, SessionInterface $session): JsonResponse
+    {
+        if (!$session->get('admin_user_id')) {
+            return new JsonResponse(['error' => 'Non autorise'], 403);
+        }
+
+        $candidature = $candidatureRepo->find($id);
+        if (null === $candidature) {
+            return new JsonResponse(['error' => 'Candidature introuvable'], 404);
+        }
+
+        $titrePoster = $candidature->getDernierPoste() ?? '';
+        $descriptionOffre = '';
+
+        if (null !== $candidature->getIdOffre()) {
+            $offre = $em->find(OffreEmploi::class, $candidature->getIdOffre());
+            if (null !== $offre) {
+                $titrePoster = $offre->getTitre() ?? $titrePoster;
+                $descriptionOffre = $offre->getDescription() ?? '';
+            }
+        }
+
+        return new JsonResponse([
+            'poste' => $titrePoster,
+            'domaine' => $candidature->getDomaineExperience() ?? '',
+            'niveau' => $candidature->getNiveauExperience() ?? '',
+            'annees' => $candidature->getAnneesExperience() ?? 0,
+            'description_offre' => $descriptionOffre,
+        ]);
+    }
+
+    #[Route('/generate-questions', name: 'gestion_entretien_generate_questions', methods: ['POST'])]
+    public function generateQuestions(
+        Request $request,
+        CandidatureRepository $candidatureRepo,
+        EntityManagerInterface $em,
+        SessionInterface $session,
+        #[Autowire(env: 'GROQ_API_KEY')] string $groqApiKey,
+    ): JsonResponse {
+        if (!$session->get('admin_user_id')) {
+            return new JsonResponse(['error' => 'Non autorise'], 403);
+        }
+
+        try {
+            $questions = $this->doGenerateQuestions($request, $candidatureRepo, $em, $groqApiKey);
+            return new JsonResponse(['questions' => $questions]);
+        } catch (AnthropicApiException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], $e->getCode() ?: 500);
+        }
+    }
+
+    private function doGenerateQuestions(
+        Request $request,
+        CandidatureRepository $candidatureRepo,
+        EntityManagerInterface $em,
+        string $groqApiKey,
+    ): string {
+        if ('' === trim($groqApiKey)) {
+            throw new AnthropicApiException('Cle API Groq non configuree dans .env (GROQ_API_KEY).', 500);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        $candidatureId = (int) ($payload['candidatureId'] ?? 0);
+        $typeEntretien = trim((string) ($payload['typeEntretien'] ?? ''));
+
+        if ($candidatureId <= 0 || '' === $typeEntretien) {
+            throw new AnthropicApiException('Parametres manquants.', 400);
+        }
+
+        $candidature = $candidatureRepo->find($candidatureId);
+        if (null === $candidature) {
+            throw new AnthropicApiException('Candidature introuvable.', 404);
+        }
+
+        $prompt = $this->buildQuestionsPrompt($candidature, $typeEntretien, $em);
+        return $this->callGroqApi($groqApiKey, $prompt);
+    }
+
+    private function buildQuestionsPrompt(
+        \App\Entity\Candidature $candidature,
+        string $typeEntretien,
+        EntityManagerInterface $em,
+    ): string {
+        $notSpecified = 'Non specifie';
+        $poste = $candidature->getDernierPoste() ?? $notSpecified;
+        $domaine = $candidature->getDomaineExperience() ?? $notSpecified;
+        $niveau = $candidature->getNiveauExperience() ?? $notSpecified;
+        $annees = $candidature->getAnneesExperience() ?? 0;
+
+        if (null !== $candidature->getIdOffre()) {
+            $offre = $em->find(OffreEmploi::class, $candidature->getIdOffre());
+            if (null !== $offre && null !== $offre->getTitre()) {
+                $poste = $offre->getTitre();
+            }
+        }
+
+        $questionStyle = $typeEntretien === 'TECHNIQUE'
+            ? 'techniques et de resolution de problemes'
+            : 'comportementales, motivationnelles et sur les soft skills';
+
+        return sprintf(
+            "Tu es un expert en ressources humaines et recrutement.\n" .
+            "Genere exactement 10 questions d'entretien pertinentes pour le profil suivant :\n\n" .
+            "- Poste vise : %s\n- Domaine : %s\n- Niveau d'experience : %s (%d ans)\n- Type d'entretien : %s\n\n" .
+            "Regles : retourne uniquement les 10 questions numerotees (1. ... 2. ...), une question par ligne, " .
+            "sans introduction ni conclusion. Adapte les questions au type d'entretien (%s = questions %s).",
+            $poste, $domaine, $niveau, $annees, $typeEntretien, $typeEntretien, $questionStyle
+        );
+    }
+
+    private function callGroqApi(string $apiKey, string $prompt): string
+    {
+        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt_array($ch, [
+            \CURLOPT_RETURNTRANSFER => true,
+            \CURLOPT_POST => true,
+            \CURLOPT_TIMEOUT => 30,
+            \CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            \CURLOPT_POSTFIELDS => json_encode([
+                'model' => 'llama-3.3-70b-versatile',
+                'max_tokens' => 1500,
+                'messages' => [['role' => 'user', 'content' => $prompt]],
+            ]),
+        ]);
+
+        $raw = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if (false === $raw || '' !== $curlError) {
+            throw new AnthropicApiException('Erreur reseau : ' . $curlError, 502);
+        }
+
+        $apiResponse = json_decode($raw, true);
+
+        if (isset($apiResponse['error'])) {
+            throw new AnthropicApiException($apiResponse['error']['message'] ?? 'Erreur API Groq.', 502);
+        }
+
+        $questions = $apiResponse['choices'][0]['message']['content'] ?? null;
+        if (null === $questions) {
+            throw new AnthropicApiException('Reponse inattendue de l API Groq.', 502);
+        }
+
+        return $questions;
     }
 
     #[Route('/{id}', name: 'gestion_entretien_show', methods: ['GET'])]
@@ -109,7 +278,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'gestion_entretien_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, SessionInterface $session): Response
+    public function edit(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -121,6 +290,16 @@ class EntretienController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
+
+            try {
+                $sentCount = $notificationService->notifyEntretienUpdated($entretien);
+                if ($sentCount > 0) {
+                    $this->addFlash('success', sprintf('Notification de mise a jour envoyee a %d destinataire(s).', $sentCount));
+                }
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Entretien modifie, mais echec de notification email.');
+            }
+
             $this->addFlash('success', 'Entretien modifié avec succès.');
 
             return $this->redirectToRoute('gestion_entretien_dashboard');
