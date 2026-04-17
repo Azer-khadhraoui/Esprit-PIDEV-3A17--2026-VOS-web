@@ -500,6 +500,72 @@
             font-weight: 700;
         }
 
+        .alert-session-bar {
+            margin: 0 0 14px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .alert-session-bar.is-active {
+            border-color: #93c5fd;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+        }
+
+        .alert-session-info {
+            display: grid;
+            gap: 4px;
+        }
+
+        .alert-session-title {
+            font-weight: 800;
+            color: #1d4ed8;
+            font-size: 0.95rem;
+        }
+
+        .alert-session-text {
+            color: #334155;
+            font-size: 0.88rem;
+        }
+
+        .alert-session-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .alert-save-btn,
+        .alert-clear-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .alert-save-btn {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .alert-clear-btn {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .alert-match-list {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: #334155;
+            font-size: 0.88rem;
+        }
+
         .lang-switch {
             display: inline-flex;
             border: 1px solid #d9deea;
@@ -871,20 +937,33 @@
         <div class="filter-actions">
             <div class="group">
                 <button class="btn" type="submit">Rechercher</button>
+                <button id="alert-save-btn" class="alert-save-btn" type="button">Activer alerte temporaire</button>
+                <button id="alert-clear-btn" class="alert-clear-btn" type="button">Effacer alerte</button>
                 <a class="btn-link" href="{{ path('client_opportunites') }}">Effacer</a>
             </div>
         </div>
     </form>
 
+    <section id="alert-session-bar" class="alert-session-bar">
+        <div class="alert-session-info">
+            <div id="alert-session-title" class="alert-session-title">Aucune alerte temporaire</div>
+            <div id="alert-session-text" class="alert-session-text">
+                Sauvegardez votre recherche actuelle pour recevoir une alerte temporaire dans ce navigateur.
+            </div>
+            <ul id="alert-match-list" class="alert-match-list"></ul>
+        </div>
+        <div class="alert-session-actions"></div>
+    </section>
+
     <div class="results-count">{{ pagination.total }} resultats</div>
 
     <section class="compare-session-bar">
-        <div id="compare-session-info" class="compare-session-info">Comparaison session: 0 offre selectionnee</div>
+        <div id="compare-session-info" class="compare-session-info">Comparaison locale: 0 offre selectionnee</div>
         <div class="compare-session-actions">
             <button id="compare-open-btn" class="compare-open-btn" type="button" disabled>Comparer maintenant</button>
             <button id="compare-clear-btn" class="compare-clear-btn" type="button">Vider</button>
         </div>
-        <div class="compare-note">Selectionnez entre 2 et 4 offres. La liste disparait a la fin de la session.</div>
+        <div class="compare-note">Selectionnez entre 2 et 4 offres. La liste est gardee dans ce navigateur.</div>
     </section>
 
     <section class="cards">
@@ -907,7 +986,7 @@
                 <div class="apply-row">
                     <span class="badge {{ offer.statutOffre == 'OUVERTE' ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
                     <div class="actions-right">
-                        <button type="button" class="compare-btn compare-offer-btn {{ (offer.idOffre in (compareOfferIds|default([]))) ? 'is-selected' : '' }}" data-offer-id="{{ offer.idOffre }}">{{ (offer.idOffre in (compareOfferIds|default([]))) ? 'Selectionnee' : 'Comparer' }}</button>
+                        <button type="button" class="compare-btn compare-offer-btn" data-offer-id="{{ offer.idOffre }}">Comparer</button>
                         <button type="button" class="details-btn open-offer-details" data-offer-id="{{ offer.idOffre }}">Voir details</button>
                     </div>
                 </div>
@@ -1077,7 +1156,15 @@
         const compareOpenBtn = document.getElementById('compare-open-btn');
         const compareClearBtn = document.getElementById('compare-clear-btn');
         const compareButtons = Array.from(document.querySelectorAll('.compare-offer-btn'));
-        const compareSelectedIds = new Set({{ compareOfferIds|default([])|json_encode|raw }});
+        const compareSelectedIds = new Set();
+        const compareStorageKey = 'vos_compare_offer_ids_v1';
+        const alertStorageKey = 'vos_temporary_alert_v1';
+        const alertSaveBtn = document.getElementById('alert-save-btn');
+        const alertClearBtn = document.getElementById('alert-clear-btn');
+        const alertBar = document.getElementById('alert-session-bar');
+        const alertTitle = document.getElementById('alert-session-title');
+        const alertText = document.getElementById('alert-session-text');
+        const alertMatchList = document.getElementById('alert-match-list');
 
         const closeDetailsModal = () => {
             if (!detailsModal || !detailsBody) return;
@@ -1089,6 +1176,32 @@
             if (!compareModal || !compareModalBody) return;
             compareModal.style.display = 'none';
             compareModalBody.innerHTML = '';
+        };
+
+        const readStoredJson = (key) => {
+            try {
+                const raw = window.localStorage.getItem(key);
+                if (!raw) {
+                    return null;
+                }
+
+                return JSON.parse(raw);
+            } catch (error) {
+                return null;
+            }
+        };
+
+        const writeStoredJson = (key, value) => {
+            try {
+                if (value === null) {
+                    window.localStorage.removeItem(key);
+                    return;
+                }
+
+                window.localStorage.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                // Ignore storage quota or privacy mode failures.
+            }
         };
 
         const openDetailsForOffer = (offerId) => {
@@ -1186,11 +1299,54 @@
             });
 
             if (compareInfo) {
-                compareInfo.textContent = `Comparaison session: ${selectedIds.length} offre(s) selectionnee(s)`;
+                compareInfo.textContent = `Comparaison locale: ${selectedIds.length} offre(s) selectionnee(s)`;
             }
 
             if (compareOpenBtn) {
                 compareOpenBtn.disabled = selectedIds.length < 2 || selectedIds.length > 4;
+            }
+        };
+
+        const serializeAlertFilters = () => {
+            const form = document.querySelector('form.filters');
+            if (!form) return {};
+
+            const formData = new FormData(form);
+            return {
+                q: (formData.get('q') || '').toString().trim(),
+                type_contrat: (formData.get('type_contrat') || '').toString().trim(),
+                work_preference: (formData.get('work_preference') || '').toString().trim(),
+                lieu: (formData.get('lieu') || '').toString().trim(),
+                statut: (formData.get('statut') || '').toString().trim(),
+            };
+        };
+
+        const updateAlertUi = (payload) => {
+            const alert = payload?.alert || null;
+            const matches = Array.isArray(payload?.matches?.offers) ? payload.matches.offers : [];
+            const matchCount = Number.isInteger(payload?.matches?.count) ? payload.matches.count : matches.length;
+
+            if (alertBar) {
+                alertBar.classList.toggle('is-active', !!alert);
+            }
+
+            if (alertTitle) {
+                alertTitle.textContent = alert ? 'Alerte temporaire active' : 'Aucune alerte temporaire';
+            }
+
+            if (alertText) {
+                alertText.textContent = alert
+                    ? `${matchCount} offre(s) correspondent actuellement a votre alerte temporaire.`
+                    : 'Sauvegardez votre recherche actuelle pour recevoir une alerte temporaire dans ce navigateur.';
+            }
+
+            if (alertMatchList) {
+                alertMatchList.innerHTML = '';
+                matches.forEach((match) => {
+                    const item = document.createElement('li');
+                    item.textContent = `${match.titre} - ${match.typeContrat} - ${match.workPreference} - ${match.lieu}`;
+                    alertMatchList.appendChild(item);
+                });
             }
         };
 
@@ -1240,10 +1396,11 @@
             compareSelectedIds.clear();
             (ids || []).forEach((id) => {
                 const parsed = Number(id);
-                if (Number.isInteger(parsed) && parsed > 0) {
+                if (Number.isInteger(parsed) && parsed > 0 && compareSelectedIds.size < 4) {
                     compareSelectedIds.add(parsed);
                 }
             });
+            writeStoredJson(compareStorageKey, Array.from(compareSelectedIds));
             updateCompareUi();
         };
 
@@ -1282,58 +1439,32 @@
         }
 
         compareButtons.forEach((button) => {
-            button.addEventListener('click', async () => {
+            button.addEventListener('click', () => {
                 const offerId = Number(button.getAttribute('data-offer-id'));
                 if (!Number.isInteger(offerId) || offerId <= 0) {
                     return;
                 }
 
-                try {
-                    button.disabled = true;
-
-                    const response = await fetch('{{ path('client_opportunites_compare_toggle') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ offerId }),
-                    });
-
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        throw new Error(payload.message || 'Erreur comparaison.');
-                    }
-
-                    syncCompareIds(payload.selectedOfferIds || []);
-                } catch (error) {
-                    alert(error.message || 'Impossible de modifier la comparaison.');
-                } finally {
-                    button.disabled = false;
+                if (compareSelectedIds.has(offerId)) {
+                    compareSelectedIds.delete(offerId);
+                    syncCompareIds(Array.from(compareSelectedIds));
+                    return;
                 }
+
+                if (compareSelectedIds.size >= 4) {
+                    alert('Vous pouvez comparer au maximum 4 offres.');
+                    return;
+                }
+
+                compareSelectedIds.add(offerId);
+                syncCompareIds(Array.from(compareSelectedIds));
             });
         });
 
         if (compareClearBtn) {
-            compareClearBtn.addEventListener('click', async () => {
-                try {
-                    const response = await fetch('{{ path('client_opportunites_compare_clear') }}', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                    });
-
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        throw new Error(payload.message || 'Erreur lors du nettoyage.');
-                    }
-
-                    syncCompareIds(payload.selectedOfferIds || []);
-                    closeCompareModal();
-                } catch (error) {
-                    alert(error.message || 'Impossible de vider la comparaison.');
-                }
+            compareClearBtn.addEventListener('click', () => {
+                syncCompareIds([]);
+                closeCompareModal();
             });
         }
 
@@ -1345,8 +1476,10 @@
                     const response = await fetch('{{ path('client_opportunites_compare_preview') }}', {
                         method: 'POST',
                         headers: {
+                            'Content-Type': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
                         },
+                        body: JSON.stringify({ selectedOfferIds: Array.from(compareSelectedIds) }),
                     });
 
                     const payload = await response.json();
@@ -1366,7 +1499,78 @@
             });
         }
 
-        updateCompareUi();
+        if (alertSaveBtn) {
+            alertSaveBtn.addEventListener('click', async () => {
+                try {
+                    alertSaveBtn.disabled = true;
+
+                    const filters = serializeAlertFilters();
+                    const hasValue = Object.values(filters).some((value) => String(value || '').trim() !== '');
+                    if (!hasValue) {
+                        throw new Error('Veuillez renseigner au moins un critere pour activer une alerte temporaire.');
+                    }
+
+                    writeStoredJson(alertStorageKey, filters);
+
+                    const response = await fetch('{{ path('client_opportunites_alert_preview') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(filters),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Impossible d activer l alerte.');
+                    }
+
+                    updateAlertUi(payload);
+                    alert('Alerte temporaire activee dans ce navigateur.');
+                } catch (error) {
+                    alert(error.message || 'Erreur alerte temporaire.');
+                } finally {
+                    alertSaveBtn.disabled = false;
+                }
+            });
+        }
+
+        if (alertClearBtn) {
+            alertClearBtn.addEventListener('click', () => {
+                writeStoredJson(alertStorageKey, null);
+                updateAlertUi({ alert: null, matches: { count: 0, offers: [] } });
+                alert('Alerte temporaire supprimee.');
+            });
+        }
+
+        const initialCompareIds = readStoredJson(compareStorageKey);
+        syncCompareIds(Array.isArray(initialCompareIds) ? initialCompareIds : []);
+
+        const initialAlert = readStoredJson(alertStorageKey);
+        if (initialAlert && typeof initialAlert === 'object') {
+            fetch('{{ path('client_opportunites_alert_preview') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(initialAlert),
+            })
+                .then((response) => response.json().then((payload) => ({ ok: response.ok, payload })))
+                .then(({ ok, payload }) => {
+                    if (!ok) {
+                        throw new Error(payload?.message || 'Erreur de chargement de l alerte.');
+                    }
+
+                    updateAlertUi(payload);
+                })
+                .catch(() => {
+                    updateAlertUi({ alert: initialAlert, matches: { count: 0, offers: [] } });
+                });
+        } else {
+            updateAlertUi({ alert: null, matches: { count: 0, offers: [] } });
+        }
 
         if (chatbotFab) {
             chatbotFab.addEventListener('click', () => {

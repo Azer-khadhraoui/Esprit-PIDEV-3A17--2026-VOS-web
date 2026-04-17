@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class ClientOffreController extends AbstractController
 {
     private const COMPARE_SESSION_KEY = 'compare_offer_ids';
+    private const ALERT_SESSION_KEY = 'temporary_offer_alert_filters';
 
     public function __construct(
         private readonly OffreTranslationAiService $offreTranslationAiService,
@@ -111,6 +112,8 @@ class ClientOffreController extends AbstractController
             ->getResult();
 
         $criteriaByOffer = $this->getLatestCriteriaByOffer($entityManager);
+        $temporaryAlert = $this->getTemporaryAlertFromSession($session);
+        $temporaryAlertMatches = $this->findTemporaryAlertMatches($entityManager, $temporaryAlert);
         $displayName = $isClientAuthenticated
             ? (string) $session->get('user_name', 'Utilisateur')
             : (string) $session->get('admin_user_name', 'Admin');
@@ -119,6 +122,8 @@ class ClientOffreController extends AbstractController
             'offers' => $offers,
             'criteriaByOffer' => $criteriaByOffer,
             'compareOfferIds' => $this->getCompareOfferIdsFromSession($session),
+            'temporaryAlert' => $temporaryAlert,
+            'temporaryAlertMatches' => $temporaryAlertMatches,
             'isClientAuthenticated' => $isClientAuthenticated,
             'isAdminAuthenticated' => $isAdminAuthenticated,
             'userName' => $displayName,
@@ -493,7 +498,7 @@ class ClientOffreController extends AbstractController
     }
 
     #[Route('/opportunites/compare/session/preview', name: 'client_opportunites_compare_preview', methods: ['POST'])]
-    public function compareOfferPreview(EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    public function compareOfferPreview(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
     {
         if (!$this->isOpportunitesUserAuthenticated($session)) {
             return $this->json([
@@ -501,7 +506,15 @@ class ClientOffreController extends AbstractController
             ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        $selected = $this->getCompareOfferIdsFromSession($session);
+        $payload = json_decode((string) $request->getContent(), true);
+        $selected = is_array($payload)
+            ? $this->normalizeCompareOfferIds($payload['selectedOfferIds'] ?? null)
+            : [];
+
+        if (count($selected) === 0) {
+            $selected = $this->getCompareOfferIdsFromSession($session);
+        }
+
         if (count($selected) < 2 || count($selected) > 4) {
             return $this->json([
                 'message' => 'Selection invalide. Choisissez entre 2 et 4 offres.',
@@ -545,6 +558,104 @@ class ClientOffreController extends AbstractController
         ]);
     }
 
+    #[Route('/opportunites/alert/session/preview', name: 'client_opportunites_alert_preview', methods: ['POST'])]
+    public function previewTemporaryAlert(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($payload);
+        if (!$this->hasTemporaryAlertFilterValue($alert)) {
+            return $this->json([
+                'alert' => null,
+                'matches' => [
+                    'count' => 0,
+                    'offers' => [],
+                ],
+            ]);
+        }
+
+        return $this->json([
+            'alert' => $alert,
+            'matches' => $this->findTemporaryAlertMatches($entityManager, $alert),
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session/save', name: 'client_opportunites_alert_save', methods: ['POST'])]
+    public function saveTemporaryAlert(Request $request, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($payload);
+        if (!$this->hasTemporaryAlertFilterValue($alert)) {
+            return $this->json([
+                'message' => 'Veuillez renseigner au moins un critere pour activer une alerte temporaire.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $session->set(self::ALERT_SESSION_KEY, $alert);
+
+        return $this->json([
+            'alert' => $alert,
+            'message' => 'Alerte temporaire activee pour cette session.',
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session', name: 'client_opportunites_alert_state', methods: ['GET'])]
+    public function getTemporaryAlert(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $alert = $this->getTemporaryAlertFromSession($session);
+
+        return $this->json([
+            'alert' => $alert,
+            'active' => $alert !== null,
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session/clear', name: 'client_opportunites_alert_clear', methods: ['POST'])]
+    public function clearTemporaryAlert(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $session->remove(self::ALERT_SESSION_KEY);
+
+        return $this->json([
+            'alert' => null,
+            'message' => 'Alerte temporaire supprimee.',
+        ]);
+    }
+
     private function normalizeText(mixed $value): ?string
     {
         if (!is_string($value)) {
@@ -554,6 +665,130 @@ class ClientOffreController extends AbstractController
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null
+     */
+    private function getTemporaryAlertFromSession(SessionInterface $session): ?array
+    {
+        $raw = $session->get(self::ALERT_SESSION_KEY);
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($raw);
+
+        return $this->hasTemporaryAlertFilterValue($alert) ? $alert : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @return array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}
+     */
+    private function normalizeTemporaryAlertFilters(array $payload): array
+    {
+        $statut = $this->normalizeText($payload['statut'] ?? null);
+        if ($statut === 'ACTIVE') {
+            $statut = 'OUVERTE';
+        }
+
+        return [
+            'q' => $this->normalizeText($payload['q'] ?? null),
+            'type_contrat' => $this->normalizeText($payload['type_contrat'] ?? null),
+            'work_preference' => $this->normalizeText($payload['work_preference'] ?? null),
+            'lieu' => $this->normalizeText($payload['lieu'] ?? null),
+            'statut' => $statut,
+        ];
+    }
+
+    /**
+     * @param array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null $alert
+     */
+    private function hasTemporaryAlertFilterValue(?array $alert): bool
+    {
+        if ($alert === null) {
+            return false;
+        }
+
+        return $alert['q'] !== null
+            || $alert['type_contrat'] !== null
+            || $alert['work_preference'] !== null
+            || $alert['lieu'] !== null
+            || $alert['statut'] !== null;
+    }
+
+    /**
+     * @param array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null $alert
+     *
+     * @return array{count:int, offers:list<array{idOffre:int, titre:string, typeContrat:string, workPreference:string, lieu:string}>}
+     */
+    private function findTemporaryAlertMatches(EntityManagerInterface $entityManager, ?array $alert): array
+    {
+        if ($alert === null) {
+            return [
+                'count' => 0,
+                'offers' => [],
+            ];
+        }
+
+        $qb = $entityManager->getRepository(OffreEmploi::class)->createQueryBuilder('o');
+
+        if ($alert['q'] !== null) {
+            $qb
+                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
+                ->setParameter('q', '%'.$alert['q'].'%');
+        }
+
+        if ($alert['type_contrat'] !== null) {
+            $qb
+                ->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $alert['type_contrat']);
+        }
+
+        if ($alert['work_preference'] !== null) {
+            $qb
+                ->andWhere('o.workPreference = :workPreference')
+                ->setParameter('workPreference', $alert['work_preference']);
+        }
+
+        if ($alert['lieu'] !== null) {
+            $qb
+                ->andWhere('o.lieu LIKE :lieu')
+                ->setParameter('lieu', '%'.$alert['lieu'].'%');
+        }
+
+        if ($alert['statut'] !== null) {
+            $qb
+                ->andWhere('o.statutOffre = :statut')
+                ->setParameter('statut', $alert['statut']);
+        } else {
+            $qb
+                ->andWhere('o.statutOffre IN (:openStatuts)')
+                ->setParameter('openStatuts', ['OUVERTE']);
+        }
+
+        $offers = $qb
+            ->orderBy('o.datePublication', 'DESC')
+            ->setMaxResults(3)
+            ->getQuery()
+            ->getResult();
+
+        $normalizedOffers = array_map(static function (OffreEmploi $offer): array {
+            return [
+                'idOffre' => (int) $offer->getIdOffre(),
+                'titre' => (string) ($offer->getTitre() ?? 'Offre sans titre'),
+                'typeContrat' => (string) ($offer->getTypeContrat() ?? 'N/A'),
+                'workPreference' => (string) ($offer->getWorkPreference() ?? 'N/A'),
+                'lieu' => (string) ($offer->getLieu() ?? 'N/A'),
+            ];
+        }, $offers);
+
+        return [
+            'count' => count($normalizedOffers),
+            'offers' => $normalizedOffers,
+        ];
     }
 
     private function isOpportunitesUserAuthenticated(SessionInterface $session): bool
@@ -574,10 +809,15 @@ class ClientOffreController extends AbstractController
     private function getCompareOfferIdsFromSession(SessionInterface $session): array
     {
         $raw = $session->get(self::COMPARE_SESSION_KEY, []);
-        if (!is_array($raw)) {
-            return [];
-        }
+        return $this->normalizeCompareOfferIds($raw);
+    }
 
+    /**
+     * @return list<int>
+     */
+    private function normalizeCompareOfferIds(mixed $value): array
+    {
+        $raw = is_array($value) ? $value : [];
         $normalized = array_values(array_unique(array_filter(array_map(static fn (mixed $value): int => (int) $value, $raw), static fn (int $value): bool => $value > 0)));
 
         return array_slice($normalized, 0, 4);
