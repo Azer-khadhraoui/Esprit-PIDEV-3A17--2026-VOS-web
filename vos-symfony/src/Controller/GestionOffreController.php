@@ -9,6 +9,7 @@ use App\Service\OffreDescriptionAiService;
 use App\Service\OffreNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Snappy\Pdf;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,71 +23,16 @@ class GestionOffreController extends AbstractController
     public function __construct(
         private readonly CriteriaSuggestionAiService $criteriaSuggestionAiService,
         private readonly OffreDescriptionAiService $offreDescriptionAiService,
+        private readonly Pdf $pdf,
     ) {
     }
 
     #[Route('/gestion-offre', name: 'gestion_offre_dashboard', methods: ['GET'])]
     public function dashboard(Request $request, EntityManagerInterface $entityManager): Response
     {
+        $dashboardData = $this->resolveDashboardOffers($request, $entityManager);
         $offreRepository = $entityManager->getRepository(OffreEmploi::class);
-        $search = $this->normalizeText($request->query->get('q'));
-        $statutFilter = $this->normalizeText($request->query->get('statut'));
-        if ($statutFilter === 'ACTIVE') {
-            $statutFilter = 'OUVERTE';
-        }
-        $typeContratFilter = $this->normalizeText($request->query->get('type_contrat'));
-        $workPreferenceFilter = $this->normalizeText($request->query->get('work_preference'));
-        $sortBy = $this->normalizeText($request->query->get('sortBy')) ?? 'date_publication';
-        $sortOrder = strtoupper($this->normalizeText($request->query->get('sortOrder')) ?? 'DESC');
-
-        $sortMap = [
-            'id' => 'o.idOffre',
-            'titre' => 'o.titre',
-            'type_contrat' => 'o.typeContrat',
-            'work_preference' => 'o.workPreference',
-            'lieu' => 'o.lieu',
-            'statut' => 'o.statutOffre',
-            'date_publication' => 'o.datePublication',
-        ];
-
-        if (!isset($sortMap[$sortBy])) {
-            $sortBy = 'date_publication';
-        }
-
-        if (!in_array($sortOrder, ['ASC', 'DESC'], true)) {
-            $sortOrder = 'DESC';
-        }
-
-        $qb = $offreRepository->createQueryBuilder('o');
-
-        if ($search !== null) {
-            $qb
-                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
-                ->setParameter('q', '%'.$search.'%');
-        }
-
-        if ($statutFilter !== null) {
-            $qb
-                ->andWhere('o.statutOffre = :statut')
-                ->setParameter('statut', $statutFilter);
-        }
-
-        if ($typeContratFilter !== null) {
-            $qb
-                ->andWhere('o.typeContrat = :typeContrat')
-                ->setParameter('typeContrat', $typeContratFilter);
-        }
-
-        if ($workPreferenceFilter !== null) {
-            $qb
-                ->andWhere('o.workPreference = :workPreference')
-                ->setParameter('workPreference', $workPreferenceFilter);
-        }
-
-        $offers = $qb
-            ->orderBy($sortMap[$sortBy], $sortOrder)
-            ->getQuery()
-            ->getResult();
+        $offers = $dashboardData['offers'];
 
         $selectedOfferId = (int) $request->query->get('selectedOfferId', 0);
 
@@ -105,12 +51,12 @@ class GestionOffreController extends AbstractController
             'activeOffers' => $activeOffers,
             'closedOffers' => $closedOffers,
             'filters' => [
-                'q' => $search,
-                'statut' => $statutFilter,
-                'type_contrat' => $typeContratFilter,
-                'work_preference' => $workPreferenceFilter,
-                'sort_by' => $sortBy,
-                'sort_order' => $sortOrder,
+                'q' => $dashboardData['filters']['q'],
+                'statut' => $dashboardData['filters']['statut'],
+                'type_contrat' => $dashboardData['filters']['type_contrat'],
+                'work_preference' => $dashboardData['filters']['work_preference'],
+                'sort_by' => $dashboardData['filters']['sort_by'],
+                'sort_order' => $dashboardData['filters']['sort_order'],
             ],
             'filterOptions' => [
                 'statuts' => $this->getDistinctOffreValues($entityManager, 'statut_offre'),
@@ -119,6 +65,28 @@ class GestionOffreController extends AbstractController
             ],
             'currentUserName' => 'khadhraoui azer',
         ]);
+    }
+
+    #[Route('/gestion-offre/export/pdf', name: 'gestion_offre_export_pdf', methods: ['GET'])]
+    public function exportPdf(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $dashboardData = $this->resolveDashboardOffers($request, $entityManager);
+
+        $html = $this->renderView('gestion_offre/dashboard_export_pdf.html.twig', [
+            'offers' => $dashboardData['offers'],
+            'filters' => $dashboardData['filters'],
+            'generatedAt' => new \DateTimeImmutable(),
+            'currentUserName' => 'khadhraoui azer',
+        ]);
+
+        return new Response(
+            $this->pdf->getOutputFromHtml($html),
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="offres-export.pdf"',
+            ]
+        );
     }
 
     #[Route('/gestion-offre/statistique', name: 'gestion_offre_statistique', methods: ['GET'])]
@@ -668,6 +636,87 @@ class GestionOffreController extends AbstractController
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return array{
+     *   offers:list<OffreEmploi>,
+     *   filters:array{q:?string, statut:?string, type_contrat:?string, work_preference:?string, sort_by:string, sort_order:string}
+     * }
+     */
+    private function resolveDashboardOffers(Request $request, EntityManagerInterface $entityManager): array
+    {
+        $offreRepository = $entityManager->getRepository(OffreEmploi::class);
+        $search = $this->normalizeText($request->query->get('q'));
+        $statutFilter = $this->normalizeText($request->query->get('statut'));
+        if ($statutFilter === 'ACTIVE') {
+            $statutFilter = 'OUVERTE';
+        }
+        $typeContratFilter = $this->normalizeText($request->query->get('type_contrat'));
+        $workPreferenceFilter = $this->normalizeText($request->query->get('work_preference'));
+        $sortBy = $this->normalizeText($request->query->get('sortBy')) ?? 'date_publication';
+        $sortOrder = strtoupper($this->normalizeText($request->query->get('sortOrder')) ?? 'DESC');
+
+        $sortMap = [
+            'id' => 'o.idOffre',
+            'titre' => 'o.titre',
+            'type_contrat' => 'o.typeContrat',
+            'work_preference' => 'o.workPreference',
+            'lieu' => 'o.lieu',
+            'statut' => 'o.statutOffre',
+            'date_publication' => 'o.datePublication',
+        ];
+
+        if (!isset($sortMap[$sortBy])) {
+            $sortBy = 'date_publication';
+        }
+
+        if (!in_array($sortOrder, ['ASC', 'DESC'], true)) {
+            $sortOrder = 'DESC';
+        }
+
+        $qb = $offreRepository->createQueryBuilder('o');
+
+        if ($search !== null) {
+            $qb
+                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
+                ->setParameter('q', '%'.$search.'%');
+        }
+
+        if ($statutFilter !== null) {
+            $qb
+                ->andWhere('o.statutOffre = :statut')
+                ->setParameter('statut', $statutFilter);
+        }
+
+        if ($typeContratFilter !== null) {
+            $qb
+                ->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $typeContratFilter);
+        }
+
+        if ($workPreferenceFilter !== null) {
+            $qb
+                ->andWhere('o.workPreference = :workPreference')
+                ->setParameter('workPreference', $workPreferenceFilter);
+        }
+
+        $offers = $qb
+            ->orderBy($sortMap[$sortBy], $sortOrder)
+            ->getQuery()
+            ->getResult();
+
+        return [
+            'offers' => $offers,
+            'filters' => [
+                'q' => $search,
+                'statut' => $statutFilter,
+                'type_contrat' => $typeContratFilter,
+                'work_preference' => $workPreferenceFilter,
+                'sort_by' => $sortBy,
+                'sort_order' => $sortOrder,
+            ],
+        ];
     }
 
     private function buildCompetencesSuggestion(string $title, string $niveauExperience, string $niveauEtude): string
