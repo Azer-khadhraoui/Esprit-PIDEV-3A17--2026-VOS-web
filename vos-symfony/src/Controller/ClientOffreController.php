@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\OffreEmploi;
+use App\Service\OffreChatFilterAiService;
 use App\Service\OffreTranslationAiService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -17,6 +18,7 @@ class ClientOffreController extends AbstractController
 {
     public function __construct(
         private readonly OffreTranslationAiService $offreTranslationAiService,
+        private readonly OffreChatFilterAiService $offreChatFilterAiService,
     ) {
     }
 
@@ -288,6 +290,119 @@ class ClientOffreController extends AbstractController
             'niveau_etude' => $niveauEtude,
             'competences_requises' => $competencesRequises,
             'responsibilities' => $responsibilities,
+        ]);
+    }
+
+    #[Route('/opportunites/chatbot/suggest', name: 'client_opportunites_chatbot_suggest', methods: ['POST'])]
+    public function chatbotSuggest(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        $authScope = (string) $session->get('auth_scope', '');
+        $hasClientSession = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $hasAdminSession = (bool) $session->get('admin_user_id') && str_starts_with((string) $session->get('admin_user_role', ''), 'ADMIN');
+
+        $isAuthenticated = $authScope === '' ? ($hasClientSession || $hasAdminSession) : (
+            ($authScope === 'client' && $hasClientSession)
+            || ($authScope === 'admin' && $hasAdminSession)
+        );
+
+        if (!$isAuthenticated) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $message = $this->normalizeText($payload['message'] ?? null);
+        if ($message === null) {
+            return $this->json([
+                'message' => 'message is required.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $availableOptions = [
+            'typesContrat' => $this->getDistinctOffreValues($entityManager, 'type_contrat'),
+            'workPreferences' => $this->getDistinctOffreValues($entityManager, 'work_preference'),
+            'statuts' => $this->getDistinctOffreValues($entityManager, 'statut_offre'),
+        ];
+
+        $suggestion = $this->offreChatFilterAiService->suggestFilters($message, $availableOptions);
+        $filters = $suggestion['filters'];
+
+        $qb = $entityManager->getRepository(OffreEmploi::class)->createQueryBuilder('o');
+
+        if ($filters['q'] !== null) {
+            $qb
+                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
+                ->setParameter('q', '%'.$filters['q'].'%');
+        }
+
+        if ($filters['type_contrat'] !== null) {
+            $qb
+                ->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $filters['type_contrat']);
+        }
+
+        if ($filters['work_preference'] !== null) {
+            $qb
+                ->andWhere('o.workPreference = :workPreference')
+                ->setParameter('workPreference', $filters['work_preference']);
+        }
+
+        if ($filters['lieu'] !== null) {
+            $qb
+                ->andWhere('o.lieu LIKE :lieu')
+                ->setParameter('lieu', '%'.$filters['lieu'].'%');
+        }
+
+        if ($filters['statut'] !== null) {
+            $qb
+                ->andWhere('o.statutOffre = :statut')
+                ->setParameter('statut', $filters['statut']);
+        } else {
+            $qb
+                ->andWhere('o.statutOffre IN (:openStatuts)')
+                ->setParameter('openStatuts', ['OUVERTE']);
+        }
+
+        $offers = $qb
+            ->orderBy('o.datePublication', 'DESC')
+            ->setMaxResults(5)
+            ->getQuery()
+            ->getResult();
+
+        $recommendations = array_map(static function (OffreEmploi $offer): array {
+            $description = (string) ($offer->getDescription() ?? '');
+            $snippet = mb_substr($description, 0, 140);
+
+            return [
+                'idOffre' => (int) $offer->getIdOffre(),
+                'titre' => (string) ($offer->getTitre() ?? 'Offre sans titre'),
+                'typeContrat' => (string) ($offer->getTypeContrat() ?? 'N/A'),
+                'workPreference' => (string) ($offer->getWorkPreference() ?? 'N/A'),
+                'lieu' => (string) ($offer->getLieu() ?? 'N/A'),
+                'statutOffre' => (string) ($offer->getStatutOffre() ?? 'N/A'),
+                'datePublication' => $offer->getDatePublication()?->format('Y-m-d'),
+                'descriptionSnippet' => $snippet.((mb_strlen($description) > 140) ? '...' : ''),
+            ];
+        }, $offers);
+
+        $assistantMessage = $suggestion['reason'];
+        if (count($recommendations) === 0) {
+            $assistantMessage .= ' Je n ai pas trouve d offre exacte, essayez de preciser votre ville ou le type de contrat.';
+        } else {
+            $assistantMessage .= sprintf(' J ai trouve %d offre(s) qui correspondent.', count($recommendations));
+        }
+
+        return $this->json([
+            'assistantMessage' => $assistantMessage,
+            'appliedFilters' => $filters,
+            'recommendations' => $recommendations,
         ]);
     }
 

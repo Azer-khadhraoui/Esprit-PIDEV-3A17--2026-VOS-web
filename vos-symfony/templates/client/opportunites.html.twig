@@ -512,6 +512,195 @@
             cursor: pointer;
         }
 
+        .chatbot-fab {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: 58px;
+            height: 58px;
+            border: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1d4ed8, #4361ee);
+            color: #fff;
+            font-size: 1.55rem;
+            box-shadow: 0 16px 32px rgba(67, 97, 238, 0.32);
+            cursor: pointer;
+            z-index: 120;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chatbot-fab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 34px rgba(67, 97, 238, 0.38);
+        }
+
+        .chatbot-panel {
+            position: fixed;
+            right: 18px;
+            bottom: 86px;
+            width: min(380px, calc(100vw - 24px));
+            max-height: min(72vh, 620px);
+            background: #fff;
+            border: 1px solid #dbe2f0;
+            border-radius: 16px;
+            box-shadow: 0 24px 56px rgba(15, 23, 42, 0.2);
+            z-index: 125;
+            display: none;
+            overflow: hidden;
+        }
+
+        .chatbot-panel.is-open {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            animation: riseIn 0.2s ease;
+        }
+
+        .chatbot-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: #f4f7ff;
+            border-bottom: 1px solid #dbe2f0;
+        }
+
+        .chatbot-title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1f2a49;
+        }
+
+        .chatbot-subtitle {
+            margin: 2px 0 0;
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+
+        .chatbot-close {
+            border: 0;
+            background: #e2e8f0;
+            color: #1e293b;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .chatbot-messages {
+            padding: 12px;
+            overflow-y: auto;
+            display: grid;
+            gap: 8px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        }
+
+        .chatbot-bubble {
+            border-radius: 12px;
+            padding: 10px 11px;
+            font-size: 0.88rem;
+            line-height: 1.4;
+            max-width: 90%;
+            white-space: pre-wrap;
+        }
+
+        .chatbot-bubble.user {
+            margin-left: auto;
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .chatbot-bubble.bot {
+            margin-right: auto;
+            background: #eef2ff;
+            color: #1e293b;
+        }
+
+        .chatbot-reco-list {
+            margin-top: 6px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .chatbot-reco-item {
+            border: 1px solid #dbe2f0;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .chatbot-reco-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .chatbot-reco-title {
+            margin: 0;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .chatbot-reco-meta {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.76rem;
+        }
+
+        .chatbot-open-offer {
+            border: 0;
+            border-radius: 8px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 0.74rem;
+            padding: 6px 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .chatbot-form {
+            border-top: 1px solid #dbe2f0;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            background: #fff;
+        }
+
+        .chatbot-input {
+            border: 1px solid #d3dbef;
+            border-radius: 10px;
+            padding: 9px 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .chatbot-input:focus {
+            outline: none;
+            border-color: #9fb1ff;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+        }
+
+        .chatbot-submit {
+            border: 0;
+            border-radius: 10px;
+            background: #1d4ed8;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+
+        .chatbot-submit:disabled {
+            background: #9aa9dd;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 980px) {
             .filters .row { grid-template-columns: 1fr 1fr; }
             .filter-actions { grid-template-columns: 1fr 1fr; }
@@ -721,17 +910,118 @@
     </div>
 </div>
 
+<button id="chatbot-fab" class="chatbot-fab" type="button" aria-label="Ouvrir assistant emploi">AI</button>
+<section id="chatbot-panel" class="chatbot-panel" aria-live="polite" aria-label="Assistant offres">
+    <header class="chatbot-head">
+        <div>
+            <h2 class="chatbot-title">Assistant Offres</h2>
+            <p class="chatbot-subtitle">Decrivez votre job ideal, je filtre pour vous.</p>
+        </div>
+        <button id="chatbot-close" class="chatbot-close" type="button">X</button>
+    </header>
+    <div id="chatbot-messages" class="chatbot-messages">
+        <div class="chatbot-bubble bot">Bonjour, je peux vous aider a trouver des offres. Essayez: "Je veux un CDI remote en data a Tunis".</div>
+    </div>
+    <form id="chatbot-form" class="chatbot-form">
+        <input id="chatbot-input" class="chatbot-input" type="text" maxlength="280" placeholder="Ex: Stage developpement web a Sfax" required>
+        <button id="chatbot-submit" class="chatbot-submit" type="submit">Trouver des offres</button>
+    </form>
+</section>
+
 <script>
     (function () {
         const detailsModal = document.getElementById('details-modal');
         const detailsBody = document.getElementById('details-modal-body');
         const closeDetailsBtn = document.getElementById('close-details-modal');
         const criteriaCache = {};
+        const chatbotFab = document.getElementById('chatbot-fab');
+        const chatbotPanel = document.getElementById('chatbot-panel');
+        const chatbotClose = document.getElementById('chatbot-close');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const chatbotForm = document.getElementById('chatbot-form');
+        const chatbotInput = document.getElementById('chatbot-input');
+        const chatbotSubmit = document.getElementById('chatbot-submit');
 
         const closeDetailsModal = () => {
             if (!detailsModal || !detailsBody) return;
             detailsModal.style.display = 'none';
             detailsBody.innerHTML = '';
+        };
+
+        const openDetailsForOffer = (offerId) => {
+            const trigger = document.querySelector(`.open-offer-details[data-offer-id="${offerId}"]`);
+            if (!trigger) return;
+
+            trigger.click();
+            const card = trigger.closest('.card');
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+        const appendChatMessage = (author, text) => {
+            if (!chatbotMessages) return;
+            const bubble = document.createElement('div');
+            bubble.className = `chatbot-bubble ${author}`;
+            bubble.textContent = text;
+            chatbotMessages.appendChild(bubble);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        };
+
+        const appendRecommendations = (recommendations) => {
+            if (!chatbotMessages || !Array.isArray(recommendations) || recommendations.length === 0) {
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chatbot-reco-list';
+
+            recommendations.forEach((offer) => {
+                const item = document.createElement('article');
+                item.className = 'chatbot-reco-item';
+
+                const head = document.createElement('div');
+                head.className = 'chatbot-reco-head';
+
+                const title = document.createElement('h3');
+                title.className = 'chatbot-reco-title';
+                title.textContent = offer.titre || 'Offre';
+
+                const openBtn = document.createElement('button');
+                openBtn.type = 'button';
+                openBtn.className = 'chatbot-open-offer';
+                openBtn.textContent = 'Voir details';
+                openBtn.addEventListener('click', () => {
+                    openDetailsForOffer(offer.idOffre);
+                });
+
+                head.appendChild(title);
+                head.appendChild(openBtn);
+
+                const meta = document.createElement('p');
+                meta.className = 'chatbot-reco-meta';
+                meta.textContent = `${offer.typeContrat || 'N/A'} | ${offer.workPreference || 'N/A'} | ${offer.lieu || 'N/A'}`;
+
+                const desc = document.createElement('p');
+                desc.className = 'chatbot-reco-meta';
+                desc.textContent = offer.descriptionSnippet || '';
+
+                item.appendChild(head);
+                item.appendChild(meta);
+                item.appendChild(desc);
+                wrapper.appendChild(item);
+            });
+
+            chatbotMessages.appendChild(wrapper);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        };
+
+        const setChatbotOpen = (open) => {
+            if (!chatbotPanel) return;
+            chatbotPanel.classList.toggle('is-open', open);
+            if (open && chatbotInput) {
+                chatbotInput.focus();
+            }
         };
 
         document.querySelectorAll('.open-offer-details').forEach((button) => {
@@ -752,6 +1042,56 @@
             detailsModal.addEventListener('click', (event) => {
                 if (event.target === detailsModal) {
                     closeDetailsModal();
+                }
+            });
+        }
+
+        if (chatbotFab) {
+            chatbotFab.addEventListener('click', () => {
+                const shouldOpen = !chatbotPanel?.classList.contains('is-open');
+                setChatbotOpen(shouldOpen);
+            });
+        }
+
+        if (chatbotClose) {
+            chatbotClose.addEventListener('click', () => setChatbotOpen(false));
+        }
+
+        if (chatbotForm && chatbotInput && chatbotSubmit) {
+            chatbotForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const message = chatbotInput.value.trim();
+                if (message === '') {
+                    return;
+                }
+
+                appendChatMessage('user', message);
+                chatbotInput.value = '';
+                chatbotSubmit.disabled = true;
+
+                try {
+                    const response = await fetch('{{ path('client_opportunites_chatbot_suggest') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ message }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Erreur assistant.');
+                    }
+
+                    appendChatMessage('bot', payload.assistantMessage || 'Voici ce que j ai trouve.');
+                    appendRecommendations(payload.recommendations || []);
+                } catch (error) {
+                    appendChatMessage('bot', 'Je n ai pas pu traiter votre demande. Essayez une phrase plus precise.');
+                } finally {
+                    chatbotSubmit.disabled = false;
+                    chatbotInput.focus();
                 }
             });
         }
