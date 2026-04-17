@@ -9,6 +9,7 @@ use App\Repository\UserRepository;
 use App\Service\PasswordResetService;
 use App\Service\UserAccountService;
 use App\Service\ValidationService;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -70,6 +71,16 @@ class AuthController extends AbstractController
         SessionInterface $session
     ): Response
     {
+        if (!$session->has('user_id') && !$session->has('admin_user_id')) {
+            $rememberedUser = $this->getRememberedUser($request, $userRepository);
+            if ($rememberedUser instanceof User) {
+                $this->createSessionForUser($session, $rememberedUser);
+
+                $response = $this->redirectToRoute(str_starts_with($rememberedUser->getRole(), 'ADMIN') ? 'app_admin_dashboard' : 'client_opportunites');
+                return $this->attachRememberMeCookieIfNeeded($request, $response, $rememberedUser);
+            }
+        }
+
         $redirect = $this->redirectAuthenticatedUser($session);
         if ($redirect instanceof RedirectResponse) {
             return $redirect;
@@ -137,12 +148,14 @@ class AuthController extends AbstractController
 
                     $this->createSessionForUser($session, $user);
 
-                    return $this->redirectToRoute('client_opportunites');
+                    $response = $this->redirectToRoute('client_opportunites');
+                    return $this->attachRememberMeCookieIfNeeded($request, $response, $user);
                 }
 
                 $this->createSessionForUser($session, $user);
 
-                return $this->redirectToRoute('app_admin_dashboard');
+                $response = $this->redirectToRoute('app_admin_dashboard');
+                return $this->attachRememberMeCookieIfNeeded($request, $response, $user);
             } catch (\Throwable) {
                 $this->addFlash('error', 'Email ou mot de passe invalide.');
                 return $this->redirectToRoute('app_signin');
@@ -204,6 +217,7 @@ class AuthController extends AbstractController
 
         $response = $this->redirectToRoute('app_signin');
         $response->headers->clearCookie(session_name());
+        $response->headers->clearCookie('vos_remember_me');
         $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
         $response->headers->set('Pragma', 'no-cache');
         $response->headers->set('Expires', '0');
@@ -218,9 +232,14 @@ class AuthController extends AbstractController
     }
 
     #[Route('/about', name: 'app_about', methods: ['GET'])]
-    public function about(): Response
+    public function about(Request $request): Response
     {
-        return $this->render('static/about.html.twig');
+        $configuredPublicUrl = trim((string) ($_ENV['APP_PUBLIC_URL'] ?? $_SERVER['APP_PUBLIC_URL'] ?? ''));
+        $appUrl = $this->resolvePublicBaseUrl($request, $configuredPublicUrl);
+
+        return $this->render('static/about.html.twig', [
+            'appUrl' => $appUrl,
+        ]);
     }
 
     #[Route('/forgot-password', name: 'app_forgot_password', methods: ['GET', 'POST'])]
@@ -350,5 +369,150 @@ class AuthController extends AbstractController
         $session->set('user_name', trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')));
         $session->set('auth_scope', 'client');
         $session->save();
+    }
+
+    private function attachRememberMeCookieIfNeeded(Request $request, Response $response, User $user): Response
+    {
+        if (!$request->isMethod('POST')) {
+            return $response;
+        }
+
+        if (!$this->isRememberMeRequested($request)) {
+            $response->headers->clearCookie('vos_remember_me');
+            return $response;
+        }
+
+        $response->headers->setCookie($this->createRememberMeCookie($user, $request->isSecure()));
+
+        return $response;
+    }
+
+    private function isRememberMeRequested(Request $request): bool
+    {
+        $value = $request->request->all()['remember'] ?? $request->request->all()['_remember_me'] ?? null;
+
+        if ($value === null) {
+            return false;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array(strtolower(trim((string) $value)), ['1', 'on', 'true', 'yes'], true);
+    }
+
+    private function getRememberedUser(Request $request, UserRepository $userRepository): ?User
+    {
+        $cookieValue = (string) $request->cookies->get('vos_remember_me', '');
+        if ($cookieValue === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($cookieValue, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $parts = explode('|', $decoded);
+        if (count($parts) !== 6) {
+            return null;
+        }
+
+        [$userId, $email, $role, $passwordHash, $expiresAt, $signature] = $parts;
+        if (!ctype_digit($userId) || !ctype_digit($expiresAt)) {
+            return null;
+        }
+
+        if ((int) $expiresAt < time()) {
+            return null;
+        }
+
+        $user = $userRepository->find((int) $userId);
+        if (!$user) {
+            return null;
+        }
+
+        $expectedPayload = implode('|', [$userId, $email, $role, $passwordHash, $expiresAt]);
+        $expectedSignature = hash_hmac('sha256', $expectedPayload, (string) $this->getParameter('kernel.secret'));
+
+        if (!hash_equals($expectedSignature, $signature)) {
+            return null;
+        }
+
+        if ($user->getEmail() !== $email || $user->getRole() !== $role || $user->getPassword() !== $passwordHash) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    private function createRememberMeCookie(User $user, bool $secure): Cookie
+    {
+        $expiresAt = new \DateTimeImmutable('+30 days');
+        $payload = implode('|', [
+            (string) $user->getId(),
+            (string) $user->getEmail(),
+            (string) $user->getRole(),
+            (string) $user->getPassword(),
+            (string) $expiresAt->getTimestamp(),
+        ]);
+        $signature = hash_hmac('sha256', $payload, (string) $this->getParameter('kernel.secret'));
+
+        return Cookie::create('vos_remember_me', base64_encode($payload . '|' . $signature), $expiresAt, '/', null, $secure, true, false, Cookie::SAMESITE_LAX);
+    }
+
+    private function resolvePublicBaseUrl(Request $request, string $configuredPublicUrl): string
+    {
+        if ($configuredPublicUrl !== '') {
+            return rtrim($configuredPublicUrl, '/');
+        }
+
+        $requestBaseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
+        if (!$this->isLocalHost($request->getHost())) {
+            return $requestBaseUrl;
+        }
+
+        $detectedLanIp = $this->detectLanIp();
+        if ($detectedLanIp === null) {
+            return $requestBaseUrl;
+        }
+
+        $scheme = $request->isSecure() ? 'https' : 'http';
+        $port = $request->getPort();
+        $defaultPort = $request->isSecure() ? 443 : 80;
+        $portSuffix = $port !== $defaultPort ? ':' . $port : '';
+
+        return sprintf('%s://%s%s', $scheme, $detectedLanIp, $portSuffix);
+    }
+
+    private function isLocalHost(string $host): bool
+    {
+        $normalizedHost = strtolower(trim($host));
+
+        return in_array($normalizedHost, ['localhost', '127.0.0.1', '::1'], true);
+    }
+
+    private function detectLanIp(): ?string
+    {
+        $hostnameIp = gethostbyname(gethostname());
+        if (!$this->isPrivateIpv4($hostnameIp)) {
+            return null;
+        }
+
+        return $hostnameIp;
+    }
+
+    private function isPrivateIpv4(string $ip): bool
+    {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return false;
+        }
+
+        if (str_starts_with($ip, '127.')) {
+            return false;
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE) === false;
     }
 }
