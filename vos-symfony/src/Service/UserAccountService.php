@@ -17,6 +17,7 @@ class UserAccountService
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ValidationService $validation,
+        private readonly EmailVerificationService $emailVerificationService,
         private readonly string $projectDir,
     ) {
     }
@@ -27,6 +28,10 @@ class UserAccountService
         $prenom = $this->validation->validateName($signupDto->prenom, 'prénom');
         $email = $this->validation->validateEmail($signupDto->email);
         $password = $this->validation->validatePassword($signupDto->password);
+
+        if (!$this->emailVerificationService->isDeliverable($email)) {
+            throw new \DomainException('Cet e-mail semble invalide ou non delivrable.');
+        }
 
         if ($signupDto->password !== $signupDto->confirmPassword) {
             throw new \InvalidArgumentException('Les mots de passe ne correspondent pas.');

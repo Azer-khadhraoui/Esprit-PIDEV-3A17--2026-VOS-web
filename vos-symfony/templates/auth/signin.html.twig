@@ -10,21 +10,238 @@
 {% endblock %}
 
 {% block javascripts %}
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const passwordInput = document.getElementById('password');
             const toggleButton = document.querySelector('[data-password-toggle]');
+            const emailInput = document.getElementById('email');
+            const faceVideo = document.querySelector('[data-signin-face-video]');
+            const faceOpenBtn = document.querySelector('[data-signin-face-open]');
+            const faceCaptureBtn = document.querySelector('[data-signin-face-capture]');
+            const faceCloseBtn = document.querySelector('[data-signin-face-close]');
+            const faceModal = document.querySelector('[data-signin-face-modal]');
+            const faceModalEmail = document.querySelector('[data-signin-face-email]');
+            const faceStatus = document.querySelector('[data-signin-face-status]');
+            const faceModeInput = document.getElementById('face_auth_mode');
+            const faceSimilarityInput = document.getElementById('face_similarity');
+            const signinForm = document.querySelector('.signin-form');
+            let modelsReady = false;
+            let cameraStream = null;
 
-            if (!passwordInput || !toggleButton) {
-                return;
+            if (passwordInput && toggleButton) {
+                toggleButton.addEventListener('click', function () {
+                    const isPassword = passwordInput.type === 'password';
+                    passwordInput.type = isPassword ? 'text' : 'password';
+                    toggleButton.setAttribute('aria-label', isPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+                    toggleButton.classList.toggle('is-visible', isPassword);
+                });
             }
 
-            toggleButton.addEventListener('click', function () {
-                const isPassword = passwordInput.type === 'password';
-                passwordInput.type = isPassword ? 'text' : 'password';
-                toggleButton.setAttribute('aria-label', isPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
-                toggleButton.classList.toggle('is-visible', isPassword);
-            });
+            async function ensureModels() {
+                if (modelsReady || !window.faceapi) {
+                    return modelsReady;
+                }
+
+                const modelBase = 'https://justadudewhohacks.github.io/face-api.js/models';
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(modelBase),
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelBase),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(modelBase),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(modelBase)
+                ]);
+
+                modelsReady = true;
+                return true;
+            }
+
+            async function startCamera() {
+                if (!faceVideo) {
+                    return;
+                }
+
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                faceVideo.srcObject = cameraStream;
+                faceStatus.textContent = 'Camera active. Cliquez sur Capturer mon visage.';
+            }
+
+            function stopCamera() {
+                if (!cameraStream) {
+                    return;
+                }
+
+                cameraStream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+                cameraStream = null;
+                faceVideo.srcObject = null;
+            }
+
+            async function captureDescriptor() {
+                await ensureModels();
+
+                const detection = await detectDescriptor(faceVideo);
+
+                if (!detection || !detection.descriptor) {
+                    throw new Error('Aucun visage detecte.');
+                }
+
+                return Array.from(detection.descriptor);
+            }
+
+            async function detectDescriptor(source) {
+                let detection = await faceapi
+                    .detectSingleFace(source, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.35 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (detection && detection.descriptor) {
+                    return detection;
+                }
+
+                detection = await faceapi
+                    .detectSingleFace(source)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                return detection;
+            }
+
+            async function fetchReferenceImageUrl(email) {
+                const response = await fetch('{{ path('app_signin_face_reference') }}?email=' + encodeURIComponent(email));
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.message || 'Image de reference introuvable.');
+                }
+
+                return data;
+            }
+
+            async function getDescriptorFromImageUrl(imageUrl) {
+                await ensureModels();
+
+                const refImage = await faceapi.fetchImage(imageUrl);
+                const detection = await detectDescriptor(refImage);
+
+                if (!detection || !detection.descriptor) {
+                    throw new Error('Visage non detecte dans l\'image de signup.');
+                }
+
+                return Array.from(detection.descriptor);
+            }
+
+            function computeSimilarityPercent(a, b) {
+                if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+                    return 0;
+                }
+
+                let sum = 0;
+                for (let i = 0; i < a.length; i++) {
+                    const diff = Number(a[i]) - Number(b[i]);
+                    sum += diff * diff;
+                }
+
+                const distance = Math.sqrt(sum);
+                const similarity = Math.max(0, Math.min(100, (1 - (distance / 1.2)) * 100));
+                return similarity;
+            }
+
+            if (faceOpenBtn) {
+                faceOpenBtn.addEventListener('click', async function () {
+                    try {
+                        const email = (emailInput ? emailInput.value : '').trim();
+                        if (!email) {
+                            faceStatus.textContent = 'Saisissez d\'abord votre email.';
+                            return;
+                        }
+
+                        const emailValid = /^\S+@\S+\.\S+$/.test(email);
+                        if (!emailValid) {
+                            faceStatus.textContent = 'Email invalide.';
+                            return;
+                        }
+
+                        if (faceModal) {
+                            faceModal.style.display = 'flex';
+                        }
+                        if (faceModalEmail) {
+                            faceModalEmail.textContent = email;
+                        }
+
+                        faceStatus.textContent = 'Demarrage de la camera...';
+                        await startCamera();
+                    } catch (error) {
+                        faceStatus.textContent = error.message || 'Camera indisponible.';
+                    }
+                });
+            }
+
+            if (faceCaptureBtn) {
+                faceCaptureBtn.addEventListener('click', async function () {
+                    try {
+                        const email = (emailInput ? emailInput.value : '').trim();
+                        if (!email) {
+                            throw new Error('Email manquant.');
+                        }
+
+                        faceStatus.textContent = 'Capture visage en cours...';
+                        const liveDescriptor = await captureDescriptor();
+
+                        faceStatus.textContent = 'Chargement de la reference...';
+                        const referencePayload = await fetchReferenceImageUrl(email);
+                        let refDescriptor = null;
+
+                        if (Array.isArray(referencePayload.referenceDescriptor) && referencePayload.referenceDescriptor.length === 128) {
+                            refDescriptor = referencePayload.referenceDescriptor;
+                        } else if (referencePayload.imageUrl) {
+                            faceStatus.textContent = 'Comparaison avec l\'image de signup...';
+                            refDescriptor = await getDescriptorFromImageUrl(referencePayload.imageUrl);
+                        } else {
+                            throw new Error('Aucune reference faciale valide pour ce compte.');
+                        }
+
+                        const similarity = computeSimilarityPercent(liveDescriptor, refDescriptor);
+
+                        if (similarity >= 70) {
+                            faceModeInput.value = '1';
+                            faceSimilarityInput.value = similarity.toFixed(2);
+                            faceStatus.textContent = 'OK: ' + similarity.toFixed(1) + '%';
+
+                            if (faceModal) {
+                                faceModal.style.display = 'none';
+                            }
+                            stopCamera();
+
+                            if (signinForm) {
+                                signinForm.submit();
+                            }
+
+                            return;
+                        }
+
+                        faceModeInput.value = '0';
+                        faceSimilarityInput.value = similarity.toFixed(2);
+                        faceStatus.textContent = 'NN: ' + similarity.toFixed(1) + '%';
+                        if (faceModal) {
+                            faceModal.style.display = 'none';
+                        }
+                        stopCamera();
+                    } catch (error) {
+                        const message = (error && error.message) ? error.message : 'Capture impossible.';
+                        faceStatus.textContent = message + ' Essayez une photo signup plus claire ou activez Face ID depuis Profil.';
+                    }
+                });
+            }
+
+            if (faceCloseBtn) {
+                faceCloseBtn.addEventListener('click', function () {
+                    if (faceModal) {
+                        faceModal.style.display = 'none';
+                    }
+                    stopCamera();
+                });
+            }
         });
     </script>
 {% endblock %}
@@ -48,6 +265,8 @@
 
                     <form method="post" class="signin-form" novalidate>
                         <input type="hidden" name="_token" value="{{ csrf_token('signin_form') }}">
+                        <input type="hidden" name="face_auth_mode" id="face_auth_mode" value="0">
+                        <input type="hidden" name="face_similarity" id="face_similarity" value="0">
                         <div class="field">
                             <label for="email">Adresse e-mail</label>
                             <input type="email" id="email" name="email">
@@ -74,8 +293,26 @@
                             <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
                         </div>
 
+                        <div class="field" style="margin-top: 0.5rem;">
+                            <label>Reconnaissance faciale</label>
+                            <button type="button" class="btn-primary" data-signin-face-open>Option reconnaissance faciale</button>
+                            <div data-signin-face-status style="font-size: 0.9rem; color: #475569; margin-top: 0.4rem;">Cliquez pour ouvrir la camera en popup.</div>
+                        </div>
+
                         <button type="submit" class="btn-primary">Connexion</button>
                     </form>
+
+                    <div data-signin-face-modal style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.68); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+                        <div style="width: min(92vw, 560px); background: #ffffff; border-radius: 16px; padding: 1rem; box-shadow: 0 20px 50px rgba(2, 6, 23, 0.35);">
+                            <h3 style="margin: 0 0 0.45rem 0;">Reconnaissance faciale</h3>
+                            <p style="margin: 0 0 0.7rem 0; color: #475569;">Email: <strong data-signin-face-email></strong></p>
+                            <video data-signin-face-video autoplay muted playsinline style="width: 100%; border-radius: 12px; background: #0f172a;"></video>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem; flex-wrap: wrap;">
+                                <button type="button" class="btn-primary" data-signin-face-capture>Capturer mon visage</button>
+                                <button type="button" class="btn-primary" data-signin-face-close style="background: #e2e8f0; color: #0f172a;">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
