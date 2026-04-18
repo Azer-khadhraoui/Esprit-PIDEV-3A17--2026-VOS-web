@@ -22,6 +22,19 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    App\Service\GroqReasonEnhancer:
+        arguments:
+            $groqApiKey: '%env(default::GROQ_API_KEY)%'
+
+    App\Service\PasswordResetService:
+        arguments:
+            $mailerFrom: '%env(default::MAILER_FROM)%'
+            $appName: '%env(default::APP_NAME)%'
+
+    App\Service\EmailVerificationService:
+        arguments:
+            $abstractApiKey: '%env(default::ABSTRACT_API_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
