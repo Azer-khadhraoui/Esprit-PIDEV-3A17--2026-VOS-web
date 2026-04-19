@@ -43,6 +43,10 @@
                     });
                 })();
             </script>
+
+            {# Chatbot Widget #}
+            {% include 'components/chatbot_widget.html.twig' %}
+            <script src="{{ asset('js/chatbot.js') }}"></script>
         {% endif %}
     </body>
 </html>
