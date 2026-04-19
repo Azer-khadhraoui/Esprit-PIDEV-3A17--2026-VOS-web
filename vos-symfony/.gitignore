@@ -7,4 +7,6 @@
 /public/bundles/
 /var/
 /vendor/
+.claude/
+config/google/service-account.json
 ###< symfony/framework-bundle ###

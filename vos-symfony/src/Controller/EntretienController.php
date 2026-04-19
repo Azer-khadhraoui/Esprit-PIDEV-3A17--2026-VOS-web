@@ -10,6 +10,7 @@ use App\Repository\CandidatureRepository;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
 use App\Service\EntretienNotificationService;
+use App\Service\GoogleCalendarService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
@@ -81,7 +82,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/new', name: 'gestion_entretien_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, SessionInterface $session): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, GoogleCalendarService $calendar, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -97,13 +98,22 @@ class EntretienController extends AbstractController
             $entityManager->flush();
 
             try {
+                $eventId = $calendar->createEvent($entretien);
+                $entretien->setCalendarEventId($eventId);
+                $entityManager->flush();
+                $this->addFlash('success', 'Événement ajouté au Google Calendar.');
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Entretien enregistré, mais échec de synchronisation Google Calendar.');
+            }
+
+            try {
                 $sentCount = $notificationService->notifyEntretienCreated($entretien);
                 if ($sentCount > 0) {
                     $this->addFlash('success', sprintf('Notification email envoyee a %d destinataire(s).', $sentCount));
                 } else {
                     $this->addFlash('warning', 'Entretien enregistre, mais aucun email destinataire trouve.');
                 }
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 $this->addFlash('warning', 'Entretien enregistre, mais echec de notification email.');
             }
 
@@ -358,7 +368,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'gestion_entretien_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, SessionInterface $session): Response
+    public function edit(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, EntretienNotificationService $notificationService, GoogleCalendarService $calendar, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -370,6 +380,20 @@ class EntretienController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
+
+            try {
+                $existingEventId = $entretien->getCalendarEventId();
+                if ($existingEventId !== null) {
+                    $calendar->updateEvent($existingEventId, $entretien);
+                } else {
+                    $eventId = $calendar->createEvent($entretien);
+                    $entretien->setCalendarEventId($eventId);
+                    $entityManager->flush();
+                }
+                $this->addFlash('success', 'Google Calendar mis à jour.');
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Entretien modifié, mais échec de synchronisation Google Calendar.');
+            }
 
             try {
                 $sentCount = $notificationService->notifyEntretienUpdated($entretien);
@@ -392,7 +416,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/{id}', name: 'gestion_entretien_delete', methods: ['POST'])]
-    public function delete(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, SessionInterface $session): Response
+    public function delete(Request $request, Entretien $entretien, EntityManagerInterface $entityManager, GoogleCalendarService $calendar, SessionInterface $session): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -400,12 +424,22 @@ class EntretienController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('delete' . $entretien->getId(), $request->getPayload()->getString('_token'))) {
+            $calendarEventId = $entretien->getCalendarEventId();
             try {
                 $entityManager->remove($entretien);
                 $entityManager->flush();
                 $this->addFlash('success', 'Entretien supprimé.');
             } catch (ForeignKeyConstraintViolationException) {
                 $this->addFlash('error', 'Suppression bloquée par contrainte FK. Activez ON DELETE CASCADE pour evaluation_entretien.');
+                return $this->redirectToRoute('gestion_entretien_dashboard');
+            }
+
+            if ($calendarEventId !== null) {
+                try {
+                    $calendar->deleteEvent($calendarEventId);
+                } catch (\Throwable) {
+                    $this->addFlash('warning', 'Entretien supprimé, mais échec de suppression dans Google Calendar.');
+                }
             }
         }
 
