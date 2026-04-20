@@ -102,8 +102,8 @@ class EntretienController extends AbstractController
                 $entretien->setCalendarEventId($eventId);
                 $entityManager->flush();
                 $this->addFlash('success', 'Événement ajouté au Google Calendar.');
-            } catch (\Throwable) {
-                $this->addFlash('warning', 'Entretien enregistré, mais échec de synchronisation Google Calendar.');
+            } catch (\Throwable $e) {
+                $this->addFlash('warning', 'Google Calendar sync failed: ' . $e->getMessage());
             }
 
             try {

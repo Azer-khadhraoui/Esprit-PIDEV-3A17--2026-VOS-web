@@ -26,6 +26,7 @@ class EntretienNotificationService
         private readonly CandidatureRepository $candidatureRepository,
         private readonly Environment $twig,
         private readonly string $mailerFromAddress,
+        private readonly GoogleCalendarService $calendarService,
     ) {
     }
 
@@ -64,6 +65,8 @@ class EntretienNotificationService
         $lienReunion = $entretien->getLienReunion() ?: 'Aucun lien';
         $subject = $this->buildEntretienSubject($entretien, $action);
 
+        $calendarLink = $this->calendarService->generateAddToCalendarLink($entretien);
+
         foreach ($recipients as $recipient) {
             $htmlBody = $this->twig->render('emails/entretien_notification.html.twig', [
                 'recipientName' => $recipient['name'],
@@ -76,6 +79,7 @@ class EntretienNotificationService
                 'statut' => $statut,
                 'lienReunion' => $lienReunion,
                 'action' => $action,
+                'calendarLink' => $recipient['role'] === self::ROLE_CANDIDATE ? $calendarLink : null,
             ]);
 
             $textBody = implode("\n", [

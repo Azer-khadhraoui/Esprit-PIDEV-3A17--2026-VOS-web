@@ -6,6 +6,7 @@ use App\Entity\Candidature;
 use App\Repository\EntretienRepository;
 use App\Repository\EvaluationEntretienRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -123,6 +124,67 @@ class FrontController extends AbstractController
             'entretien' => $entretien,
             'userName' => (string) $session->get('user_name', 'Client'),
         ]);
+    }
+
+    #[Route('/calendrier', name: 'app_front_calendrier', methods: ['GET'])]
+    public function calendrier(SessionInterface $session): Response
+    {
+        $userId = $this->requireClient($session);
+        if ($userId instanceof RedirectResponse) {
+            return $userId;
+        }
+
+        return $this->render('front/calendrier.html.twig', [
+            'userName'  => (string) $session->get('user_name', 'Client'),
+            'dataUrl'   => $this->generateUrl('app_front_calendrier_data'),
+        ]);
+    }
+
+    #[Route('/calendrier/data', name: 'app_front_calendrier_data', methods: ['GET'])]
+    public function calendrierData(EntretienRepository $repo, SessionInterface $session): JsonResponse
+    {
+        $userId = $this->requireClient($session);
+        if ($userId instanceof RedirectResponse) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+
+        $events = [];
+        foreach ($repo->findForUser($userId) as $entretien) {
+            $date = $entretien->getDateEntretien();
+            if ($date === null) {
+                continue;
+            }
+
+            $type   = $entretien->getTypeEntretien() ?? 'Entretien';
+            $lieu   = $entretien->getLieu() ?? '';
+            $statut = $entretien->getStatutEntretien() ?? '';
+            $time   = $entretien->getHeureEntretien();
+
+            if ($time !== null) {
+                $start = $date->format('Y-m-d') . 'T' . $time->format('H:i:s');
+                $endDt = new \DateTime($date->format('Y-m-d') . ' ' . $time->format('H:i:s'));
+                $end   = $endDt->modify('+1 hour')->format('Y-m-d\TH:i:s');
+            } else {
+                $start = $date->format('Y-m-d');
+                $end   = null;
+            }
+
+            $events[] = [
+                'id'    => $entretien->getId(),
+                'title' => 'Entretien ' . $type . ($lieu !== '' ? ' — ' . $lieu : ''),
+                'start' => $start,
+                'end'   => $end,
+                'color' => $type === 'TECHNIQUE' ? '#7209b7' : '#4361ee',
+                'url'   => $this->generateUrl('app_front_entretien_show', ['id' => $entretien->getId()]),
+                'extendedProps' => [
+                    'type'   => $type,
+                    'statut' => $statut,
+                    'lieu'   => $lieu,
+                ],
+            ];
+        }
+
+        return new JsonResponse($events);
     }
 
     #[Route('/evaluations', name: 'app_front_evaluations', methods: ['GET'])]

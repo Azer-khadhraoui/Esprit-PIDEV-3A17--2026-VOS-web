@@ -18,7 +18,17 @@
                 <div class="form-field">{{ form_row(form.scoreTest) }}</div>
                 <div class="form-field">{{ form_row(form.noteEntretien) }}</div>
                 <div class="form-field">{{ form_row(form.decision) }}</div>
-                <div class="form-field full">{{ form_row(form.commentaire) }}</div>
+                <div class="form-field full">
+                    {{ form_row(form.commentaire) }}
+                    <div style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+                        <button type="button" id="ai-comment-btn"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#0e7490,#0284c7);color:#fff;border:0;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem;transition:filter .15s;">
+                            <span id="ai-btn-icon">✨</span>
+                            <span id="ai-btn-label">Générer avec l'IA</span>
+                        </button>
+                        <span id="ai-comment-error" style="display:none;color:#b91c1c;font-size:.83rem;"></span>
+                    </div>
+                </div>
                 <div class="form-field">{{ form_row(form.competencesTechniques) }}</div>
                 <div class="form-field">{{ form_row(form.competencesComportementales) }}</div>
                 <div class="form-field">{{ form_row(form.communication) }}</div>
@@ -78,6 +88,68 @@
         var el = document.getElementById(id);
         if (el) { el.addEventListener('change', recalculate); }
     });
+
+    // AI comment generation
+    var aiBtn       = document.getElementById('ai-comment-btn');
+    var aiBtnIcon   = document.getElementById('ai-btn-icon');
+    var aiBtnLabel  = document.getElementById('ai-btn-label');
+    var aiError     = document.getElementById('ai-comment-error');
+    var commentArea = document.getElementById('evaluation_entretien_commentaire');
+    var generateUrl = '{{ path('app_evaluation_entretien_generate_comment') }}';
+
+    function fieldVal(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+
+    if (aiBtn) {
+        aiBtn.addEventListener('click', function () {
+            aiBtn.disabled = true;
+            aiBtnIcon.textContent  = '⏳';
+            aiBtnLabel.textContent = 'Génération…';
+            aiError.style.display  = 'none';
+
+            var body = JSON.stringify({
+                scoreTest:                   parseFloat(fieldVal('evaluation_entretien_scoreTest'))   || 0,
+                noteEntretien:               parseInt(fieldVal('evaluation_entretien_noteEntretien')) || 0,
+                decision:                    fieldVal('evaluation_entretien_decision'),
+                competencesTechniques:       parseInt(fieldVal('evaluation_entretien_competencesTechniques'))       || 0,
+                competencesComportementales: parseInt(fieldVal('evaluation_entretien_competencesComportementales')) || 0,
+                communication:               parseInt(fieldVal('evaluation_entretien_communication'))               || 0,
+                motivation:                  parseInt(fieldVal('evaluation_entretien_motivation'))                  || 0,
+                experience:                  parseInt(fieldVal('evaluation_entretien_experience'))                  || 0,
+            });
+
+            fetch(generateUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+            })
+            .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+            .then(function (result) {
+                if (result.ok && result.data.comment) {
+                    if (commentArea) {
+                        commentArea.value = result.data.comment;
+                        commentArea.style.transition = 'background .3s';
+                        commentArea.style.background = '#eef4ff';
+                        setTimeout(function () { commentArea.style.background = ''; }, 800);
+                    }
+                } else {
+                    aiError.textContent   = result.data.error || 'Erreur inconnue.';
+                    aiError.style.display = 'inline';
+                }
+            })
+            .catch(function () {
+                aiError.textContent   = 'Erreur réseau, veuillez réessayer.';
+                aiError.style.display = 'inline';
+            })
+            .finally(function () {
+                aiBtn.disabled         = false;
+                aiBtnIcon.textContent  = '✨';
+                aiBtnLabel.textContent = 'Générer avec l\'IA';
+            });
+        });
+    }
 }());
 </script>
 {% endblock %}
