@@ -167,8 +167,6 @@
     {# Chatbot Widget - Visible pour tous les utilisateurs connectés #}
     {% set isAuthenticatedSession = app.session.get('user_id') or app.session.get('admin_user_id') %}
     {% if isAuthenticatedSession %}
-        {% include 'components/chatbot_widget.html.twig' %}
-        <script src="{{ asset('js/chatbot.js') }}"></script>
     {% endif %}
 </body>
 </html>
