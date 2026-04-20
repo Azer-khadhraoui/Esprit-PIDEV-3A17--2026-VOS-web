@@ -363,6 +363,19 @@
                 {% endif %}
             </p>
         </div>
+        <div class="card mt-4 text-center">
+    <div class="card-body">
+        <h6 class="card-title">
+            <i class="fas fa-qrcode"></i> QR Code de la candidature
+        </h6>
+        <img src="data:image/png;base64,{{ qrCodeBase64 }}"
+             alt="QR Code Candidature #{{ candidature.idCandidature }}"
+             style="max-width: 200px;" />
+        <p class="text-muted small mt-2">
+            Scannez pour afficher le résumé de cette candidature
+        </p>
+    </div>
+</div>
 
         <div class="actions">
             <a href="{{ path('app_client_candidature_detail_pdf', {id_candidature: candidature.idCandidature}) }}" class="btn" title="Télécharger en PDF">📄 Exporter en PDF</a>

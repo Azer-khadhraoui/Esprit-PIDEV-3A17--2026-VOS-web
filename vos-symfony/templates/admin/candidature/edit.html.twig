@@ -137,6 +137,19 @@
                         <p class="form-value">{% if candidature.lettreMotivation %}<a href="{{ asset(candidature.lettreMotivation) }}" target="_blank">Voir la lettre</a>{% else %}N/A{% endif %}</p>
                     </div>
                 </div>
+                <div class="card border-info mt-3">
+    <div class="card-header bg-info text-white">
+        <i class="fas fa-qrcode"></i> QR Code — Résumé rapide
+    </div>
+    <div class="card-body text-center">
+        <img src="data:image/png;base64,{{ qrCodeBase64 }}"
+             alt="QR Code Candidature"
+             style="max-width: 180px;" />
+        <p class="text-muted small mt-2">
+            Scannez ce code pour voir le résumé du candidat
+        </p>
+    </div>
+</div>
             </div>
         </section>
     </main>

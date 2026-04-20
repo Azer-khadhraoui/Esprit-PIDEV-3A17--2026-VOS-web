@@ -11,6 +11,8 @@ use App\Service\EmailService;
 use App\Service\PdfService;
 use App\Service\CVAnalysisService;
 use Doctrine\DBAL\Connection;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -241,11 +243,30 @@ final class CandidatureController extends AbstractController
         }
 
         $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+        $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
 
+        // ── QR Code ──────────────────────────────────────────────────
+        $qrData = implode("\n", [
+            'Candidature #' . $candidature->getIdCandidature(),
+            'Candidat : ' . $user?->getPrenom() . ' ' . $user?->getNom(),
+            'Offre     : ' . ($offre?->getTitre() ?? 'N/A'),
+            'Statut    : ' . $candidature->getStatut(),
+            'Date      : ' . $candidature->getDateCandidature()?->format('d/m/Y'),
+            'Domaine   : ' . ($candidature->getDomaineExperience() ?? 'N/A'),
+            'Niveau    : ' . ($candidature->getNiveauExperience() ?? 'N/A'),
+        ]);
+
+        $qrCode = new QrCode($qrData);
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+        $qrCodeBase64 = base64_encode($result->getString());
+        // ─────────────────────────────────────────────────────────────
         return $this->render('client/candidature/detail.html.twig', [
             'candidature' => $candidature,
             'offreTitre' => $offre?->getTitre() ?? 'Offre',
             'userName' => $session->get('user_name', 'Utilisateur'),
+            'qrCodeBase64' => $qrCodeBase64,  // ← nouveau
+
         ]);
     }
 
