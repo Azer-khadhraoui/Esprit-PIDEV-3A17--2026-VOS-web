@@ -367,6 +367,7 @@
         <div class="actions">
             <a href="{{ path('app_client_candidature_detail_pdf', {id_candidature: candidature.idCandidature}) }}" class="btn" title="Télécharger en PDF">📄 Exporter en PDF</a>
             <a href="{{ path('app_client_candidature_edit', {id_candidature: candidature.idCandidature}) }}" class="btn">Modifier</a>
+            <a href="{{ path('analyse_cv_afficher', {idCandidature: candidature.idCandidature}) }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🤖 Analyser Mon CV</a>
             <a href="{{ path('app_client_candidatures') }}" class="btn btn-light">Retour</a>
         </div>
     </div>

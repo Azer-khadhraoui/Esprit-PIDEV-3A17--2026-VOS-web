@@ -1,0 +1,374 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse du CV - VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+    <style>
+        .analyse-container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .analyse-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .analyse-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .candidat-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .candidat-info p {
+            margin: 5px 0;
+        }
+
+        .score-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin: 0 auto 20px;
+        }
+
+        .score-excellent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .score-bon {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #333;
+        }
+
+        .score-moyen {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: #333;
+        }
+
+        .score-faible {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .score-label {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .analysis-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .items-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .items-list li {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .items-list.points-forts li {
+            border-left-color: #84fab0;
+        }
+
+        .items-list.points-faibles li {
+            border-left-color: #ff6b6b;
+        }
+
+        .items-list.suggestions li {
+            border-left-color: #ffa502;
+        }
+
+        .competence-badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .date-analyse {
+            color: #999;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .historique {
+            margin-top: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .historique-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .historique-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #667eea;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .historique-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .historique-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .no-data {
+            color: #999;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .candidat-info {
+                grid-template-columns: 1fr;
+            }
+
+            .analyse-header h1 {
+                font-size: 20px;
+            }
+
+            .score-circle {
+                width: 120px;
+                height: 120px;
+                font-size: 36px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="analyse-container">
+    <!-- Header -->
+    <div class="analyse-header">
+        <h1>Analyse de CV</h1>
+        <div class="candidat-info">
+            <div>
+                <p><strong>Domaine :</strong> {{ candidature.domaineExperience }}</p>
+                <p><strong>Niveau :</strong> {{ candidature.niveauExperience }}</p>
+            </div>
+            <div>
+                <p><strong>Années d'expérience :</strong> {{ candidature.anneesExperience }}</p>
+                <p><strong>Dernier poste :</strong> {{ candidature.dernierPoste }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Section -->
+    <div class="score-section">
+        <p class="score-label">Score Global du CV</p>
+        <div class="score-circle {% if analyse.scoreCv >= 80 %}score-excellent{% elseif analyse.scoreCv >= 60 %}score-bon{% elseif analyse.scoreCv >= 40 %}score-moyen{% else %}score-faible{% endif %}">
+            {{ analyse.scoreCv }}
+        </div>
+        <p>
+            {% if analyse.scoreCv >= 80 %}
+                <strong>Excellent !</strong> Votre CV est très compétitif
+            {% elseif analyse.scoreCv >= 60 %}
+                <strong>Bon !</strong> Votre CV est attrayant
+            {% elseif analyse.scoreCv >= 40 %}
+                <strong>Acceptable</strong> mais peut être amélioré
+            {% else %}
+                <strong>À revoir</strong> pour augmenter vos chances
+            {% endif %}
+        </p>
+        <p class="date-analyse">Analysé le {{ analyse.dateAnalyse|date('d/m/Y à H:i') }}</p>
+    </div>
+
+    <!-- Compétences Détectées -->
+    <div class="analysis-section">
+        <h2 class="section-title">Compétences Détectées</h2>
+        {% if analyse.competencesDetectees and analyse.competencesDetectees|length > 0 %}
+            <div>
+                {% for competence in analyse.competencesDetectees %}
+                    <span class="competence-badge">{{ competence }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-data">Aucune compétence spécifique détectée</p>
+        {% endif %}
+    </div>
+
+    <!-- Points Forts -->
+    <div class="analysis-section">
+        <h2 class="section-title">Points Forts</h2>
+        {% if analyse.pointsForts and analyse.pointsForts|length > 0 %}
+            <ul class="items-list points-forts">
+                {% for point in analyse.pointsForts %}
+                    <li>{{ point }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-data">Aucun point fort identifié</p>
+        {% endif %}
+    </div>
+
+    <!-- Points Faibles -->
+    <div class="analysis-section">
+        <h2 class="section-title">Points À Améliorer</h2>
+        {% if analyse.pointsFaibles and analyse.pointsFaibles|length > 0 %}
+            <ul class="items-list points-faibles">
+                {% for point in analyse.pointsFaibles %}
+                    <li>{{ point }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-data">Votre CV semble complet</p>
+        {% endif %}
+    </div>
+
+    <!-- Suggestions -->
+    <div class="analysis-section">
+        <h2 class="section-title">Recommandations</h2>
+        {% if analyse.suggestions and analyse.suggestions|length > 0 %}
+            <ul class="items-list suggestions">
+                {% for suggestion in analyse.suggestions %}
+                    <li>{{ suggestion }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-data">Aucune recommandation majeure</p>
+        {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="analysis-section">
+        <div class="actions">
+            <a href="{{ path('app_client_candidatures') }}" class="btn btn-primary">Retour aux candidatures</a>
+            <button class="btn btn-secondary" onclick="window.print()">Imprimer</button>
+        </div>
+    </div>
+
+    <!-- Historique des analyses -->
+    {% if historique|length > 1 %}
+    <div class="historique">
+        <h2 class="section-title">Historique des Analyses</h2>
+        <table class="historique-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Score</th>
+                    <th>Compétences</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in historique %}
+                    <tr>
+                        <td>{{ h.dateAnalyse|date('d/m/Y H:i') }}</td>
+                        <td>
+                            <strong>{{ h.scoreCv }}/100</strong>
+                        </td>
+                        <td>{{ h.competencesDetectees|length }} trouvées</td>
+                        <td>
+                            {% if h.idAnalyse != analyse.idAnalyse %}
+                                <a href="{{ path('analyse_cv_afficher', {'idCandidature': candidature.idCandidature}) }}?analyse={{ h.idAnalyse }}" class="btn btn-secondary">Voir</a>
+                            {% else %}
+                                <span style="color: #999;">Actuelle</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -9,6 +9,7 @@ use App\Form\CandidatureType;
 use App\Repository\CandidatureRepository;
 use App\Service\EmailService;
 use App\Service\PdfService;
+use App\Service\CVAnalysisService;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -58,7 +59,8 @@ final class CandidatureController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
         SessionInterface $session,
-        EmailService $emailService
+        EmailService $emailService,
+        CVAnalysisService $cvAnalysisService
     ): Response {
         $idUtilisateur = (int) $session->get('user_id', 0);
 
@@ -101,7 +103,6 @@ final class CandidatureController extends AbstractController
                 $entityManager->persist($candidature);
                 $entityManager->flush();
 
-                // Récupérer l'utilisateur et envoyer les emails
                 try {
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user) {
@@ -109,6 +110,21 @@ final class CandidatureController extends AbstractController
                         $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre());
                         // Notification aux admins
                         $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre());
+                    }
+                    $cvPath = $candidature->getCv();
+                    if ($cvPath) {
+                        $projectDir = $this->getParameter('kernel.project_dir');
+                        $fullPath = $projectDir . '/public/' . $cvPath;
+                        if (file_exists($fullPath)) {
+                            $parser = new \Smalot\PdfParser\Parser();
+                            $pdf = $parser->parseFile($fullPath);
+                            $cvText = $pdf->getText();
+                            if (!empty(trim($cvText))) {
+                                $cvText = mb_convert_encoding($cvText, 'UTF-8', 'UTF-8');
+                                $cvText = iconv('UTF-8', 'UTF-8//IGNORE', $cvText);
+                                $cvAnalysisService->analyzerCV($cvText, $candidature);
+                            }
+                        }
                     }
                 } catch (\Exception $e) {
                     // Logger l'erreur mais ne pas bloquer le processus
@@ -136,7 +152,9 @@ final class CandidatureController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
         SessionInterface $session,
-        EmailService $emailService
+        EmailService $emailService,
+        CVAnalysisService $cvAnalysisService
+
     ): Response {
         $idUtilisateur = (int) $session->get('user_id', 0);
         if ($idUtilisateur <= 0 || $candidature->getIdUtilisateur() !== $idUtilisateur) {
@@ -166,7 +184,7 @@ final class CandidatureController extends AbstractController
 
                 $entityManager->flush();
 
-                // Envoyer les emails de notification
+
                 try {
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user && $offre) {
@@ -174,6 +192,23 @@ final class CandidatureController extends AbstractController
                         $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre());
                         // Notification aux admins
                         $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre());
+                    }
+                    if ($cvFile instanceof UploadedFile) { // seulement si nouveau CV uploadé
+                        $cvPath = $candidature->getCv();
+                        if ($cvPath) {
+                            $projectDir = $this->getParameter('kernel.project_dir');
+                            $fullPath = $projectDir . '/public/' . $cvPath;
+                            if (file_exists($fullPath)) {
+                                $parser = new \Smalot\PdfParser\Parser();
+                                $pdf = $parser->parseFile($fullPath);
+                                $cvText = $pdf->getText();
+                                if (!empty(trim($cvText))) {
+                                    $cvText = mb_convert_encoding($cvText, 'UTF-8', 'UTF-8');
+                                    $cvText = iconv('UTF-8', 'UTF-8//IGNORE', $cvText);
+                                    $cvAnalysisService->analyzerCV($cvText, $candidature);
+                                }
+                            }
+                        }
                     }
                 } catch (\Exception $e) {
                     // Logger l'erreur mais ne pas bloquer le processus
@@ -228,11 +263,11 @@ final class CandidatureController extends AbstractController
             return $this->redirectToRoute('app_signin');
         }
 
-        if ($this->isCsrfTokenValid('delete'.$candidature->getIdCandidature(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), $request->request->get('_token'))) {
             // Récupérer les informations avant suppression
             $user = $em->getRepository(User::class)->find($idUtilisateur);
             $offre = $em->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
-            
+
             // Récupérer infos pour l'email avant la suppression
             $userEmail = $user?->getEmail() ?? '';
             $userName = $user ? ($user->getPrenom() . ' ' . $user->getNom()) : 'Utilisateur';
@@ -322,7 +357,7 @@ final class CandidatureController extends AbstractController
     private function getOffreTitles(EntityManagerInterface $entityManager, array $candidatures): array
     {
         $offreIds = array_values(array_unique(array_filter(array_map(
-            static fn (Candidature $candidature): ?int => $candidature->getIdOffre(),
+            static fn(Candidature $candidature): ?int => $candidature->getIdOffre(),
             $candidatures
         ))));
 
@@ -365,12 +400,12 @@ final class CandidatureController extends AbstractController
     private function uploadFile($file, SluggerInterface $slugger, string $folder): string
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename     = $slugger->slug($originalFilename);
-        $extension        = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
+        $safeFilename = $slugger->slug($originalFilename);
+        $extension = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
         if ($extension === '') {
             $extension = 'bin';
         }
-        $newFilename      = time() . '_' . $safeFilename . '.' . $extension;
+        $newFilename = time() . '_' . $safeFilename . '.' . $extension;
 
         $file->move(
             $this->getParameter('kernel.project_dir') . '/public/uploads/' . $folder,
