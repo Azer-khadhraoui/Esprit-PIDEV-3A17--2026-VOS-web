@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Offres</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: #0f172a;
+            background: #fff;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .report-wrap {
+            max-width: 100%;
+            padding: 20px;
+        }
+
+        .report-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #dbe2f0;
+            padding-bottom: 12px;
+        }
+
+        .title {
+            margin: 0;
+            color: #0f4da4;
+            font-size: 1.6rem;
+            letter-spacing: 0.2px;
+        }
+
+        .subtitle {
+            margin: 6px 0 0;
+            color: #475569;
+            font-size: 0.93rem;
+        }
+
+        .meta {
+            text-align: right;
+            color: #475569;
+            font-size: 0.88rem;
+        }
+
+        .filters {
+            margin-bottom: 16px;
+            background: #f8fafc;
+            border: 1px solid #dbe2f0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            color: #1e293b;
+            line-height: 1.45;
+        }
+
+        .filters strong {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .filters div {
+            margin: 3px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10.5px;
+            margin-top: 16px;
+        }
+
+        th,
+        td {
+            border: 1px solid #dbe2f0;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        .status-open {
+            color: #166534;
+            font-weight: 700;
+        }
+
+        .status-closed {
+            color: #9a3412;
+            font-weight: 700;
+        }
+
+        .muted {
+            color: #475569;
+        }
+
+        .empty-row td {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-wrap">
+        <header class="report-head">
+            <div>
+                <h1 class="title">Rapport Offres d'Emploi</h1>
+                <p class="subtitle">Export des offres filtrees</p>
+            </div>
+            <div class="meta">
+                <div><strong>Genere le</strong> {{ generatedAt|date('d/m/Y à H:i') }}</div>
+                <div><strong>Par</strong> {{ currentUserName|default('Admin') }}</div>
+                <div><strong>Total</strong> {{ offers|length }} resultat(s)</div>
+            </div>
+        </header>
+
+        <section class="filters">
+            <strong>Filtres appliques:</strong>
+            <div><strong>Recherche:</strong> {{ filters.q is not null ? filters.q : 'Tous' }}</div>
+            <div><strong>Statut:</strong> {{ filters.statut is not null ? filters.statut : 'Tous' }}</div>
+            <div><strong>Type contrat:</strong> {{ filters.type_contrat is not null ? filters.type_contrat : 'Tous' }}</div>
+            <div><strong>Preference travail:</strong> {{ filters.work_preference is not null ? filters.work_preference : 'Tous' }}</div>
+            <div><strong>Tri:</strong> {{ filters.sort_by|default('date_publication') }} ({{ filters.sort_order|default('DESC') }})</div>
+        </section>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Titre</th>
+                    <th>Type</th>
+                    <th>Work Pref.</th>
+                    <th>Lieu</th>
+                    <th>User ID</th>
+                    <th>Statut</th>
+                    <th>Date Publication</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                    <tr>
+                        <td>{{ offer.idOffre }}</td>
+                        <td>{{ offer.titre }}</td>
+                        <td>{{ offer.typeContrat ?? 'N/A' }}</td>
+                        <td>{{ offer.workPreference ?? 'N/A' }}</td>
+                        <td>{{ offer.lieu ?? 'N/A' }}</td>
+                        <td>{{ offer.idUtilisateur ?? 'N/A' }}</td>
+                        <td>
+                            {% set isOpen = offer.statutOffre in ['OUVERTE', 'ACTIVE'] %}
+                            <span class="{% if isOpen %}status-open{% else %}status-closed{% endif %}">
+                                {{ offer.statutOffre ?? 'N/A' }}
+                            </span>
+                        </td>
+                        <td>{{ offer.datePublication ? offer.datePublication|date('d/m/Y') : 'N/A' }}</td>
+                    </tr>
+                {% else %}
+                    <tr class="empty-row">
+                        <td colspan="8" class="muted">Aucune offre pour les filtres selectionnes.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

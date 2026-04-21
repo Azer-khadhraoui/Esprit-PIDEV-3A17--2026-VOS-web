@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Offres Filtrees</title>
+    <style>
+        :root {
+            --line: #dbe2f0;
+            --text: #0f172a;
+            --muted: #475569;
+            --head-bg: #f1f5f9;
+            --accent: #0f4da4;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background: #fff;
+        }
+
+        .report-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .report-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 14px;
+            border-bottom: 2px solid var(--line);
+            padding-bottom: 12px;
+        }
+
+        .title {
+            margin: 0;
+            color: var(--accent);
+            font-size: 1.6rem;
+            letter-spacing: 0.2px;
+        }
+
+        .subtitle {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 0.93rem;
+        }
+
+        .meta {
+            text-align: right;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .filters {
+            margin-bottom: 16px;
+            background: #f8fafc;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            color: #1e293b;
+            line-height: 1.45;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid var(--line);
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+
+        .table th {
+            background: var(--head-bg);
+            text-align: left;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .status {
+            font-weight: 700;
+        }
+
+        .status.open {
+            color: #166534;
+        }
+
+        .status.closed {
+            color: #9a3412;
+        }
+
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: #0f172a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn.primary {
+            background: #0f4da4;
+            border-color: #0f4da4;
+            color: #fff;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 12mm;
+            }
+
+            body {
+                padding: 0;
+                font-size: 11px;
+            }
+
+            .actions {
+                display: none;
+            }
+
+            .title {
+                font-size: 1.2rem;
+            }
+
+            .table {
+                font-size: 10.5px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="report-wrap">
+    <header class="report-head">
+        <div>
+            <h1 class="title">Rapport Offres Filtrees</h1>
+            <p class="subtitle">Export prepare pour reunion RH</p>
+        </div>
+        <div class="meta">
+            <div>Genere le {{ generatedAt|date('d/m/Y H:i') }}</div>
+            <div>Par {{ currentUserName|default('Admin') }}</div>
+            <div>Total resultats: {{ offers|length }}</div>
+        </div>
+    </header>
+
+    <section class="filters">
+        <strong>Filtres appliques:</strong>
+        <div>Recherche: {{ filters.q is not null ? filters.q : 'Tous' }}</div>
+        <div>Statut: {{ filters.statut is not null ? filters.statut : 'Tous' }}</div>
+        <div>Type contrat: {{ filters.type_contrat is not null ? filters.type_contrat : 'Tous' }}</div>
+        <div>Preference de travail: {{ filters.work_preference is not null ? filters.work_preference : 'Tous' }}</div>
+        <div>Tri: {{ filters.sort_by|default('date_publication') }} ({{ filters.sort_order|default('DESC') }})</div>
+    </section>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Work Preference</th>
+                <th>Lieu</th>
+                <th>ID Utilisateur</th>
+                <th>Statut</th>
+                <th>Date Publication</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for offer in offers %}
+                <tr>
+                    <td>{{ offer.idOffre }}</td>
+                    <td>{{ offer.titre }}</td>
+                    <td>{{ offer.typeContrat ?? 'N/A' }}</td>
+                    <td>{{ offer.workPreference ?? 'N/A' }}</td>
+                    <td>{{ offer.lieu ?? 'N/A' }}</td>
+                    <td>{{ offer.idUtilisateur ?? 'N/A' }}</td>
+                    <td>
+                        {% set isOpen = offer.statutOffre in ['OUVERTE', 'ACTIVE'] %}
+                        <span class="status {{ isOpen ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
+                    </td>
+                    <td>{{ offer.datePublication ? offer.datePublication|date('d/m/Y') : 'N/A' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8" class="muted">Aucune offre pour les filtres selectionnes.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="actions">
+        <button class="btn" type="button" onclick="window.close()">Fermer</button>
+        <button class="btn primary" type="button" onclick="window.print()">Imprimer / Enregistrer PDF</button>
+    </div>
+</div>
+</body>
+</html>

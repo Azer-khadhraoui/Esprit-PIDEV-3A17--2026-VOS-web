@@ -6,6 +6,14 @@
 parameters:
     app.mailer_from_default: 'no-reply@vos.local'
     app.mailer_from: '%env(default:app.mailer_from_default:APP_MAILER_FROM)%'
+    app.mailer_from_address_default: 'no-reply@vos.local'
+    app.mailer_from_address: '%env(default:app.mailer_from_address_default:MAILER_FROM)%'
+    app.app_name_default: 'VOS'
+    app.mailer_from_name: '%env(default:app.app_name_default:APP_NAME)%'
+    app.groq_api_key_default: ''
+    app.groq_api_key: '%env(default:app.groq_api_key_default:GROQ_API_KEY)%'
+    app.groq_model_default: 'llama-3.1-8b-instant'
+    app.groq_model: '%env(default:app.groq_model_default:GROQ_MODEL)%'
 
 services:
     # default configuration for services in *this* file
@@ -25,6 +33,19 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    App\Service\GroqReasonEnhancer:
+        arguments:
+            $groqApiKey: '%env(default::GROQ_API_KEY)%'
+
+    App\Service\PasswordResetService:
+        arguments:
+            $mailerFrom: '%env(default::MAILER_FROM)%'
+            $appName: '%env(default::APP_NAME)%'
+
+    App\Service\EmailVerificationService:
+        arguments:
+            $abstractApiKey: '%env(default::ABSTRACT_API_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
@@ -32,6 +53,36 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.request, priority: 10 }
 
+    App\Service\candidature\CVAnalysisService:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'
+            $logger: '@logger'
+
     App\EventListener\NoCacheResponseListener:
         tags:
             - { name: kernel.event_listener, event: kernel.response, priority: -10 }
+
+    App\Service\OffreNotificationService:
+        bind:
+            $mailerFromAddress: '%app.mailer_from_address%'
+            $mailerFromName: '%app.mailer_from_name%'
+
+    App\Service\CriteriaSuggestionAiService:
+        bind:
+            $groqApiKey: '%app.groq_api_key%'
+            $groqModel: '%app.groq_model%'
+
+    App\Service\OffreDescriptionAiService:
+        bind:
+            $groqApiKey: '%app.groq_api_key%'
+            $groqModel: '%app.groq_model%'
+
+    App\Service\OffreTranslationAiService:
+        bind:
+            $groqApiKey: '%app.groq_api_key%'
+            $groqModel: '%app.groq_model%'
+
+    App\Service\OffreChatFilterAiService:
+        bind:
+            $groqApiKey: '%app.groq_api_key%'
+            $groqModel: '%app.groq_model%'

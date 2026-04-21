@@ -141,6 +141,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <div style="padding:10px 16px;border-radius:999px;background:#eaf2ff;color:var(--primary);font-weight:700;">{{ offers|length }} entrées</div>
+                        <a href="{{ path('gestion_offre_export_pdf', app.request.query.all) }}" style="display:inline-flex;padding:8px 12px;border-radius:10px;background:#f0fdf4;color:#166534;font-weight:700;font-size:0.85rem;border:1px solid #bbf7d0;">Exporter PDF</a>
                         <a href="{{ path('client_opportunites') }}" style="display:inline-flex;padding:8px 12px;border-radius:10px;background:#eff6ff;color:#1e40af;font-weight:700;font-size:0.85rem;border:1px solid #bfdbfe;">Opportunités</a>
                         <a href="{{ path('gestion_offre_new') }}" style="display:inline-flex;padding:10px 16px;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;">Ajouter</a>
                     </div>

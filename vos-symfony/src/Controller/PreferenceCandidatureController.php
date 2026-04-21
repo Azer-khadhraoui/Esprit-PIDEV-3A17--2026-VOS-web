@@ -11,33 +11,80 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
-
 #[Route('/client/preference')]
 final class PreferenceCandidatureController extends AbstractController
 {
     // ── Liste des préférences du client ───────────────────────────────
-    #[Route('', name: 'app_client_preferences', methods: ['GET'])]
-    public function index(
-        PreferenceCandidatureRepository $repo,
-        EntityManagerInterface $entityManager,
-        SessionInterface $session
-    ): Response {
-        $idUtilisateur = (int) $session->get('user_id', 0);
+  #[Route('', name: 'app_client_preferences', methods: ['GET'])]
+public function index(
+    EntityManagerInterface $entityManager,
+    SessionInterface $session,
+    Request $request
+): Response {
+    $idUtilisateur = (int) $session->get('user_id', 0);
 
-        if ($idUtilisateur <= 0) {
-            return $this->redirectToRoute('app_signin');
-        }
-
-        $preferences = $repo->findBy(
-            ['id_utilisateur' => $idUtilisateur],
-            ['id_preference' => 'DESC']
-        );
-
-        return $this->render('client/preferenceCandidature/listPreference.html.twig', [
-            'preferences' => $preferences,
-            'userName' => $session->get('user_name', 'Utilisateur'),
-        ]);
+    if ($idUtilisateur <= 0) {
+        return $this->redirectToRoute('app_signin');
     }
+
+    // ── Filtres ───────────────────────────────────────────────────
+    $filtrePoste       = trim((string) $request->query->get('poste', ''));
+    $filtreMode        = trim((string) $request->query->get('mode', ''));
+    $filtreContrat     = trim((string) $request->query->get('contrat', ''));
+    $filtreDisponible  = trim((string) $request->query->get('disponibilite', ''));
+    $filtreSalaireMin  = $request->query->get('salaire_min', '');
+    $filtreSalaireMax  = $request->query->get('salaire_max', '');
+    // ─────────────────────────────────────────────────────────────
+
+    $qb = $entityManager->getRepository(PreferenceCandidature::class)
+        ->createQueryBuilder('p')
+        ->where('p.id_utilisateur = :uid')
+        ->setParameter('uid', $idUtilisateur)
+        ->orderBy('p.id_preference', 'DESC');
+
+    if ($filtrePoste !== '') {
+        $qb->andWhere('LOWER(p.type_poste_souhaite) LIKE :poste')
+           ->setParameter('poste', '%' . mb_strtolower($filtrePoste) . '%');
+    }
+
+    if ($filtreMode !== '') {
+        $qb->andWhere('p.mode_travail = :mode')
+           ->setParameter('mode', $filtreMode);
+    }
+
+    if ($filtreContrat !== '') {
+        $qb->andWhere('p.type_contrat_souhaite = :contrat')
+           ->setParameter('contrat', $filtreContrat);
+    }
+
+    if ($filtreDisponible !== '') {
+        $qb->andWhere('p.disponibilite = :dispo')
+           ->setParameter('dispo', $filtreDisponible);
+    }
+
+    if ($filtreSalaireMin !== '') {
+        $qb->andWhere('p.pretention_salariale >= :sal_min')
+           ->setParameter('sal_min', (float) $filtreSalaireMin);
+    }
+
+    if ($filtreSalaireMax !== '') {
+        $qb->andWhere('p.pretention_salariale <= :sal_max')
+           ->setParameter('sal_max', (float) $filtreSalaireMax);
+    }
+
+    $preferences = $qb->getQuery()->getResult();
+
+    return $this->render('client/preferenceCandidature/listPreference.html.twig', [
+        'preferences'      => $preferences,
+        'userName'         => $session->get('user_name', 'Utilisateur'),
+        'filtrePoste'      => $filtrePoste,
+        'filtreMode'       => $filtreMode,
+        'filtreContrat'    => $filtreContrat,
+        'filtreDisponible' => $filtreDisponible,
+        'filtreSalaireMin' => $filtreSalaireMin,
+        'filtreSalaireMax' => $filtreSalaireMax,
+    ]);
+}
 
     // ── Formulaire d'ajout ────────────────────────────────────────────
     #[Route('/new', name: 'app_client_preference_new', methods: ['GET', 'POST'])]

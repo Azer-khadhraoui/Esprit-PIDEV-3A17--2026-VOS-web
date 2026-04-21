@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            border-bottom: 3px solid #dc3545;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .alert-box {
+            background-color: #fff5f5;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .candidate-box {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">VOS ADMIN</div>
+            <p>Notification - Candidature supprimée</p>
+        </div>
+
+        <div class="content">
+            <h2>🗑️ Candidature supprimée</h2>
+            
+            <p>Bonjour <strong>{{ admin.prenom }} {{ admin.nom }}</strong>,</p>
+            
+            <p>Une candidature a été supprimée :</p>
+            
+            <div class="alert-box">
+                <strong>📋 Offre :</strong> {{ offreTitre }}<br>
+                <strong>📅 Date de suppression :</strong> {{ 'now'|date('d/m/Y à H:i') }}
+            </div>
+
+            <h3>Informations du candidat :</h3>
+            
+            <div class="candidate-box">
+                <strong>👤 Nom :</strong> {{ candidatName }}<br>
+                <strong>✉️ Email :</strong> {{ candidatEmail }}
+            </div>
+
+            <p>Cette candidature a été retirée du système et ne sera plus visible dans l'interface d'administration.</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>VOS - Plateforme de Recrutement</strong></p>
+            <p>&copy; {{ 'now'|date('Y') }} VOS. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>

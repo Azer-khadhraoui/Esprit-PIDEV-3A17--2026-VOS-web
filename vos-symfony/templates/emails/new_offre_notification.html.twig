@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Nouvelle offre disponible</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; margin: 0; padding: 24px;">
+    <h2 style="margin-top: 0; color: #0f172a;">Une nouvelle offre est disponible</h2>
+
+    <p>Bonjour,</p>
+
+    <p>Une nouvelle offre vient d'etre publiee sur la plateforme VOS.</p>
+
+    <ul>
+        <li><strong>Titre:</strong> {{ offre.titre ?? 'Non specifie' }}</li>
+        <li><strong>Type de contrat:</strong> {{ offre.typeContrat ?? 'Non specifie' }}</li>
+        <li><strong>Lieu:</strong> {{ offre.lieu ?? 'Non specifie' }}</li>
+        <li><strong>Mode de travail:</strong> {{ offre.workPreference ?? 'Non specifie' }}</li>
+    </ul>
+
+    <p style="margin-top: 20px;">
+        <a href="{{ offerUrl }}" style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 10px 16px; border-radius: 6px;">
+            Voir les opportunites
+        </a>
+    </p>
+
+    <p style="margin-top: 24px;">Bonne chance dans vos candidatures.</p>
+
+    <p style="color: #64748b; font-size: 12px; margin-top: 28px;">Message automatique - merci de ne pas repondre a cet email.</p>
+</body>
+</html>
