@@ -37,6 +37,18 @@
                     <a class="cta-link" href="{{ path('app_contact') }}">Nous contacter</a>
                 </article>
             </div>
+
+            {% if appUrl is defined and appUrl != '' %}
+                <div class="info-item" style="margin-top: 24px; display: grid; gap: 14px; align-items: center; grid-template-columns: 140px 1fr;">
+                    <div style="background:#fff;border:1px solid #d8e4f6;border-radius:18px;padding:12px;box-shadow:0 12px 26px rgba(15,29,53,0.08);width:fit-content;">
+                        <img src="{{ qr_code_data_uri(appUrl) }}" alt="QR code vers l'application VOS" style="width:116px;height:116px;display:block;">
+                    </div>
+                    <div>
+                        <h3 style="margin-top:0;">Accès mobile</h3>
+                        <p>Scanne ce QR code avec ton téléphone pour ouvrir directement l'application VOS sur le réseau actuel.</p>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </section>
 </div>

@@ -78,6 +78,14 @@
                             <small id="responsibilities_feedback" style="font-size:0.82rem;color:{{ fieldErrors.responsibilities is defined ? '#b91c1c' : '#64748b' }};">{{ fieldErrors.responsibilities|default('Saisir entre 3 et 2000 caracteres.') }}</small>
                         </label>
 
+                        <div style="display:grid;gap:8px;padding:10px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff;">
+                            <span style="font-size:0.86rem;color:#334155;">Suggestion API basee sur l offre: <strong>{{ offre.titre ?? 'Sans titre' }}</strong></span>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <button id="generate-criteria-btn" type="button" style="padding:8px 12px;border:0;border-radius:9px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;">Generer competences et responsibilities</button>
+                                <small id="generate-criteria-feedback" style="font-size:0.82rem;color:#64748b;">Renseignez niveau experience + niveau etude, puis cliquez pour auto-completer.</small>
+                            </div>
+                        </div>
+
                         <div style="display:flex;gap:10px;flex-wrap:wrap;">
                             <button type="submit" style="padding:9px 14px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Ajouter critere</button>
                             <a href="{{ path('gestion_offre_dashboard', {selectedOfferId: offre.idOffre}) }}" style="display:inline-flex;align-items:center;padding:9px 12px;border-radius:10px;background:#e2e8f0;color:#0f172a;font-weight:700;font-size:0.9rem;">Retour offres</a>
@@ -252,6 +260,110 @@
             const etudeInput = document.getElementById('edit-niveau-etude');
             const compInput = document.getElementById('edit-competences');
             const respInput = document.getElementById('edit-responsibilities');
+
+            const generateButton = document.getElementById('generate-criteria-btn');
+            const generateFeedback = document.getElementById('generate-criteria-feedback');
+            const createNiveauExperience = document.getElementById('niveau_experience');
+            const createNiveauEtude = document.getElementById('niveau_etude');
+            const createCompetences = document.getElementById('competences_requises');
+            const createResponsibilities = document.getElementById('responsibilities');
+            const offerTitle = {{ (offre.titre ?? 'Sans titre')|json_encode|raw }};
+            let autoGenerateTimer = null;
+            let lastGeneratedSignature = '';
+
+            const setGenerateFeedback = (message, color) => {
+                if (!generateFeedback) return;
+                generateFeedback.textContent = message;
+                generateFeedback.style.color = color;
+            };
+
+            const generateSuggestions = async (force = false) => {
+                if (!createNiveauExperience || !createNiveauEtude || !createCompetences || !createResponsibilities) {
+                    return;
+                }
+
+                const niveauExperience = createNiveauExperience.value.trim();
+                const niveauEtude = createNiveauEtude.value.trim();
+                const signature = `${offerTitle}|${niveauExperience}|${niveauEtude}`;
+
+                if (!offerTitle || !niveauExperience || !niveauEtude) {
+                    setGenerateFeedback('Titre offre, niveau experience et niveau etude sont obligatoires.', '#b91c1c');
+                    return;
+                }
+
+                if (!force && signature === lastGeneratedSignature) {
+                    return;
+                }
+
+                try {
+                    if (generateButton) {
+                        generateButton.disabled = true;
+                        generateButton.textContent = 'Generation...';
+                    }
+
+                    setGenerateFeedback('Generation en cours...', '#475569');
+
+                    const params = new URLSearchParams({
+                        titre: offerTitle,
+                        niveau_experience: niveauExperience,
+                        niveau_etude: niveauEtude,
+                    });
+
+                    const response = await fetch(`{{ path('gestion_offre_criteres_suggestions') }}?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Impossible de generer les suggestions.');
+                    }
+
+                    createCompetences.value = payload.competences_requises || '';
+                    createResponsibilities.value = payload.responsibilities || '';
+                    createCompetences.dispatchEvent(new Event('input'));
+                    createResponsibilities.dispatchEvent(new Event('input'));
+                    lastGeneratedSignature = signature;
+
+                    setGenerateFeedback('Suggestions ajoutees avec succes.', '#15803d');
+                } catch (error) {
+                    setGenerateFeedback(error.message || 'Erreur API pendant la generation.', '#b91c1c');
+                } finally {
+                    if (generateButton) {
+                        generateButton.disabled = false;
+                        generateButton.textContent = 'Generer competences et responsibilities';
+                    }
+                }
+            };
+
+            const scheduleAutoGenerate = () => {
+                if (autoGenerateTimer) {
+                    clearTimeout(autoGenerateTimer);
+                }
+
+                autoGenerateTimer = setTimeout(() => {
+                    generateSuggestions(false);
+                }, 450);
+            };
+
+            if (generateButton) {
+                generateButton.addEventListener('click', () => generateSuggestions(true));
+            }
+
+            if (createNiveauExperience) {
+                createNiveauExperience.addEventListener('input', scheduleAutoGenerate);
+                createNiveauExperience.addEventListener('change', scheduleAutoGenerate);
+                createNiveauExperience.addEventListener('blur', scheduleAutoGenerate);
+            }
+
+            if (createNiveauEtude) {
+                createNiveauEtude.addEventListener('input', scheduleAutoGenerate);
+                createNiveauEtude.addEventListener('change', scheduleAutoGenerate);
+                createNiveauEtude.addEventListener('blur', scheduleAutoGenerate);
+            }
 
             const closeModal = () => {
                 if (!modal) return;

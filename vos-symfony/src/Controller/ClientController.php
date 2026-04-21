@@ -6,8 +6,11 @@ use App\Dto\ClientProfileDto;
 use App\Form\ClientProfileType;
 use App\Repository\UserRepository;
 use App\Service\ClientOffreService;
+use App\Service\FaceRecognitionService;
 use App\Service\ClientProfileService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -84,6 +87,74 @@ class ClientController extends AbstractController
             'user' => $user,
             'userName' => (string) $session->get('user_name', 'Client'),
         ]);
+    }
+
+    #[Route('/profile/face-enroll', name: 'app_client_face_enroll', methods: ['POST'])]
+    public function enrollFace(
+        Request $request,
+        SessionInterface $session,
+        UserRepository $userRepository,
+        FaceRecognitionService $faceRecognitionService,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $access = $this->requireClient($session);
+        if ($access instanceof RedirectResponse) {
+            return new JsonResponse(['ok' => false, 'message' => 'Non autorise.'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload) || !$this->isCsrfTokenValid('face_enroll', (string) ($payload['_token'] ?? ''))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Token invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $descriptor = $payload['descriptor'] ?? null;
+        if (!$faceRecognitionService->isValidDescriptor($descriptor)) {
+            return new JsonResponse(['ok' => false, 'message' => 'Visage non detecte ou donnees invalides.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $user = $userRepository->find((int) $session->get('user_id', 0));
+        if (!$user) {
+            return new JsonResponse(['ok' => false, 'message' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user
+            ->setFaceDescriptor($faceRecognitionService->serializeDescriptor($descriptor))
+            ->setFaceAuthEnabled(true);
+
+        $entityManager->flush();
+
+        return new JsonResponse(['ok' => true, 'message' => 'Face ID active avec succes.']);
+    }
+
+    #[Route('/profile/face-disable', name: 'app_client_face_disable', methods: ['POST'])]
+    public function disableFace(
+        Request $request,
+        SessionInterface $session,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $access = $this->requireClient($session);
+        if ($access instanceof RedirectResponse) {
+            return new JsonResponse(['ok' => false, 'message' => 'Non autorise.'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload) || !$this->isCsrfTokenValid('face_disable', (string) ($payload['_token'] ?? ''))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Token invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = $userRepository->find((int) $session->get('user_id', 0));
+        if (!$user) {
+            return new JsonResponse(['ok' => false, 'message' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user
+            ->setFaceDescriptor(null)
+            ->setFaceAuthEnabled(false);
+
+        $entityManager->flush();
+
+        return new JsonResponse(['ok' => true, 'message' => 'Face ID desactive.']);
     }
 
     private function requireClient(SessionInterface $session): RedirectResponse|null

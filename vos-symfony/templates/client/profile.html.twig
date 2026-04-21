@@ -10,12 +10,20 @@
 {% endblock %}
 
 {% block javascripts %}
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const input = document.querySelector('[data-profile-input="1"]');
         const previewImage = document.querySelector('[data-profile-preview]');
         const previewPlaceholder = document.querySelector('[data-profile-placeholder]');
         const previewFilename = document.querySelector('[data-profile-filename]');
+        const faceVideo = document.querySelector('[data-face-video]');
+        const faceStartBtn = document.querySelector('[data-face-start]');
+        const faceEnrollBtn = document.querySelector('[data-face-enroll]');
+        const faceDisableBtn = document.querySelector('[data-face-disable]');
+        const faceStatus = document.querySelector('[data-face-status]');
+        let faceStream = null;
+        let modelsReady = false;
 
         if (!input || !previewImage || !previewPlaceholder || !previewFilename) {
             return;
@@ -39,6 +47,114 @@
             };
             reader.readAsDataURL(file);
         });
+
+        async function ensureModels() {
+            if (modelsReady || !window.faceapi) {
+                return modelsReady;
+            }
+
+            const modelBase = 'https://justadudewhohacks.github.io/face-api.js/models';
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(modelBase),
+                faceapi.nets.faceLandmark68Net.loadFromUri(modelBase),
+                faceapi.nets.faceRecognitionNet.loadFromUri(modelBase)
+            ]);
+
+            modelsReady = true;
+            return true;
+        }
+
+        async function startCamera() {
+            if (!faceVideo) {
+                return;
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                faceStatus.textContent = 'Camera non supportee sur ce navigateur.';
+                return;
+            }
+
+            faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+            faceVideo.srcObject = faceStream;
+            faceStatus.textContent = 'Camera active. Regardez la camera puis cliquez sur Activer Face ID.';
+        }
+
+        async function captureDescriptor() {
+            await ensureModels();
+
+            const detection = await faceapi
+                .detectSingleFace(faceVideo, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            if (!detection || !detection.descriptor) {
+                throw new Error('Aucun visage detecte.');
+            }
+
+            return Array.from(detection.descriptor);
+        }
+
+        async function callFaceEndpoint(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erreur serveur.');
+            }
+
+            return data;
+        }
+
+        if (faceStartBtn) {
+            faceStartBtn.addEventListener('click', async function () {
+                try {
+                    faceStatus.textContent = 'Chargement de la camera...';
+                    await startCamera();
+                } catch (error) {
+                    faceStatus.textContent = error.message || 'Impossible de demarrer la camera.';
+                }
+            });
+        }
+
+        if (faceEnrollBtn) {
+            faceEnrollBtn.addEventListener('click', async function () {
+                try {
+                    if (!faceVideo || !faceVideo.srcObject) {
+                        throw new Error('Demarrez d\'abord la camera.');
+                    }
+
+                    faceStatus.textContent = 'Analyse du visage en cours...';
+                    const descriptor = await captureDescriptor();
+
+                    const result = await callFaceEndpoint('{{ path('app_client_face_enroll') }}', {
+                        _token: '{{ csrf_token('face_enroll') }}',
+                        descriptor: descriptor
+                    });
+
+                    faceStatus.textContent = result.message || 'Face ID active.';
+                } catch (error) {
+                    faceStatus.textContent = error.message || 'Activation Face ID impossible.';
+                }
+            });
+        }
+
+        if (faceDisableBtn) {
+            faceDisableBtn.addEventListener('click', async function () {
+                try {
+                    const result = await callFaceEndpoint('{{ path('app_client_face_disable') }}', {
+                        _token: '{{ csrf_token('face_disable') }}'
+                    });
+
+                    faceStatus.textContent = result.message || 'Face ID desactive.';
+                } catch (error) {
+                    faceStatus.textContent = error.message || 'Desactivation impossible.';
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
@@ -94,6 +210,23 @@
                     </div>
                 </div>
             {{ form_end(profileForm) }}
+        </section>
+
+        <section class="profile-card" style="margin-top: 1.25rem;">
+            <div class="profile-head">
+                <h2>Reconnaissance faciale</h2>
+                <p>Activez Face ID pour renforcer la connexion client.</p>
+            </div>
+
+            <div style="display: grid; gap: 0.9rem; max-width: 520px;">
+                <video data-face-video autoplay muted playsinline style="width: 100%; border-radius: 12px; background: #0f172a;"></video>
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                    <button type="button" class="btn-save-profile" data-face-start>Demarrer camera</button>
+                    <button type="button" class="btn-save-profile" data-face-enroll>Activer Face ID</button>
+                    <button type="button" class="btn-save-profile" data-face-disable style="background: #ef4444;">Desactiver Face ID</button>
+                </div>
+                <div data-face-status style="font-size: 0.95rem; color: #475569;">Etat: Face ID {% if user.faceAuthEnabled %}active{% else %}inactive{% endif %}.</div>
+            </div>
         </section>
     </main>
 </div>

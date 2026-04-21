@@ -22,6 +22,11 @@ class AdminAuthenticationListener
             return;
         }
 
+        // Autoriser les liens publics de verification/telechargement scannes via QR.
+        if (str_starts_with($path, '/admin/document/verify') || str_starts_with($path, '/admin/document/download')) {
+            return;
+        }
+
         // Vérifier la session admin
         $session = $request->getSession();
         

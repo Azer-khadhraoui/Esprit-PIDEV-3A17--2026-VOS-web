@@ -205,7 +205,8 @@
             gap: 12px;
             align-items: center;
             justify-content: flex-start;
-            grid-column: 1;
+            grid-column: 1 / -1;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -217,6 +218,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: transform 0.18s ease, filter 0.2s ease;
+            white-space: nowrap;
         }
 
         .btn:hover {
@@ -391,6 +393,206 @@
             background: #cfdaff;
         }
 
+        .compare-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, background 0.2s ease;
+        }
+
+        .compare-btn:hover {
+            transform: translateY(-1px);
+            background: #e2e8f0;
+        }
+
+        .compare-btn.is-selected {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .compare-session-bar {
+            margin: 12px 0 14px;
+            border: 1px solid #dbe2f0;
+            background: #f8fbff;
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .compare-session-info {
+            font-size: 0.9rem;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .compare-session-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compare-open-btn,
+        .compare-clear-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .compare-open-btn {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .compare-open-btn:disabled {
+            background: #9aa9dd;
+            cursor: not-allowed;
+        }
+
+        .compare-clear-btn {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .compare-note {
+            font-size: 0.78rem;
+            color: #64748b;
+            width: 100%;
+        }
+
+        .compare-table-wrap {
+            overflow-x: auto;
+            padding: 12px;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 580px;
+        }
+
+        .compare-table th,
+        .compare-table td {
+            border: 1px solid #dbe2f0;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.88rem;
+        }
+
+        .compare-table thead th {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .compare-table tbody th {
+            background: #f8fafc;
+            color: #334155;
+            width: 170px;
+            font-weight: 700;
+        }
+
+        .alert-session-bar {
+            margin: 0 0 14px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .alert-session-bar.is-active {
+            border-color: #93c5fd;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+        }
+
+        .alert-session-info {
+            display: grid;
+            gap: 4px;
+        }
+
+        .alert-session-title {
+            font-weight: 800;
+            color: #1d4ed8;
+            font-size: 0.95rem;
+        }
+
+        .alert-session-text {
+            color: #334155;
+            font-size: 0.88rem;
+        }
+
+        .alert-session-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .alert-save-btn,
+        .alert-clear-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .alert-save-btn {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .alert-clear-btn {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .alert-match-list {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: #334155;
+            font-size: 0.88rem;
+        }
+
+        .lang-switch {
+            display: inline-flex;
+            border: 1px solid #d9deea;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .lang-btn {
+            border: 0;
+            background: transparent;
+            color: #4b587c;
+            font-weight: 700;
+            font-size: 0.74rem;
+            padding: 5px 9px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .lang-btn.is-active {
+            background: #e0e7ff;
+            color: #1d4ed8;
+        }
+
         .modal {
             position: fixed;
             inset: 0;
@@ -488,6 +690,195 @@
             cursor: pointer;
         }
 
+        .chatbot-fab {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: 58px;
+            height: 58px;
+            border: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1d4ed8, #4361ee);
+            color: #fff;
+            font-size: 1.55rem;
+            box-shadow: 0 16px 32px rgba(67, 97, 238, 0.32);
+            cursor: pointer;
+            z-index: 120;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chatbot-fab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 34px rgba(67, 97, 238, 0.38);
+        }
+
+        .chatbot-panel {
+            position: fixed;
+            right: 18px;
+            bottom: 86px;
+            width: min(380px, calc(100vw - 24px));
+            max-height: min(72vh, 620px);
+            background: #fff;
+            border: 1px solid #dbe2f0;
+            border-radius: 16px;
+            box-shadow: 0 24px 56px rgba(15, 23, 42, 0.2);
+            z-index: 125;
+            display: none;
+            overflow: hidden;
+        }
+
+        .chatbot-panel.is-open {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            animation: riseIn 0.2s ease;
+        }
+
+        .chatbot-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: #f4f7ff;
+            border-bottom: 1px solid #dbe2f0;
+        }
+
+        .chatbot-title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1f2a49;
+        }
+
+        .chatbot-subtitle {
+            margin: 2px 0 0;
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+
+        .chatbot-close {
+            border: 0;
+            background: #e2e8f0;
+            color: #1e293b;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .chatbot-messages {
+            padding: 12px;
+            overflow-y: auto;
+            display: grid;
+            gap: 8px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        }
+
+        .chatbot-bubble {
+            border-radius: 12px;
+            padding: 10px 11px;
+            font-size: 0.88rem;
+            line-height: 1.4;
+            max-width: 90%;
+            white-space: pre-wrap;
+        }
+
+        .chatbot-bubble.user {
+            margin-left: auto;
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .chatbot-bubble.bot {
+            margin-right: auto;
+            background: #eef2ff;
+            color: #1e293b;
+        }
+
+        .chatbot-reco-list {
+            margin-top: 6px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .chatbot-reco-item {
+            border: 1px solid #dbe2f0;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .chatbot-reco-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .chatbot-reco-title {
+            margin: 0;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .chatbot-reco-meta {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.76rem;
+        }
+
+        .chatbot-open-offer {
+            border: 0;
+            border-radius: 8px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 0.74rem;
+            padding: 6px 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .chatbot-form {
+            border-top: 1px solid #dbe2f0;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            background: #fff;
+        }
+
+        .chatbot-input {
+            border: 1px solid #d3dbef;
+            border-radius: 10px;
+            padding: 9px 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .chatbot-input:focus {
+            outline: none;
+            border-color: #9fb1ff;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+        }
+
+        .chatbot-submit {
+            border: 0;
+            border-radius: 10px;
+            background: #1d4ed8;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+
+        .chatbot-submit:disabled {
+            background: #9aa9dd;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 980px) {
             .filters .row { grid-template-columns: 1fr 1fr; }
             .filter-actions { grid-template-columns: 1fr 1fr; }
@@ -549,12 +940,34 @@
         <div class="filter-actions">
             <div class="group">
                 <button class="btn" type="submit">Rechercher</button>
+                <button id="alert-save-btn" class="alert-save-btn" type="button">Activer alerte temporaire</button>
+                <button id="alert-clear-btn" class="alert-clear-btn" type="button">Effacer alerte</button>
                 <a class="btn-link" href="{{ path('client_opportunites') }}">Effacer</a>
             </div>
         </div>
     </form>
 
+    <section id="alert-session-bar" class="alert-session-bar">
+        <div class="alert-session-info">
+            <div id="alert-session-title" class="alert-session-title">Aucune alerte temporaire</div>
+            <div id="alert-session-text" class="alert-session-text">
+                Sauvegardez votre recherche actuelle pour recevoir une alerte temporaire dans ce navigateur.
+            </div>
+            <ul id="alert-match-list" class="alert-match-list"></ul>
+        </div>
+        <div class="alert-session-actions"></div>
+    </section>
+
     <div class="results-count">{{ pagination.total }} resultats</div>
+
+    <section class="compare-session-bar">
+        <div id="compare-session-info" class="compare-session-info">Comparaison locale: 0 offre selectionnee</div>
+        <div class="compare-session-actions">
+            <button id="compare-open-btn" class="compare-open-btn" type="button" disabled>Comparer maintenant</button>
+            <button id="compare-clear-btn" class="compare-clear-btn" type="button">Vider</button>
+        </div>
+        <div class="compare-note">Selectionnez entre 2 et 4 offres. La liste est gardee dans ce navigateur.</div>
+    </section>
 
     <section class="cards">
         {% for offer in offers %}
@@ -576,6 +989,7 @@
                 <div class="apply-row">
                     <span class="badge {{ offer.statutOffre == 'OUVERTE' ? 'open' : 'closed' }}">{{ offer.statutOffre ?? 'N/A' }}</span>
                     <div class="actions-right">
+                        <button type="button" class="compare-btn compare-offer-btn" data-offer-id="{{ offer.idOffre }}">Comparer</button>
                         <button type="button" class="details-btn open-offer-details" data-offer-id="{{ offer.idOffre }}">Voir details</button>
                     </div>
                 </div>
@@ -603,8 +1017,20 @@
                     </div>
 
                     <div class="details-section">
-                        <h4>Profil recherche</h4>
-                        <ul class="details-list">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                            <h4>Profil recherche</h4>
+                            <div class="lang-switch" data-criteria-switch="{{ offer.idOffre }}">
+                                <button type="button" class="lang-btn criteria-lang-btn is-active" data-lang="FR" data-offer-id="{{ offer.idOffre }}">FR</button>
+                                <button type="button" class="lang-btn criteria-lang-btn" data-lang="EN" data-offer-id="{{ offer.idOffre }}">EN</button>
+                            </div>
+                        </div>
+                        <ul
+                            class="details-list criteria-profile-list"
+                            data-offer-id="{{ offer.idOffre }}"
+                            data-fr-niveau-experience="{{ (critere.niveau_experience ?? '')|e('html_attr') }}"
+                            data-fr-niveau-etude="{{ (critere.niveau_etude ?? '')|e('html_attr') }}"
+                            data-fr-competences="{{ (critere.competences_requises ?? '')|e('html_attr') }}"
+                        >
                             {% if critere and critere.niveau_experience %}<li>{{ critere.niveau_experience }}</li>{% endif %}
                             {% if critere and critere.niveau_etude %}<li>{{ critere.niveau_etude }}</li>{% endif %}
                             {% if critere and critere.competences_requises %}
@@ -618,7 +1044,7 @@
 
                     <div class="details-section" style="padding-bottom:18px;">
                         <h4>Responsabilites</h4>
-                        <ul class="details-list">
+                        <ul class="details-list criteria-responsibilities-list" data-offer-id="{{ offer.idOffre }}" data-fr-responsibilities="{{ (critere.responsibilities ?? '')|e('html_attr') }}">
                             {% if critere and critere.responsibilities %}
                                 {% for item in critere.responsibilities|replace({'\r': ''})|split('\n') %}
                                     {% if item|trim != '' %}<li>{{ item|trim }}</li>{% endif %}
@@ -685,16 +1111,300 @@
     </div>
 </div>
 
+<div id="compare-modal" class="modal">
+    <div class="modal-card details" style="max-width: 980px;">
+        <div class="modal-head">
+            <span>Comparaison des offres</span>
+            <button id="close-compare-modal" class="cancel" type="button">X</button>
+        </div>
+        <div id="compare-modal-body" class="compare-table-wrap"></div>
+    </div>
+</div>
+
+<button id="chatbot-fab" class="chatbot-fab" type="button" aria-label="Ouvrir assistant emploi">AI</button>
+<section id="chatbot-panel" class="chatbot-panel" aria-live="polite" aria-label="Assistant offres">
+    <header class="chatbot-head">
+        <div>
+            <h2 class="chatbot-title">Assistant Offres</h2>
+            <p class="chatbot-subtitle">Decrivez votre job ideal, je filtre pour vous.</p>
+        </div>
+        <button id="chatbot-close" class="chatbot-close" type="button">X</button>
+    </header>
+    <div id="chatbot-messages" class="chatbot-messages">
+        <div class="chatbot-bubble bot">Bonjour, je peux vous aider a trouver des offres. Essayez: "Je veux un CDI remote en data a Tunis".</div>
+    </div>
+    <form id="chatbot-form" class="chatbot-form">
+        <input id="chatbot-input" class="chatbot-input" type="text" maxlength="280" placeholder="Ex: Stage developpement web a Sfax" required>
+        <button id="chatbot-submit" class="chatbot-submit" type="submit">Trouver des offres</button>
+    </form>
+</section>
+
 <script>
     (function () {
         const detailsModal = document.getElementById('details-modal');
         const detailsBody = document.getElementById('details-modal-body');
         const closeDetailsBtn = document.getElementById('close-details-modal');
+        const criteriaCache = {};
+        const chatbotFab = document.getElementById('chatbot-fab');
+        const chatbotPanel = document.getElementById('chatbot-panel');
+        const chatbotClose = document.getElementById('chatbot-close');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const chatbotForm = document.getElementById('chatbot-form');
+        const chatbotInput = document.getElementById('chatbot-input');
+        const chatbotSubmit = document.getElementById('chatbot-submit');
+        const compareModal = document.getElementById('compare-modal');
+        const compareModalBody = document.getElementById('compare-modal-body');
+        const closeCompareBtn = document.getElementById('close-compare-modal');
+        const compareInfo = document.getElementById('compare-session-info');
+        const compareOpenBtn = document.getElementById('compare-open-btn');
+        const compareClearBtn = document.getElementById('compare-clear-btn');
+        const compareButtons = Array.from(document.querySelectorAll('.compare-offer-btn'));
+        const compareSelectedIds = new Set();
+        const compareStorageKey = 'vos_compare_offer_ids_v1';
+        const alertStorageKey = 'vos_temporary_alert_v1';
+        const alertSaveBtn = document.getElementById('alert-save-btn');
+        const alertClearBtn = document.getElementById('alert-clear-btn');
+        const alertBar = document.getElementById('alert-session-bar');
+        const alertTitle = document.getElementById('alert-session-title');
+        const alertText = document.getElementById('alert-session-text');
+        const alertMatchList = document.getElementById('alert-match-list');
 
         const closeDetailsModal = () => {
             if (!detailsModal || !detailsBody) return;
             detailsModal.style.display = 'none';
             detailsBody.innerHTML = '';
+        };
+
+        const closeCompareModal = () => {
+            if (!compareModal || !compareModalBody) return;
+            compareModal.style.display = 'none';
+            compareModalBody.innerHTML = '';
+        };
+
+        const readStoredJson = (key) => {
+            try {
+                const raw = window.localStorage.getItem(key);
+                if (!raw) {
+                    return null;
+                }
+
+                return JSON.parse(raw);
+            } catch (error) {
+                return null;
+            }
+        };
+
+        const writeStoredJson = (key, value) => {
+            try {
+                if (value === null) {
+                    window.localStorage.removeItem(key);
+                    return;
+                }
+
+                window.localStorage.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                // Ignore storage quota or privacy mode failures.
+            }
+        };
+
+        const openDetailsForOffer = (offerId) => {
+            const trigger = document.querySelector(`.open-offer-details[data-offer-id="${offerId}"]`);
+            if (!trigger) return;
+
+            trigger.click();
+            const card = trigger.closest('.card');
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+        const appendChatMessage = (author, text) => {
+            if (!chatbotMessages) return;
+            const bubble = document.createElement('div');
+            bubble.className = `chatbot-bubble ${author}`;
+            bubble.textContent = text;
+            chatbotMessages.appendChild(bubble);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        };
+
+        const appendRecommendations = (recommendations) => {
+            if (!chatbotMessages || !Array.isArray(recommendations) || recommendations.length === 0) {
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chatbot-reco-list';
+
+            recommendations.forEach((offer) => {
+                const item = document.createElement('article');
+                item.className = 'chatbot-reco-item';
+
+                const head = document.createElement('div');
+                head.className = 'chatbot-reco-head';
+
+                const title = document.createElement('h3');
+                title.className = 'chatbot-reco-title';
+                title.textContent = offer.titre || 'Offre';
+
+                const openBtn = document.createElement('button');
+                openBtn.type = 'button';
+                openBtn.className = 'chatbot-open-offer';
+                openBtn.textContent = 'Voir details';
+                openBtn.addEventListener('click', () => {
+                    openDetailsForOffer(offer.idOffre);
+                });
+
+                head.appendChild(title);
+                head.appendChild(openBtn);
+
+                const meta = document.createElement('p');
+                meta.className = 'chatbot-reco-meta';
+                meta.textContent = `${offer.typeContrat || 'N/A'} | ${offer.workPreference || 'N/A'} | ${offer.lieu || 'N/A'}`;
+
+                const desc = document.createElement('p');
+                desc.className = 'chatbot-reco-meta';
+                desc.textContent = offer.descriptionSnippet || '';
+
+                item.appendChild(head);
+                item.appendChild(meta);
+                item.appendChild(desc);
+                wrapper.appendChild(item);
+            });
+
+            chatbotMessages.appendChild(wrapper);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        };
+
+        const setChatbotOpen = (open) => {
+            if (!chatbotPanel) return;
+            chatbotPanel.classList.toggle('is-open', open);
+            if (open && chatbotInput) {
+                chatbotInput.focus();
+            }
+        };
+
+        const escapeHtml = (value) => {
+            return (value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        };
+
+        const updateCompareUi = () => {
+            const selectedIds = Array.from(compareSelectedIds);
+            compareButtons.forEach((button) => {
+                const offerId = Number(button.getAttribute('data-offer-id'));
+                const selected = selectedIds.includes(offerId);
+                button.classList.toggle('is-selected', selected);
+                button.textContent = selected ? 'Selectionnee' : 'Comparer';
+            });
+
+            if (compareInfo) {
+                compareInfo.textContent = `Comparaison locale: ${selectedIds.length} offre(s) selectionnee(s)`;
+            }
+
+            if (compareOpenBtn) {
+                compareOpenBtn.disabled = selectedIds.length < 2 || selectedIds.length > 4;
+            }
+        };
+
+        const serializeAlertFilters = () => {
+            const form = document.querySelector('form.filters');
+            if (!form) return {};
+
+            const formData = new FormData(form);
+            return {
+                q: (formData.get('q') || '').toString().trim(),
+                type_contrat: (formData.get('type_contrat') || '').toString().trim(),
+                work_preference: (formData.get('work_preference') || '').toString().trim(),
+                lieu: (formData.get('lieu') || '').toString().trim(),
+                statut: (formData.get('statut') || '').toString().trim(),
+            };
+        };
+
+        const updateAlertUi = (payload) => {
+            const alert = payload?.alert || null;
+            const matches = Array.isArray(payload?.matches?.offers) ? payload.matches.offers : [];
+            const matchCount = Number.isInteger(payload?.matches?.count) ? payload.matches.count : matches.length;
+
+            if (alertBar) {
+                alertBar.classList.toggle('is-active', !!alert);
+            }
+
+            if (alertTitle) {
+                alertTitle.textContent = alert ? 'Alerte temporaire active' : 'Aucune alerte temporaire';
+            }
+
+            if (alertText) {
+                alertText.textContent = alert
+                    ? `${matchCount} offre(s) correspondent actuellement a votre alerte temporaire.`
+                    : 'Sauvegardez votre recherche actuelle pour recevoir une alerte temporaire dans ce navigateur.';
+            }
+
+            if (alertMatchList) {
+                alertMatchList.innerHTML = '';
+                matches.forEach((match) => {
+                    const item = document.createElement('li');
+                    item.textContent = `${match.titre} - ${match.typeContrat} - ${match.workPreference} - ${match.lieu}`;
+                    alertMatchList.appendChild(item);
+                });
+            }
+        };
+
+        const renderCompareTable = (offers) => {
+            if (!compareModalBody) return;
+
+            if (!Array.isArray(offers) || offers.length < 2) {
+                compareModalBody.innerHTML = '<p>Aucune comparaison disponible.</p>';
+                return;
+            }
+
+            const rows = [
+                { label: 'Type contrat', key: 'typeContrat', list: false },
+                { label: 'Mode travail', key: 'workPreference', list: false },
+                { label: 'Lieu', key: 'lieu', list: false },
+                { label: 'Competences requises', key: 'competencesRequises', list: true },
+            ];
+
+            let html = '<table class="compare-table"><thead><tr><th>Critere</th>';
+            offers.forEach((offer) => {
+                html += `<th>${escapeHtml(offer.titre || 'Offre')}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            rows.forEach((row) => {
+                html += `<tr><th>${escapeHtml(row.label)}</th>`;
+                offers.forEach((offer) => {
+                    const value = offer[row.key];
+                    if (row.list) {
+                        const items = Array.isArray(value) ? value : [];
+                        const listHtml = items.length > 0
+                            ? `<ul style="margin:0;padding-left:16px;">${items.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>`
+                            : 'N/A';
+                        html += `<td>${listHtml}</td>`;
+                    } else {
+                        html += `<td>${escapeHtml(String(value ?? 'N/A'))}</td>`;
+                    }
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            compareModalBody.innerHTML = html;
+        };
+
+        const syncCompareIds = (ids) => {
+            compareSelectedIds.clear();
+            (ids || []).forEach((id) => {
+                const parsed = Number(id);
+                if (Number.isInteger(parsed) && parsed > 0 && compareSelectedIds.size < 4) {
+                    compareSelectedIds.add(parsed);
+                }
+            });
+            writeStoredJson(compareStorageKey, Array.from(compareSelectedIds));
+            updateCompareUi();
         };
 
         document.querySelectorAll('.open-offer-details').forEach((button) => {
@@ -715,6 +1425,339 @@
             detailsModal.addEventListener('click', (event) => {
                 if (event.target === detailsModal) {
                     closeDetailsModal();
+                }
+            });
+        }
+
+        if (closeCompareBtn) {
+            closeCompareBtn.addEventListener('click', closeCompareModal);
+        }
+
+        if (compareModal) {
+            compareModal.addEventListener('click', (event) => {
+                if (event.target === compareModal) {
+                    closeCompareModal();
+                }
+            });
+        }
+
+        compareButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const offerId = Number(button.getAttribute('data-offer-id'));
+                if (!Number.isInteger(offerId) || offerId <= 0) {
+                    return;
+                }
+
+                if (compareSelectedIds.has(offerId)) {
+                    compareSelectedIds.delete(offerId);
+                    syncCompareIds(Array.from(compareSelectedIds));
+                    return;
+                }
+
+                if (compareSelectedIds.size >= 4) {
+                    alert('Vous pouvez comparer au maximum 4 offres.');
+                    return;
+                }
+
+                compareSelectedIds.add(offerId);
+                syncCompareIds(Array.from(compareSelectedIds));
+            });
+        });
+
+        if (compareClearBtn) {
+            compareClearBtn.addEventListener('click', () => {
+                syncCompareIds([]);
+                closeCompareModal();
+            });
+        }
+
+        if (compareOpenBtn) {
+            compareOpenBtn.addEventListener('click', async () => {
+                try {
+                    compareOpenBtn.disabled = true;
+
+                    const response = await fetch('{{ path('client_opportunites_compare_preview') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ selectedOfferIds: Array.from(compareSelectedIds) }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Impossible de charger la comparaison.');
+                    }
+
+                    renderCompareTable(payload.offers || []);
+                    if (compareModal) {
+                        compareModal.style.display = 'flex';
+                    }
+                } catch (error) {
+                    alert(error.message || 'Erreur comparaison.');
+                } finally {
+                    updateCompareUi();
+                }
+            });
+        }
+
+        if (alertSaveBtn) {
+            alertSaveBtn.addEventListener('click', async () => {
+                try {
+                    alertSaveBtn.disabled = true;
+
+                    const filters = serializeAlertFilters();
+                    const hasValue = Object.values(filters).some((value) => String(value || '').trim() !== '');
+                    if (!hasValue) {
+                        throw new Error('Veuillez renseigner au moins un critere pour activer une alerte temporaire.');
+                    }
+
+                    writeStoredJson(alertStorageKey, filters);
+
+                    const response = await fetch('{{ path('client_opportunites_alert_preview') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(filters),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Impossible d activer l alerte.');
+                    }
+
+                    updateAlertUi(payload);
+                    alert('Alerte temporaire activee dans ce navigateur.');
+                } catch (error) {
+                    alert(error.message || 'Erreur alerte temporaire.');
+                } finally {
+                    alertSaveBtn.disabled = false;
+                }
+            });
+        }
+
+        if (alertClearBtn) {
+            alertClearBtn.addEventListener('click', () => {
+                writeStoredJson(alertStorageKey, null);
+                updateAlertUi({ alert: null, matches: { count: 0, offers: [] } });
+                alert('Alerte temporaire supprimee.');
+            });
+        }
+
+        const initialCompareIds = readStoredJson(compareStorageKey);
+        syncCompareIds(Array.isArray(initialCompareIds) ? initialCompareIds : []);
+
+        const initialAlert = readStoredJson(alertStorageKey);
+        if (initialAlert && typeof initialAlert === 'object') {
+            fetch('{{ path('client_opportunites_alert_preview') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(initialAlert),
+            })
+                .then((response) => response.json().then((payload) => ({ ok: response.ok, payload })))
+                .then(({ ok, payload }) => {
+                    if (!ok) {
+                        throw new Error(payload?.message || 'Erreur de chargement de l alerte.');
+                    }
+
+                    updateAlertUi(payload);
+                })
+                .catch(() => {
+                    updateAlertUi({ alert: initialAlert, matches: { count: 0, offers: [] } });
+                });
+        } else {
+            updateAlertUi({ alert: null, matches: { count: 0, offers: [] } });
+        }
+
+        if (chatbotFab) {
+            chatbotFab.addEventListener('click', () => {
+                const shouldOpen = !chatbotPanel?.classList.contains('is-open');
+                setChatbotOpen(shouldOpen);
+            });
+        }
+
+        if (chatbotClose) {
+            chatbotClose.addEventListener('click', () => setChatbotOpen(false));
+        }
+
+        if (chatbotForm && chatbotInput && chatbotSubmit) {
+            chatbotForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const message = chatbotInput.value.trim();
+                if (message === '') {
+                    return;
+                }
+
+                appendChatMessage('user', message);
+                chatbotInput.value = '';
+                chatbotSubmit.disabled = true;
+
+                try {
+                    const response = await fetch('{{ path('client_opportunites_chatbot_suggest') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ message }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Erreur assistant.');
+                    }
+
+                    appendChatMessage('bot', payload.assistantMessage || 'Voici ce que j ai trouve.');
+                    appendRecommendations(payload.recommendations || []);
+                } catch (error) {
+                    appendChatMessage('bot', 'Je n ai pas pu traiter votre demande. Essayez une phrase plus precise.');
+                } finally {
+                    chatbotSubmit.disabled = false;
+                    chatbotInput.focus();
+                }
+            });
+        }
+
+        const splitLines = (text) => {
+            return (text || '')
+                .replace(/\r/g, '')
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+        };
+
+        const setCriteriaLangButtonState = (offerId, activeLang) => {
+            if (!detailsBody) return;
+            detailsBody.querySelectorAll(`.criteria-lang-btn[data-offer-id="${offerId}"]`).forEach((btn) => {
+                btn.classList.toggle('is-active', btn.getAttribute('data-lang') === activeLang);
+            });
+        };
+
+        const renderList = (listEl, items, fallbackText) => {
+            if (!listEl) return;
+
+            const normalizedItems = items.filter((item) => item.trim() !== '');
+            if (normalizedItems.length === 0) {
+                listEl.innerHTML = `<li>${fallbackText}</li>`;
+                return;
+            }
+
+            listEl.innerHTML = normalizedItems.map((item) => `<li>${item}</li>`).join('');
+        };
+
+        const renderCriteria = (offerId, criteriaData) => {
+            if (!detailsBody) return;
+
+            const profileList = detailsBody.querySelector(`.criteria-profile-list[data-offer-id="${offerId}"]`);
+            const responsibilitiesList = detailsBody.querySelector(`.criteria-responsibilities-list[data-offer-id="${offerId}"]`);
+
+            if (!profileList || !responsibilitiesList) return;
+
+            const profileItems = [];
+            if ((criteriaData.niveau_experience || '').trim() !== '') {
+                profileItems.push(criteriaData.niveau_experience.trim());
+            }
+            if ((criteriaData.niveau_etude || '').trim() !== '') {
+                profileItems.push(criteriaData.niveau_etude.trim());
+            }
+
+            splitLines(criteriaData.competences_requises || '').forEach((line) => {
+                profileItems.push(line.replace(/^[-*]\s*/, '').trim());
+            });
+
+            renderList(profileList, profileItems, 'Profil non precise.');
+
+            const responsibilitiesItems = splitLines(criteriaData.responsibilities || '').map((line) => line.replace(/^[-*]\s*/, '').trim());
+            renderList(responsibilitiesList, responsibilitiesItems, 'Responsabilites non precisees.');
+        };
+
+        const getFrCriteriaFromDataset = (offerId) => {
+            if (!detailsBody) return null;
+            const profileList = detailsBody.querySelector(`.criteria-profile-list[data-offer-id="${offerId}"]`);
+            const responsibilitiesList = detailsBody.querySelector(`.criteria-responsibilities-list[data-offer-id="${offerId}"]`);
+            if (!profileList || !responsibilitiesList) {
+                return null;
+            }
+
+            return {
+                niveau_experience: profileList.dataset.frNiveauExperience || '',
+                niveau_etude: profileList.dataset.frNiveauEtude || '',
+                competences_requises: profileList.dataset.frCompetences || '',
+                responsibilities: responsibilitiesList.dataset.frResponsibilities || '',
+            };
+        };
+
+        if (detailsBody) {
+            detailsBody.addEventListener('click', async (event) => {
+                const button = event.target.closest('.criteria-lang-btn');
+                if (!button) return;
+
+                const offerId = button.getAttribute('data-offer-id');
+                const lang = (button.getAttribute('data-lang') || 'FR').toUpperCase();
+                if (!offerId) return;
+
+                const cacheKey = `${offerId}_${lang}`;
+
+                if (lang === 'FR') {
+                    const frCriteria = getFrCriteriaFromDataset(offerId);
+                    if (frCriteria) {
+                        renderCriteria(offerId, frCriteria);
+                    }
+                    setCriteriaLangButtonState(offerId, 'FR');
+                    return;
+                }
+
+                if (criteriaCache[cacheKey]) {
+                    renderCriteria(offerId, criteriaCache[cacheKey]);
+                    setCriteriaLangButtonState(offerId, lang);
+                    return;
+                }
+
+                try {
+                    button.disabled = true;
+
+                    const params = new URLSearchParams({
+                        id_offre: offerId,
+                        lang: lang,
+                    });
+
+                    const response = await fetch(`{{ path('client_opportunites_translate_criteria') }}?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Translation failed.');
+                    }
+
+                    const translatedData = {
+                        niveau_experience: (payload.niveau_experience || '').trim(),
+                        niveau_etude: (payload.niveau_etude || '').trim(),
+                        competences_requises: (payload.competences_requises || '').trim(),
+                        responsibilities: (payload.responsibilities || '').trim(),
+                    };
+
+                    criteriaCache[cacheKey] = translatedData;
+                    renderCriteria(offerId, translatedData);
+                    setCriteriaLangButtonState(offerId, lang);
+                } catch (error) {
+                    const frCriteria = getFrCriteriaFromDataset(offerId);
+                    if (frCriteria) {
+                        renderCriteria(offerId, frCriteria);
+                    }
+                    setCriteriaLangButtonState(offerId, 'FR');
+                } finally {
+                    button.disabled = false;
                 }
             });
         }

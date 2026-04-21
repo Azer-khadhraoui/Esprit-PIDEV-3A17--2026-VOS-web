@@ -5,9 +5,12 @@ namespace App\Controller;
 use App\Entity\OffreEmploi;
 use App\Entity\PreferenceCandidature;
 use App\Service\candidature\MatchingService;
+use App\Service\OffreChatFilterAiService;
+use App\Service\OffreTranslationAiService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +19,15 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ClientOffreController extends AbstractController
 {
+    private const COMPARE_SESSION_KEY = 'compare_offer_ids';
+    private const ALERT_SESSION_KEY = 'temporary_offer_alert_filters';
+
+    public function __construct(
+        private readonly OffreTranslationAiService $offreTranslationAiService,
+        private readonly OffreChatFilterAiService $offreChatFilterAiService,
+    ) {
+    }
+
     #[Route('/opportunites', name: 'client_opportunites', methods: ['GET'])]
     public function index(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
@@ -44,9 +56,10 @@ class ClientOffreController extends AbstractController
         $workPreference = $this->normalizeText($request->query->get('work_preference'));
         $lieu = $this->normalizeText($request->query->get('lieu'));
         $statut = $this->normalizeText($request->query->get('statut'));
+        $normalizedStatut = $statut !== null ? strtoupper($statut) : null;
 
-        if ($statut === 'ACTIVE') {
-            $statut = 'OUVERTE';
+        if ($normalizedStatut === 'ACTIVE') {
+            $normalizedStatut = 'OUVERTE';
         }
 
         $qb = $offreRepository->createQueryBuilder('o');
@@ -75,14 +88,21 @@ class ClientOffreController extends AbstractController
                 ->setParameter('lieu', '%'.$lieu.'%');
         }
 
-        if ($statut !== null) {
-            $qb
-                ->andWhere('o.statutOffre = :statut')
-                ->setParameter('statut', $statut);
+        if ($normalizedStatut !== null) {
+            if ($normalizedStatut === 'OUVERTE') {
+                // Keep compatibility with legacy values saved as ACTIVE.
+                $qb
+                    ->andWhere('UPPER(COALESCE(o.statutOffre, \'\')) IN (:openStatuts)')
+                    ->setParameter('openStatuts', ['OUVERTE', 'ACTIVE']);
+            } else {
+                $qb
+                    ->andWhere('UPPER(COALESCE(o.statutOffre, \'\')) = :statut')
+                    ->setParameter('statut', $normalizedStatut);
+            }
         } else {
             $qb
-                ->andWhere('o.statutOffre IN (:openStatuts)')
-                ->setParameter('openStatuts', ['OUVERTE']);
+                ->andWhere('UPPER(COALESCE(o.statutOffre, \'\')) IN (:openStatuts)')
+                ->setParameter('openStatuts', ['OUVERTE', 'ACTIVE']);
         }
 
         $countQb = clone $qb;
@@ -103,6 +123,8 @@ class ClientOffreController extends AbstractController
             ->getResult();
 
         $criteriaByOffer = $this->getLatestCriteriaByOffer($entityManager);
+        $temporaryAlert = $this->getTemporaryAlertFromSession($session);
+        $temporaryAlertMatches = $this->findTemporaryAlertMatches($entityManager, $temporaryAlert);
         $displayName = $isClientAuthenticated
             ? (string) $session->get('user_name', 'Utilisateur')
             : (string) $session->get('admin_user_name', 'Admin');
@@ -110,6 +132,9 @@ class ClientOffreController extends AbstractController
         return $this->render('client/opportunites.html.twig', [
             'offers' => $offers,
             'criteriaByOffer' => $criteriaByOffer,
+            'compareOfferIds' => $this->getCompareOfferIdsFromSession($session),
+            'temporaryAlert' => $temporaryAlert,
+            'temporaryAlertMatches' => $temporaryAlertMatches,
             'isClientAuthenticated' => $isClientAuthenticated,
             'isAdminAuthenticated' => $isAdminAuthenticated,
             'userName' => $displayName,
@@ -124,13 +149,14 @@ class ClientOffreController extends AbstractController
                 'type_contrat' => $typeContrat,
                 'work_preference' => $workPreference,
                 'lieu' => $lieu,
-                'statut' => $statut,
+                'statut' => $normalizedStatut,
                 'page' => $page,
             ],
             'filterOptions' => [
-                'typesContrat' => $this->getDistinctOffreValues($entityManager, 'type_contrat'),
-                'workPreferences' => $this->getDistinctOffreValues($entityManager, 'work_preference'),
-                'statuts' => $this->getDistinctOffreValues($entityManager, 'statut_offre'),
+                // Static options keep UI stable and avoid inconsistent labels.
+                'typesContrat' => ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance'],
+                'workPreferences' => ['On-site', 'Remote', 'Hybrid'],
+                'statuts' => ['OUVERTE', 'INACTIVE', 'FERMEE'],
             ],
         ]);
     }
@@ -317,78 +343,412 @@ class ClientOffreController extends AbstractController
         ]);
     }
 
-    #[Route('/offre/{idOffre}/matching-score', name: 'client_offre_matching_score', methods: ['GET'])]
-    public function matchingScore(
-        #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
-        EntityManagerInterface $entityManager,
-        SessionInterface $session,
-        MatchingService $matchingService
-    ): Response {
-        $isClientAuthenticated = (bool) $session->get('user_id')
-            && (string) $session->get('user_role', '') === 'CLIENT'
-            && (string) $session->get('auth_scope', '') === 'client';
+    #[Route('/opportunites/translate-criteria', name: 'client_opportunites_translate_criteria', methods: ['GET'])]
+    public function translateCriteria(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        $authScope = (string) $session->get('auth_scope', '');
+        $hasClientSession = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $hasAdminSession = (bool) $session->get('admin_user_id') && str_starts_with((string) $session->get('admin_user_role', ''), 'ADMIN');
 
-        if (!$isClientAuthenticated) {
-            return $this->redirectToRoute('app_signin');
+        $isAuthenticated = $authScope === '' ? ($hasClientSession || $hasAdminSession) : (
+            ($authScope === 'client' && $hasClientSession)
+            || ($authScope === 'admin' && $hasAdminSession)
+        );
+
+        if (!$isAuthenticated) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        $idUtilisateur = (int) $session->get('user_id', 0);
-        if ($idUtilisateur <= 0) {
-            return $this->redirectToRoute('app_signin');
+        $offerId = (int) $request->query->get('id_offre', 0);
+        $targetLanguage = strtoupper((string) $request->query->get('lang', 'FR'));
+        if ($offerId <= 0) {
+            return $this->json([
+                'message' => 'id_offre is required.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        // Récupérer les préférences du candidat
-        $preference = $entityManager->getRepository(PreferenceCandidature::class)
-            ->findOneBy(['id_utilisateur' => $idUtilisateur]);
+        if (!in_array($targetLanguage, ['FR', 'EN'], true)) {
+            return $this->json([
+                'message' => 'lang must be FR or EN.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-        // Calculer le score de matching
-        $matchingResult = $matchingService->calculateMatching($offre, $preference);
+        $criteria = $this->getLatestCriteriaForOfferId($entityManager, $offerId);
+        if ($criteria === null) {
+            return $this->json([
+                'message' => 'Critere not found for this offer.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
 
-        return $this->render('client/candidature/matching_score.html.twig', [
-            'offre' => $offre,
-            'preference' => $preference,
-            'matching' => $matchingResult,
-            'userName' => $session->get('user_name', 'Candidat'),
-            'activePage' => 'offres-compatibles',
+        $niveauExperience = $this->offreTranslationAiService->translate((string) ($criteria['niveau_experience'] ?? ''), $targetLanguage);
+        $niveauEtude = $this->offreTranslationAiService->translate((string) ($criteria['niveau_etude'] ?? ''), $targetLanguage);
+        $competencesRequises = $this->offreTranslationAiService->translate((string) ($criteria['competences_requises'] ?? ''), $targetLanguage);
+        $responsibilities = $this->offreTranslationAiService->translate((string) ($criteria['responsibilities'] ?? ''), $targetLanguage);
+
+        return $this->json([
+            'id_offre' => $offerId,
+            'lang' => $targetLanguage,
+            'niveau_experience' => $niveauExperience,
+            'niveau_etude' => $niveauEtude,
+            'competences_requises' => $competencesRequises,
+            'responsibilities' => $responsibilities,
         ]);
     }
 
-    #[Route('/api/offre/{idOffre}/matching-score-json', name: 'client_offre_matching_score_json', methods: ['GET'])]
-    public function matchingScoreJson(
-        #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
-        EntityManagerInterface $entityManager,
-        SessionInterface $session,
-        MatchingService $matchingService
-    ): Response {
-        $isClientAuthenticated = (bool) $session->get('user_id')
-            && (string) $session->get('user_role', '') === 'CLIENT'
-            && (string) $session->get('auth_scope', '') === 'client';
+    #[Route('/opportunites/chatbot/suggest', name: 'client_opportunites_chatbot_suggest', methods: ['POST'])]
+    public function chatbotSuggest(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        $authScope = (string) $session->get('auth_scope', '');
+        $hasClientSession = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $hasAdminSession = (bool) $session->get('admin_user_id') && str_starts_with((string) $session->get('admin_user_role', ''), 'ADMIN');
 
-        if (!$isClientAuthenticated) {
-            return new JsonResponse(['error' => 'Unauthorized'], 401);
+        $isAuthenticated = $authScope === '' ? ($hasClientSession || $hasAdminSession) : (
+            ($authScope === 'client' && $hasClientSession)
+            || ($authScope === 'admin' && $hasAdminSession)
+        );
+
+        if (!$isAuthenticated) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        $idUtilisateur = (int) $session->get('user_id', 0);
-        if ($idUtilisateur <= 0) {
-            return new JsonResponse(['error' => 'User not found'], 401);
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        // Récupérer les préférences du candidat
-        $preference = $entityManager->getRepository(PreferenceCandidature::class)
-            ->findOneBy(['id_utilisateur' => $idUtilisateur]);
+        $message = $this->normalizeText($payload['message'] ?? null);
+        if ($message === null) {
+            return $this->json([
+                'message' => 'message is required.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-        // Calculer le score de matching
-        $matchingResult = $matchingService->calculateMatching($offre, $preference);
+        $availableOptions = [
+            'typesContrat' => $this->getDistinctOffreValues($entityManager, 'type_contrat'),
+            'workPreferences' => $this->getDistinctOffreValues($entityManager, 'work_preference'),
+            'statuts' => $this->getDistinctOffreValues($entityManager, 'statut_offre'),
+        ];
 
-        return new JsonResponse([
-            'offre' => [
-                'id' => $offre->getIdOffre(),
-                'titre' => $offre->getTitre(),
-                'typeContrat' => $offre->getTypeContrat(),
-                'workPreference' => $offre->getWorkPreference(),
-                'lieu' => $offre->getLieu(),
-            ],
-            'matching' => $matchingResult,
+        $suggestion = $this->offreChatFilterAiService->suggestFilters($message, $availableOptions);
+        $filters = $suggestion['filters'];
+
+        $qb = $entityManager->getRepository(OffreEmploi::class)->createQueryBuilder('o');
+
+        if ($filters['q'] !== null) {
+            $qb
+                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
+                ->setParameter('q', '%'.$filters['q'].'%');
+        }
+
+        if ($filters['type_contrat'] !== null) {
+            $qb
+                ->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $filters['type_contrat']);
+        }
+
+        if ($filters['work_preference'] !== null) {
+            $qb
+                ->andWhere('o.workPreference = :workPreference')
+                ->setParameter('workPreference', $filters['work_preference']);
+        }
+
+        if ($filters['lieu'] !== null) {
+            $qb
+                ->andWhere('o.lieu LIKE :lieu')
+                ->setParameter('lieu', '%'.$filters['lieu'].'%');
+        }
+
+        if ($filters['statut'] !== null) {
+            $qb
+                ->andWhere('o.statutOffre = :statut')
+                ->setParameter('statut', $filters['statut']);
+        } else {
+            $qb
+                ->andWhere('o.statutOffre IN (:openStatuts)')
+                ->setParameter('openStatuts', ['OUVERTE']);
+        }
+
+        $offers = $qb
+            ->orderBy('o.datePublication', 'DESC')
+            ->setMaxResults(5)
+            ->getQuery()
+            ->getResult();
+
+        $recommendations = array_map(static function (OffreEmploi $offer): array {
+            $description = (string) ($offer->getDescription() ?? '');
+            $snippet = mb_substr($description, 0, 140);
+
+            return [
+                'idOffre' => (int) $offer->getIdOffre(),
+                'titre' => (string) ($offer->getTitre() ?? 'Offre sans titre'),
+                'typeContrat' => (string) ($offer->getTypeContrat() ?? 'N/A'),
+                'workPreference' => (string) ($offer->getWorkPreference() ?? 'N/A'),
+                'lieu' => (string) ($offer->getLieu() ?? 'N/A'),
+                'statutOffre' => (string) ($offer->getStatutOffre() ?? 'N/A'),
+                'datePublication' => $offer->getDatePublication()?->format('Y-m-d'),
+                'descriptionSnippet' => $snippet.((mb_strlen($description) > 140) ? '...' : ''),
+            ];
+        }, $offers);
+
+        $assistantMessage = $suggestion['reason'];
+        if (count($recommendations) === 0) {
+            $assistantMessage .= ' Je n ai pas trouve d offre exacte, essayez de preciser votre ville ou le type de contrat.';
+        } else {
+            $assistantMessage .= sprintf(' J ai trouve %d offre(s) qui correspondent.', count($recommendations));
+        }
+
+        return $this->json([
+            'assistantMessage' => $assistantMessage,
+            'appliedFilters' => $filters,
+            'recommendations' => $recommendations,
+        ]);
+    }
+
+    #[Route('/opportunites/compare/session/toggle', name: 'client_opportunites_compare_toggle', methods: ['POST'])]
+    public function toggleCompareOffer(Request $request, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $offerId = (int) ($payload['offerId'] ?? 0);
+        if ($offerId <= 0) {
+            return $this->json([
+                'message' => 'offerId is required.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $selected = $this->getCompareOfferIdsFromSession($session);
+        $index = array_search($offerId, $selected, true);
+
+        if ($index !== false) {
+            unset($selected[$index]);
+            $selected = array_values($selected);
+        } else {
+            if (count($selected) >= 4) {
+                return $this->json([
+                    'message' => 'Vous pouvez comparer au maximum 4 offres par session.',
+                    'selectedOfferIds' => $selected,
+                    'count' => count($selected),
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $selected[] = $offerId;
+        }
+
+        $session->set(self::COMPARE_SESSION_KEY, $selected);
+
+        return $this->json([
+            'selectedOfferIds' => $selected,
+            'count' => count($selected),
+        ]);
+    }
+
+    #[Route('/opportunites/compare/session', name: 'client_opportunites_compare_state', methods: ['GET'])]
+    public function compareOfferState(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $selected = $this->getCompareOfferIdsFromSession($session);
+
+        return $this->json([
+            'selectedOfferIds' => $selected,
+            'count' => count($selected),
+        ]);
+    }
+
+    #[Route('/opportunites/compare/session/clear', name: 'client_opportunites_compare_clear', methods: ['POST'])]
+    public function clearCompareOffer(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $session->remove(self::COMPARE_SESSION_KEY);
+
+        return $this->json([
+            'selectedOfferIds' => [],
+            'count' => 0,
+        ]);
+    }
+
+    #[Route('/opportunites/compare/session/preview', name: 'client_opportunites_compare_preview', methods: ['POST'])]
+    public function compareOfferPreview(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        $selected = is_array($payload)
+            ? $this->normalizeCompareOfferIds($payload['selectedOfferIds'] ?? null)
+            : [];
+
+        if (count($selected) === 0) {
+            $selected = $this->getCompareOfferIdsFromSession($session);
+        }
+
+        if (count($selected) < 2 || count($selected) > 4) {
+            return $this->json([
+                'message' => 'Selection invalide. Choisissez entre 2 et 4 offres.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $offers = $entityManager->getRepository(OffreEmploi::class)->findBy(['idOffre' => $selected]);
+        $offersById = [];
+        foreach ($offers as $offer) {
+            $offersById[(int) $offer->getIdOffre()] = $offer;
+        }
+
+        $criteriaByOffer = $this->getLatestCriteriaByOffer($entityManager);
+        $comparisonOffers = [];
+        foreach ($selected as $offerId) {
+            if (!isset($offersById[$offerId])) {
+                continue;
+            }
+
+            $offer = $offersById[$offerId];
+            $criteria = $criteriaByOffer[$offerId] ?? null;
+            $skills = [];
+            if (is_array($criteria) && isset($criteria['competences_requises']) && is_string($criteria['competences_requises'])) {
+                $lines = preg_split('/\r\n|\r|\n/', $criteria['competences_requises']) ?: [];
+                $skills = array_values(array_filter(array_map(static fn (string $line): string => trim(preg_replace('/^[-*]\s*/', '', $line) ?? $line), $lines), static fn (string $line): bool => $line !== ''));
+            }
+
+            $comparisonOffers[] = [
+                'idOffre' => (int) $offer->getIdOffre(),
+                'titre' => (string) ($offer->getTitre() ?? 'Offre'),
+                'typeContrat' => (string) ($offer->getTypeContrat() ?? 'N/A'),
+                'workPreference' => (string) ($offer->getWorkPreference() ?? 'N/A'),
+                'lieu' => (string) ($offer->getLieu() ?? 'N/A'),
+                'competencesRequises' => $skills,
+            ];
+        }
+
+        return $this->json([
+            'offers' => $comparisonOffers,
+            'count' => count($comparisonOffers),
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session/preview', name: 'client_opportunites_alert_preview', methods: ['POST'])]
+    public function previewTemporaryAlert(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($payload);
+        if (!$this->hasTemporaryAlertFilterValue($alert)) {
+            return $this->json([
+                'alert' => null,
+                'matches' => [
+                    'count' => 0,
+                    'offers' => [],
+                ],
+            ]);
+        }
+
+        return $this->json([
+            'alert' => $alert,
+            'matches' => $this->findTemporaryAlertMatches($entityManager, $alert),
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session/save', name: 'client_opportunites_alert_save', methods: ['POST'])]
+    public function saveTemporaryAlert(Request $request, SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = json_decode((string) $request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'message' => 'Invalid payload.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($payload);
+        if (!$this->hasTemporaryAlertFilterValue($alert)) {
+            return $this->json([
+                'message' => 'Veuillez renseigner au moins un critere pour activer une alerte temporaire.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $session->set(self::ALERT_SESSION_KEY, $alert);
+
+        return $this->json([
+            'alert' => $alert,
+            'message' => 'Alerte temporaire activee pour cette session.',
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session', name: 'client_opportunites_alert_state', methods: ['GET'])]
+    public function getTemporaryAlert(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $alert = $this->getTemporaryAlertFromSession($session);
+
+        return $this->json([
+            'alert' => $alert,
+            'active' => $alert !== null,
+        ]);
+    }
+
+    #[Route('/opportunites/alert/session/clear', name: 'client_opportunites_alert_clear', methods: ['POST'])]
+    public function clearTemporaryAlert(SessionInterface $session): JsonResponse
+    {
+        if (!$this->isOpportunitesUserAuthenticated($session)) {
+            return $this->json([
+                'message' => 'Unauthorized',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $session->remove(self::ALERT_SESSION_KEY);
+
+        return $this->json([
+            'alert' => null,
+            'message' => 'Alerte temporaire supprimee.',
         ]);
     }
 
@@ -401,6 +761,162 @@ class ClientOffreController extends AbstractController
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null
+     */
+    private function getTemporaryAlertFromSession(SessionInterface $session): ?array
+    {
+        $raw = $session->get(self::ALERT_SESSION_KEY);
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        $alert = $this->normalizeTemporaryAlertFilters($raw);
+
+        return $this->hasTemporaryAlertFilterValue($alert) ? $alert : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @return array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}
+     */
+    private function normalizeTemporaryAlertFilters(array $payload): array
+    {
+        $statut = $this->normalizeText($payload['statut'] ?? null);
+        if ($statut === 'ACTIVE') {
+            $statut = 'OUVERTE';
+        }
+
+        return [
+            'q' => $this->normalizeText($payload['q'] ?? null),
+            'type_contrat' => $this->normalizeText($payload['type_contrat'] ?? null),
+            'work_preference' => $this->normalizeText($payload['work_preference'] ?? null),
+            'lieu' => $this->normalizeText($payload['lieu'] ?? null),
+            'statut' => $statut,
+        ];
+    }
+
+    /**
+     * @param array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null $alert
+     */
+    private function hasTemporaryAlertFilterValue(?array $alert): bool
+    {
+        if ($alert === null) {
+            return false;
+        }
+
+        return $alert['q'] !== null
+            || $alert['type_contrat'] !== null
+            || $alert['work_preference'] !== null
+            || $alert['lieu'] !== null
+            || $alert['statut'] !== null;
+    }
+
+    /**
+     * @param array{q:?string, type_contrat:?string, work_preference:?string, lieu:?string, statut:?string}|null $alert
+     *
+     * @return array{count:int, offers:list<array{idOffre:int, titre:string, typeContrat:string, workPreference:string, lieu:string}>}
+     */
+    private function findTemporaryAlertMatches(EntityManagerInterface $entityManager, ?array $alert): array
+    {
+        if ($alert === null) {
+            return [
+                'count' => 0,
+                'offers' => [],
+            ];
+        }
+
+        $qb = $entityManager->getRepository(OffreEmploi::class)->createQueryBuilder('o');
+
+        if ($alert['q'] !== null) {
+            $qb
+                ->andWhere('o.titre LIKE :q OR o.description LIKE :q OR o.lieu LIKE :q')
+                ->setParameter('q', '%'.$alert['q'].'%');
+        }
+
+        if ($alert['type_contrat'] !== null) {
+            $qb
+                ->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $alert['type_contrat']);
+        }
+
+        if ($alert['work_preference'] !== null) {
+            $qb
+                ->andWhere('o.workPreference = :workPreference')
+                ->setParameter('workPreference', $alert['work_preference']);
+        }
+
+        if ($alert['lieu'] !== null) {
+            $qb
+                ->andWhere('o.lieu LIKE :lieu')
+                ->setParameter('lieu', '%'.$alert['lieu'].'%');
+        }
+
+        if ($alert['statut'] !== null) {
+            $qb
+                ->andWhere('o.statutOffre = :statut')
+                ->setParameter('statut', $alert['statut']);
+        } else {
+            $qb
+                ->andWhere('o.statutOffre IN (:openStatuts)')
+                ->setParameter('openStatuts', ['OUVERTE']);
+        }
+
+        $offers = $qb
+            ->orderBy('o.datePublication', 'DESC')
+            ->setMaxResults(3)
+            ->getQuery()
+            ->getResult();
+
+        $normalizedOffers = array_map(static function (OffreEmploi $offer): array {
+            return [
+                'idOffre' => (int) $offer->getIdOffre(),
+                'titre' => (string) ($offer->getTitre() ?? 'Offre sans titre'),
+                'typeContrat' => (string) ($offer->getTypeContrat() ?? 'N/A'),
+                'workPreference' => (string) ($offer->getWorkPreference() ?? 'N/A'),
+                'lieu' => (string) ($offer->getLieu() ?? 'N/A'),
+            ];
+        }, $offers);
+
+        return [
+            'count' => count($normalizedOffers),
+            'offers' => $normalizedOffers,
+        ];
+    }
+
+    private function isOpportunitesUserAuthenticated(SessionInterface $session): bool
+    {
+        $authScope = (string) $session->get('auth_scope', '');
+        $hasClientSession = (bool) $session->get('user_id') && (string) $session->get('user_role', '') === 'CLIENT';
+        $hasAdminSession = (bool) $session->get('admin_user_id') && str_starts_with((string) $session->get('admin_user_role', ''), 'ADMIN');
+
+        return $authScope === '' ? ($hasClientSession || $hasAdminSession) : (
+            ($authScope === 'client' && $hasClientSession)
+            || ($authScope === 'admin' && $hasAdminSession)
+        );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function getCompareOfferIdsFromSession(SessionInterface $session): array
+    {
+        $raw = $session->get(self::COMPARE_SESSION_KEY, []);
+        return $this->normalizeCompareOfferIds($raw);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function normalizeCompareOfferIds(mixed $value): array
+    {
+        $raw = is_array($value) ? $value : [];
+        $normalized = array_values(array_unique(array_filter(array_map(static fn (mixed $value): int => (int) $value, $raw), static fn (int $value): bool => $value > 0)));
+
+        return array_slice($normalized, 0, 4);
     }
 
     /**
@@ -462,5 +978,27 @@ class ClientOffreController extends AbstractController
         }
 
         return $criteriaByOffer;
+    }
+
+    /**
+     * @return array{niveau_experience: ?string, niveau_etude: ?string, competences_requises: ?string, responsibilities: ?string}|null
+     */
+    private function getLatestCriteriaForOfferId(EntityManagerInterface $entityManager, int $offerId): ?array
+    {
+        $row = $entityManager->getConnection()->executeQuery(
+            'SELECT niveau_experience, niveau_etude, competences_requises, responsibilities FROM critere_offre WHERE id_offre = :offerId ORDER BY id_critere DESC LIMIT 1',
+            ['offerId' => $offerId]
+        )->fetchAssociative();
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        return [
+            'niveau_experience' => isset($row['niveau_experience']) ? (string) $row['niveau_experience'] : null,
+            'niveau_etude' => isset($row['niveau_etude']) ? (string) $row['niveau_etude'] : null,
+            'competences_requises' => isset($row['competences_requises']) ? (string) $row['competences_requises'] : null,
+            'responsibilities' => isset($row['responsibilities']) ? (string) $row['responsibilities'] : null,
+        ];
     }
 }
