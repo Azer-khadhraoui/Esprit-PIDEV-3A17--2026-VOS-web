@@ -97,13 +97,15 @@ class EntretienController extends AbstractController
             $entityManager->persist($entretien);
             $entityManager->flush();
 
-            try {
-                $eventId = $calendar->createEvent($entretien);
-                $entretien->setCalendarEventId($eventId);
-                $entityManager->flush();
-                $this->addFlash('success', 'Événement ajouté au Google Calendar.');
-            } catch (\Throwable $e) {
-                $this->addFlash('warning', 'Google Calendar sync failed: ' . $e->getMessage());
+            if ($calendar->isConfigured()) {
+                try {
+                    $eventId = $calendar->createEvent($entretien);
+                    $entretien->setCalendarEventId($eventId);
+                    $entityManager->flush();
+                    $this->addFlash('success', 'Événement ajouté au Google Calendar.');
+                } catch (\Throwable $e) {
+                    $this->addFlash('warning', 'Google Calendar sync failed: ' . $e->getMessage());
+                }
             }
 
             try {
@@ -295,19 +297,21 @@ class EntretienController extends AbstractController
         $entretiens = $repo->findWithFilters($search, $type, $statut, $sortBy, $sortDir);
 
         $data = array_map(function (Entretien $e) use ($csrf): array {
+            $entretienId = (int) $e->getId();
+
             return [
-                'id' => $e->getId(),
+                'id' => $entretienId,
                 'dateEntretien' => $e->getDateEntretien()?->format('d/m/Y'),
                 'heureEntretien' => $e->getHeureEntretien()?->format('H:i'),
                 'typeEntretien' => $e->getTypeEntretien(),
                 'typeTest' => $e->getTypeTest(),
                 'statutEntretien' => $e->getStatutEntretien(),
                 'lieu' => $e->getLieu(),
-                'urlShow' => $this->generateUrl('gestion_entretien_show', ['id' => $e->getId()]),
-                'urlEdit' => $this->generateUrl('gestion_entretien_edit', ['id' => $e->getId()]),
-                'urlEval' => $this->generateUrl('app_evaluation_entretien_new', ['entretienId' => $e->getId()]),
-                'urlDelete' => $this->generateUrl('gestion_entretien_delete', ['id' => $e->getId()]),
-                'csrfDelete' => $csrf->getToken('delete' . $e->getId())->getValue(),
+                'urlShow' => $this->generateUrl('gestion_entretien_show', ['id' => $entretienId]),
+                'urlEdit' => $this->generateUrl('gestion_entretien_edit', ['id' => $entretienId]),
+                'urlEval' => $this->generateUrl('app_evaluation_entretien_new', ['entretienId' => $entretienId]),
+                'urlDelete' => $this->generateUrl('gestion_entretien_delete', ['id' => $entretienId]),
+                'csrfDelete' => $csrf->getToken('delete' . $entretienId)->getValue(),
             ];
         }, $entretiens);
 
@@ -380,20 +384,7 @@ class EntretienController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
-
-            try {
-                $existingEventId = $entretien->getCalendarEventId();
-                if ($existingEventId !== null) {
-                    $calendar->updateEvent($existingEventId, $entretien);
-                } else {
-                    $eventId = $calendar->createEvent($entretien);
-                    $entretien->setCalendarEventId($eventId);
-                    $entityManager->flush();
-                }
-                $this->addFlash('success', 'Google Calendar mis à jour.');
-            } catch (\Throwable) {
-                $this->addFlash('warning', 'Entretien modifié, mais échec de synchronisation Google Calendar.');
-            }
+            $this->syncCalendarOnEdit($calendar, $entretien, $entityManager);
 
             try {
                 $sentCount = $notificationService->notifyEntretienUpdated($entretien);
@@ -444,6 +435,26 @@ class EntretienController extends AbstractController
         }
 
         return $this->redirectToRoute('gestion_entretien_dashboard');
+    }
+
+    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Entretien $entretien, EntityManagerInterface $entityManager): void
+    {
+        if (!$calendar->isConfigured()) {
+            return;
+        }
+
+        try {
+            $existingEventId = $entretien->getCalendarEventId();
+            if ($existingEventId !== null) {
+                $calendar->updateEvent($existingEventId, $entretien);
+            } else {
+                $entretien->setCalendarEventId($calendar->createEvent($entretien));
+                $entityManager->flush();
+            }
+            $this->addFlash('success', 'Google Calendar mis à jour.');
+        } catch (\Throwable) {
+            $this->addFlash('warning', 'Entretien modifié, mais échec de synchronisation Google Calendar.');
+        }
     }
 
     private function requireAdmin(SessionInterface $session): RedirectResponse|null

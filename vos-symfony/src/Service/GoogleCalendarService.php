@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Entretien;
+use App\Exception\GoogleCalendarException;
 use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
@@ -13,7 +14,7 @@ class GoogleCalendarService
 {
     private const TIMEZONE = 'Africa/Tunis';
 
-    private Calendar $calendarService;
+    private ?Calendar $calendarService = null;
     private string $calendarId;
 
     public function __construct(
@@ -22,6 +23,10 @@ class GoogleCalendarService
         #[Autowire('%kernel.project_dir%')] string $projectDir,
     ) {
         $this->calendarId = $calendarId;
+
+        if ('' === $calendarId) {
+            return;
+        }
 
         $absolutePath = str_starts_with($jsonPath, '/') || preg_match('/^[A-Za-z]:/', $jsonPath)
             ? $jsonPath
@@ -35,8 +40,17 @@ class GoogleCalendarService
         $this->calendarService = new Calendar($client);
     }
 
+    public function isConfigured(): bool
+    {
+        return '' !== $this->calendarId && $this->calendarService !== null;
+    }
+
     public function createEvent(Entretien $entretien): string
     {
+        if (!$this->isConfigured()) {
+            throw new GoogleCalendarException('Google Calendar non configuré (GOOGLE_CALENDAR_ID manquant).');
+        }
+
         $created = $this->calendarService->events->insert(
             $this->calendarId,
             $this->buildEvent($entretien),
@@ -47,6 +61,10 @@ class GoogleCalendarService
 
     public function updateEvent(string $eventId, Entretien $entretien): void
     {
+        if (!$this->isConfigured()) {
+            throw new GoogleCalendarException('Google Calendar non configuré (GOOGLE_CALENDAR_ID manquant).');
+        }
+
         $this->calendarService->events->update(
             $this->calendarId,
             $eventId,
@@ -56,6 +74,10 @@ class GoogleCalendarService
 
     public function deleteEvent(string $eventId): void
     {
+        if (!$this->isConfigured()) {
+            return;
+        }
+
         $this->calendarService->events->delete($this->calendarId, $eventId);
     }
 

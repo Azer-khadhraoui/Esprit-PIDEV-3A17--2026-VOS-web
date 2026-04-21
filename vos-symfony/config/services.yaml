@@ -11,6 +11,7 @@ parameters:
     app.app_name_default: 'VOS'
     app.mailer_from_name: '%env(default:app.app_name_default:APP_NAME)%'
     app.groq_api_key_default: ''
+    app.abstract_api_key_default: ''
     app.groq_api_key: '%env(default:app.groq_api_key_default:GROQ_API_KEY)%'
     app.groq_model_default: 'llama-3.1-8b-instant'
     app.groq_model: '%env(default:app.groq_model_default:GROQ_MODEL)%'
@@ -44,7 +45,7 @@ services:
 
     App\Service\EmailVerificationService:
         arguments:
-            $abstractApiKey: '%env(default::ABSTRACT_API_KEY)%'
+            $abstractApiKey: '%env(default:app.abstract_api_key_default:ABSTRACT_API_KEY)%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
