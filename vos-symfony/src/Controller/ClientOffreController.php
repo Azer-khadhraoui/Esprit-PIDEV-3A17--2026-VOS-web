@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Entity\OffreEmploi;
 use App\Entity\PreferenceCandidature;
-use App\Service\MatchingService;
+use App\Service\candidature\MatchingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

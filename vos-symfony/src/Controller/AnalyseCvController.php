@@ -6,7 +6,7 @@ use App\Entity\Candidature;
 use App\Entity\AnalyseCv;
 use App\Repository\AnalyseCvRepository;
 use App\Repository\CandidatureRepository;
-use App\Service\CVAnalysisService;
+use App\Service\candidature\CVAnalysisService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;

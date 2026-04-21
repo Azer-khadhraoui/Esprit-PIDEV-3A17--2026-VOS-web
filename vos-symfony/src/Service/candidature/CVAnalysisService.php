@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\candidature;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Doctrine\ORM\EntityManagerInterface;

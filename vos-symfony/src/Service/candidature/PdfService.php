@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\candidature;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\candidature;
 
 use App\Entity\OffreEmploi;
 use App\Entity\PreferenceCandidature;
