@@ -13,6 +13,7 @@
         "knplabs/knp-snappy-bundle": "^1.10",
         "dompdf/dompdf": "^3.1",
         "endroid/qr-code-bundle": "^5.0",
+        "google/apiclient": "^2.15",
         "nucleos/dompdf-bundle": "^4.3",
         "smalot/pdfparser": "^2.12",
         "symfony/asset": "6.4.*",

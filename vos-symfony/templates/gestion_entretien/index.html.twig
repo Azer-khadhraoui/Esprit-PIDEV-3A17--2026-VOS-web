@@ -12,49 +12,56 @@
         </div>
 
         <div class="search-filters">
-            <form method="get" class="filter-form">
+            <form method="get" class="filter-form" id="filter-form" data-search-url="{{ path('gestion_entretien_search') }}">
                 <label style="display:grid;gap:6px;">
                     <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Recherche</span>
-                    <input class="search-input" type="text" name="search" value="{{ search }}" placeholder="Lieu, type, test...">
+                    <input class="search-input" type="text" name="search" id="search-input" value="{{ search }}" placeholder="Lieu, type, test..." autocomplete="off">
                 </label>
                 <label style="display:grid;gap:6px;">
                     <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Type</span>
-                    <select class="sort-select" name="type">
-                    <option value="">Tous les types</option>
-                    <option value="RH" {% if type == 'RH' %}selected{% endif %}>RH</option>
-                    <option value="TECHNIQUE" {% if type == 'TECHNIQUE' %}selected{% endif %}>TECHNIQUE</option>
-                </select>
+                    <select class="sort-select" name="type" id="type-filter">
+                        <option value="">Tous les types</option>
+                        <option value="RH" {% if type == 'RH' %}selected{% endif %}>RH</option>
+                        <option value="TECHNIQUE" {% if type == 'TECHNIQUE' %}selected{% endif %}>TECHNIQUE</option>
+                    </select>
                 </label>
                 <label style="display:grid;gap:6px;">
                     <span style="font-size:.85rem;color:var(--muted);font-weight:600;">Statut</span>
-                    <select class="sort-select" name="statut">
-                    <option value="">Tous les statuts</option>
-                    <option value="Planifié" {% if statut == 'Planifié' %}selected{% endif %}>Planifié</option>
-                    <option value="Terminé" {% if statut == 'Terminé' %}selected{% endif %}>Terminé</option>
-                    <option value="Annulé" {% if statut == 'Annulé' %}selected{% endif %}>Annulé</option>
-                    <option value="En attente" {% if statut == 'En attente' %}selected{% endif %}>En attente</option>
-                </select>
+                    <select class="sort-select" name="statut" id="statut-filter">
+                        <option value="">Tous les statuts</option>
+                        <option value="Planifié" {% if statut == 'Planifié' %}selected{% endif %}>Planifié</option>
+                        <option value="Terminé" {% if statut == 'Terminé' %}selected{% endif %}>Terminé</option>
+                        <option value="Annulé" {% if statut == 'Annulé' %}selected{% endif %}>Annulé</option>
+                        <option value="En attente" {% if statut == 'En attente' %}selected{% endif %}>En attente</option>
+                    </select>
                 </label>
                 <button class="btn-filter" type="submit">Filtrer</button>
                 <a class="btn btn-reset" href="{{ path('gestion_entretien_dashboard') }}">Reset</a>
             </form>
         </div>
 
-        <div class="table-wrap">
+        <div id="results-counter" style="padding:0 24px 10px;font-size:.88rem;color:var(--muted);font-weight:600;">
+            {{ entretiens|length }} entretien{{ entretiens|length != 1 ? 's' : '' }} trouvé{{ entretiens|length != 1 ? 's' : '' }}
+        </div>
+
+        <div class="table-wrap" style="position:relative;">
+            <div id="table-spinner" style="display:none;position:absolute;inset:0;background:rgba(248,251,255,.82);z-index:10;align-items:center;justify-content:center;">
+                <div style="width:36px;height:36px;border:4px solid #e2e8f0;border-top-color:#1d4ed8;border-radius:50%;animation:entretien-spin .7s linear infinite;"></div>
+            </div>
             <table class="data-table">
                 <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Date</th>
+                    <th class="sortable-col" data-sort="e.dateEntretien">Date <span class="sort-icon" data-col="e.dateEntretien">⇅</span></th>
                     <th>Heure</th>
-                    <th>Type</th>
+                    <th class="sortable-col" data-sort="e.typeEntretien">Type <span class="sort-icon" data-col="e.typeEntretien">⇅</span></th>
                     <th>Type de test</th>
-                    <th>Statut</th>
-                    <th>Lieu</th>
+                    <th class="sortable-col" data-sort="e.statutEntretien">Statut <span class="sort-icon" data-col="e.statutEntretien">⇅</span></th>
+                    <th class="sortable-col" data-sort="e.lieu">Lieu <span class="sort-icon" data-col="e.lieu">⇅</span></th>
                     <th>Actions</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="entretien-tbody">
                 {% for entretien in entretiens %}
                     <tr>
                         <td><strong>{{ entretien.id }}</strong></td>
@@ -83,4 +90,138 @@
             </table>
         </div>
     </div>
+{% endblock %}
+
+{% block javascripts %}
+<style>
+    @keyframes entretien-spin { to { transform: rotate(360deg); } }
+    .sortable-col { cursor: pointer; user-select: none; }
+    .sortable-col:hover { background: rgba(33,86,216,.07); }
+    .sortable-col .sort-icon { opacity: .35; font-size: .82em; margin-left: 4px; }
+    .sortable-col.sort-asc .sort-icon,
+    .sortable-col.sort-desc .sort-icon { opacity: 1; color: var(--primary); }
+</style>
+<script>
+(function () {
+    const form       = document.getElementById('filter-form');
+    const searchUrl  = form.dataset.searchUrl;
+    const searchInput= document.getElementById('search-input');
+    const typeFilter = document.getElementById('type-filter');
+    const statutFilter = document.getElementById('statut-filter');
+    const tbody      = document.getElementById('entretien-tbody');
+    const counter    = document.getElementById('results-counter');
+    const spinner    = document.getElementById('table-spinner');
+
+    let currentSortBy  = '{{ sortBy }}';
+    let currentSortDir = '{{ sortDir }}';
+    let debounceTimer  = null;
+
+    function showSpinner() { spinner.style.display = 'flex'; }
+    function hideSpinner() { spinner.style.display = 'none'; }
+
+    function statutClass(statut) {
+        if (!statut) return 'b-orange';
+        const s = statut.toLowerCase();
+        if (s.includes('termin')) return 'b-green';
+        if (s.includes('planifi')) return 'b-blue';
+        if (s.includes('annul')) return 'b-red';
+        return 'b-orange';
+    }
+
+    function esc(str) {
+        if (!str) return '-';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function buildRow(e) {
+        return `<tr>
+            <td><strong>${esc(e.id)}</strong></td>
+            <td>${esc(e.dateEntretien)}</td>
+            <td>${esc(e.heureEntretien)}</td>
+            <td><span class="badge b-blue">${esc(e.typeEntretien)}</span></td>
+            <td>${esc(e.typeTest)}</td>
+            <td><span class="badge ${statutClass(e.statutEntretien)}">${esc(e.statutEntretien)}</span></td>
+            <td>${esc(e.lieu)}</td>
+            <td>
+                <div class="actions">
+                    <a class="btn btn-soft" href="${esc(e.urlShow)}">Voir</a>
+                    <a class="btn-edit" href="${esc(e.urlEdit)}">Modifier</a>
+                    <a class="btn btn-soft" href="${esc(e.urlEval)}">Évaluer</a>
+                    <form method="post" action="${esc(e.urlDelete)}" onsubmit="return confirm('Supprimer cet entretien ?');" style="margin:0;" novalidate>
+                        <input type="hidden" name="_token" value="${esc(e.csrfDelete)}">
+                        <button class="btn-delete" type="submit">Supprimer</button>
+                    </form>
+                </div>
+            </td>
+        </tr>`;
+    }
+
+    function updateSortIcons() {
+        document.querySelectorAll('.sortable-col').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            const icon = th.querySelector('.sort-icon');
+            if (icon) icon.textContent = '⇅';
+        });
+        const active = document.querySelector(`.sortable-col[data-sort="${currentSortBy}"]`);
+        if (active) {
+            active.classList.add(currentSortDir === 'ASC' ? 'sort-asc' : 'sort-desc');
+            const icon = active.querySelector('.sort-icon');
+            if (icon) icon.textContent = currentSortDir === 'ASC' ? '↑' : '↓';
+        }
+    }
+
+    async function fetchEntretiens() {
+        showSpinner();
+        const params = new URLSearchParams({
+            search: searchInput.value,
+            type:   typeFilter.value,
+            statut: statutFilter.value,
+            sortBy: currentSortBy,
+            sortDir: currentSortDir,
+        });
+        try {
+            const res = await fetch(`${searchUrl}?${params}`);
+            if (!res.ok) throw new Error('Erreur réseau ' + res.status);
+            const data = await res.json();
+            tbody.innerHTML = data.entretiens.length
+                ? data.entretiens.map(buildRow).join('')
+                : '<tr><td colspan="8" style="padding:28px 24px;color:var(--muted);">Aucun entretien trouvé.</td></tr>';
+            const n = data.total;
+            counter.textContent = `${n} entretien${n !== 1 ? 's' : ''} trouvé${n !== 1 ? 's' : ''}`;
+        } catch (err) {
+            console.error('Fetch entretiens:', err);
+        } finally {
+            hideSpinner();
+        }
+    }
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchEntretiens, 300);
+    });
+
+    typeFilter.addEventListener('change', fetchEntretiens);
+    statutFilter.addEventListener('change', fetchEntretiens);
+
+    document.querySelectorAll('.sortable-col').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (currentSortBy === col) {
+                currentSortDir = currentSortDir === 'ASC' ? 'DESC' : 'ASC';
+            } else {
+                currentSortBy  = col;
+                currentSortDir = 'DESC';
+            }
+            updateSortIcons();
+            fetchEntretiens();
+        });
+    });
+
+    updateSortIcons();
+})();
+</script>
 {% endblock %}

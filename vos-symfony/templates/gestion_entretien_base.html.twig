@@ -215,6 +215,45 @@
         .btn-primary-link { background:var(--primary); color:#fff; }
         .btn-secondary-link { background:#eef2ff; color:#1d4ed8; }
         .btn-danger-link { background:#fee2e2; color:#991b1b; }
+        .btn-ai-generate {
+            margin-top:10px;
+            background:linear-gradient(135deg,#0e7490,#0284c7);
+            color:#fff;
+            border:0;
+            border-radius:10px;
+            padding:9px 16px;
+            font-weight:700;
+            cursor:pointer;
+            font-family:inherit;
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            box-shadow:0 8px 18px rgba(2,132,199,.22);
+            transition:transform .14s ease, filter .14s ease, box-shadow .14s ease;
+        }
+        .btn-ai-generate:hover {
+            filter:brightness(1.05);
+            transform:translateY(-1px);
+            box-shadow:0 12px 22px rgba(2,132,199,.28);
+        }
+        .btn-ai-generate:disabled {
+            cursor:not-allowed;
+            opacity:.7;
+            transform:none;
+            box-shadow:none;
+        }
+        .ai-status {
+            margin-left:10px;
+            font-size:.85rem;
+            color:#0e7490;
+            display:none;
+        }
+        .ai-error {
+            margin-left:10px;
+            font-size:.85rem;
+            color:#b91c1c;
+            display:none;
+        }
         @media (max-width: 1280px) {
             .filter-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
@@ -276,6 +315,9 @@
         {% endfor %}
         {% for message in app.flashes('error') %}
             <div class="flash flash-error">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('warning') %}
+            <div class="flash" style="background:#fff3cd;color:#856404;">{{ message }}</div>
         {% endfor %}
 
         {% block body %}{% endblock %}
