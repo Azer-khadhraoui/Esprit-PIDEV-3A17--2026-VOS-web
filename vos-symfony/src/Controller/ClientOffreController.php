@@ -13,7 +13,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -750,6 +749,36 @@ class ClientOffreController extends AbstractController
             'alert' => null,
             'message' => 'Alerte temporaire supprimee.',
         ]);
+    }
+
+    #[Route('/opportunites/{idOffre}/matching-score', name: 'client_offre_matching_score_json', methods: ['GET'])]
+    public function getMatchingScoreJson(
+        #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        MatchingService $matchingService
+    ): JsonResponse {
+        $isClientAuthenticated = (bool) $session->get('user_id')
+            && (string) $session->get('user_role', '') === 'CLIENT'
+            && (string) $session->get('auth_scope', '') === 'client';
+
+        if (!$isClientAuthenticated) {
+            return new JsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
+
+        // Récupérer les préférences du candidat
+        $preference = $entityManager->getRepository(PreferenceCandidature::class)
+            ->findOneBy(['id_utilisateur' => $idUtilisateur]);
+
+        // Calculer le matching
+        $matching = $matchingService->calculateMatching($offre, $preference);
+
+        return new JsonResponse($matching);
     }
 
     private function normalizeText(mixed $value): ?string
