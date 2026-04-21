@@ -27,31 +27,103 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 final class CandidatureController extends AbstractController
 {
     // ── Liste des candidatures du client ──────────────────────────────
-    #[Route('', name: 'app_client_candidatures', methods: ['GET'])]
-    public function index(
-        CandidatureRepository $repo,
-        EntityManagerInterface $entityManager,
-        SessionInterface $session
-    ): Response {
-        $idUtilisateur = (int) $session->get('user_id', 0);
+   #[Route('', name: 'app_client_candidatures', methods: ['GET'])]
+public function index(
+    CandidatureRepository $repo,
+    EntityManagerInterface $entityManager,
+    SessionInterface $session,
+    Request $request
+): Response {
+    $idUtilisateur = (int) $session->get('user_id', 0);
 
-        if ($idUtilisateur <= 0) {
-            return $this->redirectToRoute('app_signin');
-        }
-
-        $candidatures = $repo->findBy(
-            ['id_utilisateur' => $idUtilisateur],
-            ['date_candidature' => 'DESC']
-        );
-
-        $offreTitles = $this->getOffreTitles($entityManager, $candidatures);
-
-        return $this->render('client/candidature/index.html.twig', [
-            'candidatures' => $candidatures,
-            'offreTitles' => $offreTitles,
-            'userName' => $session->get('user_name', 'Utilisateur'),
-        ]);
+    if ($idUtilisateur <= 0) {
+        return $this->redirectToRoute('app_signin');
     }
+
+    // ── Filtres de recherche avancée ──────────────────────────────
+    $filtreStatut   = trim((string) $request->query->get('statut', ''));
+    $filtreNiveau   = trim((string) $request->query->get('niveau', ''));
+    $filtreDomaine  = trim((string) $request->query->get('domaine', ''));
+    $filtreContrat  = trim((string) $request->query->get('contrat', ''));
+    $filtreDateDu   = trim((string) $request->query->get('date_du', ''));
+    $filtreDateAu   = trim((string) $request->query->get('date_au', ''));
+    $filtreMotCle   = trim((string) $request->query->get('mot_cle', ''));
+    // ─────────────────────────────────────────────────────────────
+
+    $qb = $entityManager->getRepository(Candidature::class)
+        ->createQueryBuilder('c')
+        ->where('c.id_utilisateur = :uid')
+        ->setParameter('uid', $idUtilisateur)
+        ->orderBy('c.date_candidature', 'DESC');
+
+    // Filtre statut
+    if ($filtreStatut !== '') {
+        $qb->andWhere('c.statut = :statut')
+           ->setParameter('statut', $filtreStatut);
+    }
+
+    // Filtre niveau d'expérience
+    if ($filtreNiveau !== '') {
+        $qb->andWhere('c.niveau_experience = :niveau')
+           ->setParameter('niveau', $filtreNiveau);
+    }
+
+    // Filtre domaine
+    if ($filtreDomaine !== '') {
+        $qb->andWhere('LOWER(c.domaine_experience) LIKE :domaine')
+           ->setParameter('domaine', '%' . mb_strtolower($filtreDomaine) . '%');
+    }
+
+    // Filtre type contrat (via l'offre)
+    if ($filtreContrat !== '') {
+        $qb->join(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre')
+           ->andWhere('o.typeContrat = :contrat')
+           ->setParameter('contrat', $filtreContrat);
+    }
+
+    // Filtre date du
+    if ($filtreDateDu !== '') {
+        try {
+            $qb->andWhere('c.date_candidature >= :date_du')
+               ->setParameter('date_du', new \DateTime($filtreDateDu));
+        } catch (\Throwable) {}
+    }
+
+    // Filtre date au
+    if ($filtreDateAu !== '') {
+        try {
+            $qb->andWhere('c.date_candidature <= :date_au')
+               ->setParameter('date_au', new \DateTime($filtreDateAu));
+        } catch (\Throwable) {}
+    }
+
+    // Filtre mot clé (message ou dernier poste)
+    if ($filtreMotCle !== '') {
+        $qb->andWhere(
+            $qb->expr()->orX(
+                'LOWER(c.message_candidat) LIKE :mot_cle',
+                'LOWER(c.dernier_poste) LIKE :mot_cle'
+            )
+        )->setParameter('mot_cle', '%' . mb_strtolower($filtreMotCle) . '%');
+    }
+
+    $candidatures = $qb->getQuery()->getResult();
+    $offreTitles  = $this->getOffreTitles($entityManager, $candidatures);
+
+    return $this->render('client/candidature/index.html.twig', [
+        'candidatures' => $candidatures,
+        'offreTitles'  => $offreTitles,
+        'userName'     => $session->get('user_name', 'Utilisateur'),
+        // Renvoyer les filtres pour les garder affichés
+        'filtreStatut'  => $filtreStatut,
+        'filtreNiveau'  => $filtreNiveau,
+        'filtreDomaine' => $filtreDomaine,
+        'filtreContrat' => $filtreContrat,
+        'filtreDateDu'  => $filtreDateDu,
+        'filtreDateAu'  => $filtreDateAu,
+        'filtreMotCle'  => $filtreMotCle,
+    ]);
+}
 
     // ── Formulaire d'ajout ────────────────────────────────────────────
     #[Route('/new/{id_offre}', name: 'app_client_candidature_new', methods: ['GET', 'POST'])]
