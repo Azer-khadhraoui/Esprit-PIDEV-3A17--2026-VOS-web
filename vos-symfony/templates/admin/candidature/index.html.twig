@@ -39,6 +39,7 @@
         <nav class="module-nav" aria-label="Navigation candidatures">
             <a class="module-link is-active" href="{{ path('app_admin_candidatures') }}">Candidatures</a>
             <a class="module-link" href="{{ path('app_admin_preferences') }}">Préférences</a>
+            <a class="module-link" href="{{ path('app_admin_statistics') }}">Statistiques</a>
         </nav>
 
         {% for message in app.flashes('error') %}
@@ -78,6 +79,12 @@
 
                     <a href="{{ path('app_admin_candidatures') }}" class="btn-reset">Réinitialiser</a>
                 </form>
+            </div>
+
+            <div style="padding: 15px 0; border-bottom: 1px solid #e8ebf3;">
+                <a href="{{ path('app_admin_candidatures_export_pdf', {search: search, status: statusFilter, sortBy: sortBy, sortOrder: sortOrder}) }}" class="btn-reset" style="background-color: #4361ee; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500;">
+                    📄 Exporter en PDF
+                </a>
             </div>
 
             <div class="table-wrap">

@@ -4,9 +4,15 @@ namespace App\Controller;
 
 use App\Entity\Candidature;
 use App\Entity\OffreEmploi;
+use App\Entity\User;
 use App\Form\CandidatureType;
 use App\Repository\CandidatureRepository;
+use App\Service\candidature\EmailService;
+use App\Service\candidature\PdfService;
+use App\Service\candidature\CVAnalysisService;
 use Doctrine\DBAL\Connection;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -21,31 +27,103 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 final class CandidatureController extends AbstractController
 {
     // ── Liste des candidatures du client ──────────────────────────────
-    #[Route('', name: 'app_client_candidatures', methods: ['GET'])]
-    public function index(
-        CandidatureRepository $repo,
-        EntityManagerInterface $entityManager,
-        SessionInterface $session
-    ): Response {
-        $idUtilisateur = (int) $session->get('user_id', 0);
+   #[Route('', name: 'app_client_candidatures', methods: ['GET'])]
+public function index(
+    CandidatureRepository $repo,
+    EntityManagerInterface $entityManager,
+    SessionInterface $session,
+    Request $request
+): Response {
+    $idUtilisateur = (int) $session->get('user_id', 0);
 
-        if ($idUtilisateur <= 0) {
-            return $this->redirectToRoute('app_signin');
-        }
-
-        $candidatures = $repo->findBy(
-            ['id_utilisateur' => $idUtilisateur],
-            ['date_candidature' => 'DESC']
-        );
-
-        $offreTitles = $this->getOffreTitles($entityManager, $candidatures);
-
-        return $this->render('client/candidature/index.html.twig', [
-            'candidatures' => $candidatures,
-            'offreTitles' => $offreTitles,
-            'userName' => $session->get('user_name', 'Utilisateur'),
-        ]);
+    if ($idUtilisateur <= 0) {
+        return $this->redirectToRoute('app_signin');
     }
+
+    // ── Filtres de recherche avancée ──────────────────────────────
+    $filtreStatut   = trim((string) $request->query->get('statut', ''));
+    $filtreNiveau   = trim((string) $request->query->get('niveau', ''));
+    $filtreDomaine  = trim((string) $request->query->get('domaine', ''));
+    $filtreContrat  = trim((string) $request->query->get('contrat', ''));
+    $filtreDateDu   = trim((string) $request->query->get('date_du', ''));
+    $filtreDateAu   = trim((string) $request->query->get('date_au', ''));
+    $filtreMotCle   = trim((string) $request->query->get('mot_cle', ''));
+    // ─────────────────────────────────────────────────────────────
+
+    $qb = $entityManager->getRepository(Candidature::class)
+        ->createQueryBuilder('c')
+        ->where('c.id_utilisateur = :uid')
+        ->setParameter('uid', $idUtilisateur)
+        ->orderBy('c.date_candidature', 'DESC');
+
+    // Filtre statut
+    if ($filtreStatut !== '') {
+        $qb->andWhere('c.statut = :statut')
+           ->setParameter('statut', $filtreStatut);
+    }
+
+    // Filtre niveau d'expérience
+    if ($filtreNiveau !== '') {
+        $qb->andWhere('c.niveau_experience = :niveau')
+           ->setParameter('niveau', $filtreNiveau);
+    }
+
+    // Filtre domaine
+    if ($filtreDomaine !== '') {
+        $qb->andWhere('LOWER(c.domaine_experience) LIKE :domaine')
+           ->setParameter('domaine', '%' . mb_strtolower($filtreDomaine) . '%');
+    }
+
+    // Filtre type contrat (via l'offre)
+    if ($filtreContrat !== '') {
+        $qb->join(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre')
+           ->andWhere('o.typeContrat = :contrat')
+           ->setParameter('contrat', $filtreContrat);
+    }
+
+    // Filtre date du
+    if ($filtreDateDu !== '') {
+        try {
+            $qb->andWhere('c.date_candidature >= :date_du')
+               ->setParameter('date_du', new \DateTime($filtreDateDu));
+        } catch (\Throwable) {}
+    }
+
+    // Filtre date au
+    if ($filtreDateAu !== '') {
+        try {
+            $qb->andWhere('c.date_candidature <= :date_au')
+               ->setParameter('date_au', new \DateTime($filtreDateAu));
+        } catch (\Throwable) {}
+    }
+
+    // Filtre mot clé (message ou dernier poste)
+    if ($filtreMotCle !== '') {
+        $qb->andWhere(
+            $qb->expr()->orX(
+                'LOWER(c.message_candidat) LIKE :mot_cle',
+                'LOWER(c.dernier_poste) LIKE :mot_cle'
+            )
+        )->setParameter('mot_cle', '%' . mb_strtolower($filtreMotCle) . '%');
+    }
+
+    $candidatures = $qb->getQuery()->getResult();
+    $offreTitles  = $this->getOffreTitles($entityManager, $candidatures);
+
+    return $this->render('client/candidature/index.html.twig', [
+        'candidatures' => $candidatures,
+        'offreTitles'  => $offreTitles,
+        'userName'     => $session->get('user_name', 'Utilisateur'),
+        // Renvoyer les filtres pour les garder affichés
+        'filtreStatut'  => $filtreStatut,
+        'filtreNiveau'  => $filtreNiveau,
+        'filtreDomaine' => $filtreDomaine,
+        'filtreContrat' => $filtreContrat,
+        'filtreDateDu'  => $filtreDateDu,
+        'filtreDateAu'  => $filtreDateAu,
+        'filtreMotCle'  => $filtreMotCle,
+    ]);
+}
 
     // ── Formulaire d'ajout ────────────────────────────────────────────
     #[Route('/new/{id_offre}', name: 'app_client_candidature_new', methods: ['GET', 'POST'])]
@@ -54,7 +132,9 @@ final class CandidatureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
-        SessionInterface $session
+        SessionInterface $session,
+        EmailService $emailService,
+        CVAnalysisService $cvAnalysisService
     ): Response {
         $idUtilisateur = (int) $session->get('user_id', 0);
 
@@ -97,6 +177,34 @@ final class CandidatureController extends AbstractController
                 $entityManager->persist($candidature);
                 $entityManager->flush();
 
+                try {
+                    $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
+                    if ($user) {
+                        // Email au candidat
+                        $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre());
+                        // Notification aux admins
+                        $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre());
+                    }
+                    $cvPath = $candidature->getCv();
+                    if ($cvPath) {
+                        $projectDir = $this->getParameter('kernel.project_dir');
+                        $fullPath = $projectDir . '/public/' . $cvPath;
+                        if (file_exists($fullPath)) {
+                            $parser = new \Smalot\PdfParser\Parser();
+                            $pdf = $parser->parseFile($fullPath);
+                            $cvText = $pdf->getText();
+                            if (!empty(trim($cvText))) {
+                                $cvText = mb_convert_encoding($cvText, 'UTF-8', 'UTF-8');
+                                $cvText = iconv('UTF-8', 'UTF-8//IGNORE', $cvText);
+                                $cvAnalysisService->analyzerCV($cvText, $candidature);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Logger l'erreur mais ne pas bloquer le processus
+                    $this->addFlash('warning', 'Candidature soumise, mais l\'email de confirmation n\'a pas pu être envoyé.');
+                }
+
                 $this->addFlash('success', 'Votre candidature a été soumise avec succès !');
                 return $this->redirectToRoute('app_client_candidatures');
             }
@@ -117,7 +225,10 @@ final class CandidatureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
-        SessionInterface $session
+        SessionInterface $session,
+        EmailService $emailService,
+        CVAnalysisService $cvAnalysisService
+
     ): Response {
         $idUtilisateur = (int) $session->get('user_id', 0);
         if ($idUtilisateur <= 0 || $candidature->getIdUtilisateur() !== $idUtilisateur) {
@@ -146,6 +257,38 @@ final class CandidatureController extends AbstractController
                 }
 
                 $entityManager->flush();
+
+
+                try {
+                    $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
+                    if ($user && $offre) {
+                        // Email au candidat
+                        $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre());
+                        // Notification aux admins
+                        $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre());
+                    }
+                    if ($cvFile instanceof UploadedFile) { // seulement si nouveau CV uploadé
+                        $cvPath = $candidature->getCv();
+                        if ($cvPath) {
+                            $projectDir = $this->getParameter('kernel.project_dir');
+                            $fullPath = $projectDir . '/public/' . $cvPath;
+                            if (file_exists($fullPath)) {
+                                $parser = new \Smalot\PdfParser\Parser();
+                                $pdf = $parser->parseFile($fullPath);
+                                $cvText = $pdf->getText();
+                                if (!empty(trim($cvText))) {
+                                    $cvText = mb_convert_encoding($cvText, 'UTF-8', 'UTF-8');
+                                    $cvText = iconv('UTF-8', 'UTF-8//IGNORE', $cvText);
+                                    $cvAnalysisService->analyzerCV($cvText, $candidature);
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Logger l'erreur mais ne pas bloquer le processus
+                    $this->addFlash('warning', 'Candidature mise à jour, mais l\'email de confirmation n\'a pas pu être envoyé.');
+                }
+
                 $this->addFlash('success', 'Candidature mise à jour avec succès !');
                 return $this->redirectToRoute('app_client_candidatures');
             }
@@ -172,11 +315,30 @@ final class CandidatureController extends AbstractController
         }
 
         $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+        $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
 
+        // ── QR Code ──────────────────────────────────────────────────
+        $qrData = implode("\n", [
+            'Candidature #' . $candidature->getIdCandidature(),
+            'Candidat : ' . $user?->getPrenom() . ' ' . $user?->getNom(),
+            'Offre     : ' . ($offre?->getTitre() ?? 'N/A'),
+            'Statut    : ' . $candidature->getStatut(),
+            'Date      : ' . $candidature->getDateCandidature()?->format('d/m/Y'),
+            'Domaine   : ' . ($candidature->getDomaineExperience() ?? 'N/A'),
+            'Niveau    : ' . ($candidature->getNiveauExperience() ?? 'N/A'),
+        ]);
+
+        $qrCode = new QrCode($qrData);
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+        $qrCodeBase64 = base64_encode($result->getString());
+        // ─────────────────────────────────────────────────────────────
         return $this->render('client/candidature/detail.html.twig', [
             'candidature' => $candidature,
             'offreTitre' => $offre?->getTitre() ?? 'Offre',
             'userName' => $session->get('user_name', 'Utilisateur'),
+            'qrCodeBase64' => $qrCodeBase64,  // ← nouveau
+
         ]);
     }
 
@@ -186,27 +348,109 @@ final class CandidatureController extends AbstractController
         Candidature $candidature,
         Request $request,
         EntityManagerInterface $em,
-        SessionInterface $session
+        SessionInterface $session,
+        EmailService $emailService
     ): Response {
         $idUtilisateur = (int) $session->get('user_id', 0);
         if ($idUtilisateur <= 0 || $candidature->getIdUtilisateur() !== $idUtilisateur) {
             return $this->redirectToRoute('app_signin');
         }
 
-        if ($this->isCsrfTokenValid('delete'.$candidature->getIdCandidature(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), $request->request->get('_token'))) {
+            // Récupérer les informations avant suppression
+            $user = $em->getRepository(User::class)->find($idUtilisateur);
+            $offre = $em->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+
+            // Récupérer infos pour l'email avant la suppression
+            $userEmail = $user?->getEmail() ?? '';
+            $userName = $user ? ($user->getPrenom() . ' ' . $user->getNom()) : 'Utilisateur';
+            $offreTitre = $offre?->getTitre() ?? 'Offre';
+
             $em->remove($candidature);
             $em->flush();
+
+            // Envoyer les emails de notification
+            try {
+                if ($user && $userEmail) {
+                    // Email au candidat
+                    $emailService->sendCandidatureDeletedEmail($userEmail, $userName, $offreTitre);
+                    // Notification aux admins
+                    $emailService->notifyAdminsDeletedCandidature($userName, $userEmail, $offreTitre);
+                }
+            } catch (\Exception $e) {
+                // Logger l'erreur mais ne pas bloquer le processus
+                $this->addFlash('warning', 'Candidature supprimée, mais l\'email de confirmation n\'a pas pu être envoyé.');
+            }
+
             $this->addFlash('success', 'Candidature supprimée.');
         }
 
         return $this->redirectToRoute('app_client_candidatures');
     }
 
+    // ── Export PDF - Liste des candidatures ───────────────────────────
+    #[Route('/export-pdf', name: 'app_client_candidature_export_pdf', methods: ['GET'])]
+    public function exportListPdf(
+        CandidatureRepository $repo,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        PdfService $pdfService
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $candidatures = $repo->findBy(
+            ['id_utilisateur' => $idUtilisateur],
+            ['date_candidature' => 'DESC']
+        );
+
+        $offreTitles = $this->getOffreTitles($entityManager, $candidatures);
+
+        $html = $this->renderView('pdf/candidatures_list_client.html.twig', [
+            'candidatures' => $candidatures,
+            'offreTitles' => $offreTitles,
+        ]);
+
+        $filename = 'mes_candidatures_' . date('d-m-Y') . '.pdf';
+
+        return $pdfService->generatePdfResponse($html, $filename);
+    }
+
+    // ── Export PDF - Détail d'une candidature ────────────────────────
+    #[Route('/{id_candidature}/export-pdf', name: 'app_client_candidature_detail_pdf', methods: ['GET'])]
+    public function exportDetailPdf(
+        Candidature $candidature,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        PdfService $pdfService
+    ): Response {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0 || $candidature->getIdUtilisateur() !== $idUtilisateur) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $candidat = $entityManager->getRepository(User::class)->find($idUtilisateur);
+        $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+
+        $html = $this->renderView('pdf/candidature_detail.html.twig', [
+            'candidature' => $candidature,
+            'candidat' => $candidat,
+            'offre' => $offre,
+        ]);
+
+        $filename = 'candidature_' . $candidature->getIdCandidature() . '_' . date('d-m-Y') . '.pdf';
+
+        return $pdfService->generatePdfResponse($html, $filename);
+    }
+
     // ── Helper methods ────────────────────────────────────────────────
     private function getOffreTitles(EntityManagerInterface $entityManager, array $candidatures): array
     {
         $offreIds = array_values(array_unique(array_filter(array_map(
-            static fn (Candidature $candidature): ?int => $candidature->getIdOffre(),
+            static fn(Candidature $candidature): ?int => $candidature->getIdOffre(),
             $candidatures
         ))));
 
@@ -249,12 +493,12 @@ final class CandidatureController extends AbstractController
     private function uploadFile($file, SluggerInterface $slugger, string $folder): string
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename     = $slugger->slug($originalFilename);
-        $extension        = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
+        $safeFilename = $slugger->slug($originalFilename);
+        $extension = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
         if ($extension === '') {
             $extension = 'bin';
         }
-        $newFilename      = time() . '_' . $safeFilename . '.' . $extension;
+        $newFilename = time() . '_' . $safeFilename . '.' . $extension;
 
         $file->move(
             $this->getParameter('kernel.project_dir') . '/public/uploads/' . $folder,

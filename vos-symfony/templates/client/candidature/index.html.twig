@@ -389,10 +389,83 @@
         <div class="flash error">{{ message }}</div>
     {% endfor %}
 
-    <div class="controls">
-        <div></div>
-        <a class="browse-btn" href="{{ path('client_opportunites') }}">+ Voir les offres</a>
+    {# ── Barre de recherche avancée ── #}
+<form method="GET" action="{{ path('app_client_candidatures') }}" style="margin-bottom: 20px;">
+    <div style="background:#f1f3f9; border:1px solid #e8ebf3; border-radius:16px; padding:18px;">
+        
+        {# Ligne 1 : Mot clé + Statut + Niveau + Domaine #}
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+            
+            <input type="text" name="mot_cle" placeholder="🔍 Mot clé (message, dernier poste...)"
+                   value="{{ filtreMotCle }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; font-size:0.95rem; background:#fff;">
+
+            <select name="statut" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Tous les statuts</option>
+                {% for s in ['En attente', 'En examens', 'Accepté', 'Refusé'] %}
+                    <option value="{{ s }}" {{ filtreStatut == s ? 'selected' : '' }}>{{ s }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="niveau" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Tous les niveaux</option>
+                {% for n in ['Débutant', 'Junior', 'Confirmé', 'Senior', 'Expert'] %}
+                    <option value="{{ n }}" {{ filtreNiveau == n ? 'selected' : '' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="text" name="domaine" placeholder="Domaine (Web, Data...)"
+                   value="{{ filtreDomaine }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+        </div>
+
+        {# Ligne 2 : Type contrat + Date du + Date au + Boutons #}
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; align-items:center;">
+
+            <select name="contrat" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Tout type contrat</option>
+                {% for c in ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance'] %}
+                    <option value="{{ c }}" {{ filtreContrat == c ? 'selected' : '' }}>{{ c }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="date" name="date_du" value="{{ filtreDateDu }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+
+            <input type="date" name="date_au" value="{{ filtreDateAu }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+
+            <div style="display:flex; gap:8px;">
+                <button type="submit"
+                        style="flex:1; border:0; border-radius:10px; padding:10px; background:#4361ee; color:#fff; font-weight:700; cursor:pointer; font-family:inherit;">
+                    🔍 Filtrer
+                </button>
+                <a href="{{ path('app_client_candidatures') }}"
+                   style="flex:1; border:0; border-radius:10px; padding:10px; background:#e2e8f0; color:#1b2440; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center;">
+                    ✕ Reset
+                </a>
+            </div>
+        </div>
+
+        {# Compteur de résultats #}
+        {% set filtresActifs = (filtreStatut or filtreNiveau or filtreDomaine or filtreContrat or filtreDateDu or filtreDateAu or filtreMotCle) %}
+        {% if filtresActifs %}
+            <p style="margin:10px 0 0; font-size:0.88rem; color:#6c7693;">
+                <strong>{{ candidatures|length }}</strong> résultat(s) trouvé(s)
+                {% if filtreStatut %} · Statut: <strong>{{ filtreStatut }}</strong>{% endif %}
+                {% if filtreNiveau %} · Niveau: <strong>{{ filtreNiveau }}</strong>{% endif %}
+                {% if filtreDomaine %} · Domaine: <strong>{{ filtreDomaine }}</strong>{% endif %}
+                {% if filtreContrat %} · Contrat: <strong>{{ filtreContrat }}</strong>{% endif %}
+            </p>
+        {% endif %}
     </div>
+</form>
+
+{# Export PDF — conservé #}
+<div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+    <a class="browse-btn" href="{{ path('app_client_candidature_export_pdf') }}">📄 Exporter en PDF</a>
+    <a class="browse-btn" href="{{ path('client_opportunites') }}" style="margin-left:10px;">+ Voir les offres</a>
+</div>
 
     {% if candidatures is empty %}
         <div class="cards">

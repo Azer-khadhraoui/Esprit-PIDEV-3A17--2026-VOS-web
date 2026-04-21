@@ -46,6 +46,11 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.request, priority: 10 }
 
+    App\Service\candidature\CVAnalysisService:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'
+            $logger: '@logger'
+
     App\EventListener\NoCacheResponseListener:
         tags:
             - { name: kernel.event_listener, event: kernel.response, priority: -10 }

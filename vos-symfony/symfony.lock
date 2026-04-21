@@ -35,33 +35,6 @@
             "./migrations/.gitignore"
         ]
     },
-    "knplabs/knp-snappy-bundle": {
-        "version": "1.10",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "1.5",
-            "ref": "c81bdcf4a9d4e7b1959071457f9608631865d381"
-        },
-        "files": [
-            "./config/packages/knp_snappy.yaml"
-        ]
-    },
-    "endroid/qr-code-bundle": {
-        "version": "5.0.2"
-    },
-    "nucleos/dompdf-bundle": {
-        "version": "4.3",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "3.1",
-            "ref": "0a89461aec4873f9205f1fc04c96c607116abb2e"
-        },
-        "files": [
-            "./config/packages/nucleos_dompdf.yaml"
-        ]
-    },
     "symfony/console": {
         "version": "6.4",
         "recipe": {
@@ -105,6 +78,15 @@
             "./src/Controller/.gitignore",
             "./src/Kernel.php"
         ]
+    },
+    "symfony/google-mailer": {
+        "version": "6.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "4.4",
+            "ref": "f8fd4ddb9b477510f8f4bce2b9c054ab428c0120"
+        }
     },
     "symfony/mailer": {
         "version": "6.4",
