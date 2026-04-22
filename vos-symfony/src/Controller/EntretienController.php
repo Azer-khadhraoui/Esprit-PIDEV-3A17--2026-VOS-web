@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 
@@ -319,7 +320,7 @@ class EntretienController extends AbstractController
     }
 
     #[Route('/{id}/pdf', name: 'gestion_entretien_pdf', methods: ['GET'])]
-    public function exportPdf(Entretien $entretien, SessionInterface $session, Environment $twig): Response
+    public function exportPdf(Request $request, Entretien $entretien, SessionInterface $session, Environment $twig): Response
     {
         $access = $this->requireAdmin($session);
         if ($access instanceof RedirectResponse) {
@@ -327,6 +328,7 @@ class EntretienController extends AbstractController
         }
 
         $evaluation = $entretien->getEvaluationEntretiens()->first() ?: null;
+        $publicInfoUrl = $this->resolvePublicEntretienUrl($request, $entretien);
 
         $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/logo.png';
         $logoBase64 = is_file($logoPath)
@@ -338,6 +340,7 @@ class EntretienController extends AbstractController
             'evaluation' => $evaluation,
             'generatedAt' => new \DateTime(),
             'logoBase64' => $logoBase64,
+            'publicInfoUrl' => $publicInfoUrl,
         ]);
 
         $options = new Options();
@@ -356,6 +359,37 @@ class EntretienController extends AbstractController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
         ]);
+    }
+
+    #[Route('/public/{id}', name: 'gestion_entretien_public_view', methods: ['GET'])]
+    public function publicView(int $id, EntretienRepository $entretienRepository): Response
+    {
+        $entretien = $entretienRepository->find($id);
+        if (null === $entretien) {
+            throw $this->createNotFoundException('Entretien introuvable');
+        }
+
+        $evaluation = $entretien->getEvaluationEntretiens()->first() ?: null;
+        $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/logo.png';
+        $logoBase64 = is_file($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
+        return $this->render('gestion_entretien/public_view.html.twig', [
+            'entretien' => $entretien,
+            'evaluation' => $evaluation,
+            'logoBase64' => $logoBase64,
+        ]);
+    }
+
+    private function resolvePublicEntretienUrl(Request $request, Entretien $entretien): string
+    {
+        $baseUrl = trim((string) ($_ENV['APP_PUBLIC_URL'] ?? $_SERVER['APP_PUBLIC_URL'] ?? ''));
+        $baseUrl = '' !== $baseUrl ? rtrim($baseUrl, '/') : rtrim($request->getSchemeAndHttpHost(), '/');
+
+        return $baseUrl . $this->generateUrl('gestion_entretien_public_view', [
+            'id' => (int) $entretien->getId(),
+        ], UrlGeneratorInterface::ABSOLUTE_PATH);
     }
 
     #[Route('/{id}', name: 'gestion_entretien_show', methods: ['GET'])]

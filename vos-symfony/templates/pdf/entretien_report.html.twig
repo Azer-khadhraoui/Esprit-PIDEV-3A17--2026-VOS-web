@@ -216,6 +216,42 @@
             text-align: center;
         }
 
+        .qr-section {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(33, 86, 216, .16);
+            background: #f8fbff;
+            border-radius: 10px;
+            display: table;
+            width: 100%;
+        }
+        .qr-box {
+            display: table-cell;
+            width: 128px;
+            vertical-align: middle;
+        }
+        .qr-box img {
+            width: 112px;
+            height: 112px;
+            display: block;
+        }
+        .qr-copy {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 14px;
+        }
+        .qr-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 6px;
+        }
+        .qr-text {
+            font-size: 10px;
+            line-height: 1.6;
+            color: #475569;
+        }
+
         /* ── Divider ── */
         .divider {
             border: none;
@@ -446,6 +482,20 @@
 
         {% else %}
             <div class="no-eval">Aucune evaluation n'a ete enregistree pour cet entretien.</div>
+        {% endif %}
+
+        {% if publicInfoUrl is defined and publicInfoUrl %}
+        <div class="qr-section">
+            <div class="qr-box">
+                <img src="{{ qr_code_data_uri(publicInfoUrl) }}" alt="QR code vers la page mobile de l'entretien">
+            </div>
+            <div class="qr-copy">
+                <div class="qr-title">Acces mobile rapide</div>
+                <div class="qr-text">
+                    Scanne ce QR code avec ton telephone pour ouvrir la fiche publique de l'entretien et consulter les informations principales sans avoir besoin du PDF.
+                </div>
+            </div>
+        </div>
         {% endif %}
 
     </div>
