@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Entretien;
+use App\Entity\Recrutement;
 use App\Exception\GoogleCalendarException;
 use Google\Client;
 use Google\Service\Calendar;
@@ -122,6 +123,33 @@ class GoogleCalendarService
         ]);
     }
 
+    public function createRecrutementEvent(Recrutement $recrutement): string
+    {
+        if (!$this->isConfigured()) {
+            throw new GoogleCalendarException('Google Calendar non configure (GOOGLE_CALENDAR_ID manquant).');
+        }
+
+        $created = $this->calendarService->events->insert(
+            $this->calendarId,
+            $this->buildRecrutementEvent($recrutement),
+        );
+
+        return $created->getId();
+    }
+
+    public function updateRecrutementEvent(string $eventId, Recrutement $recrutement): void
+    {
+        if (!$this->isConfigured()) {
+            throw new GoogleCalendarException('Google Calendar non configure (GOOGLE_CALENDAR_ID manquant).');
+        }
+
+        $this->calendarService->events->update(
+            $this->calendarId,
+            $eventId,
+            $this->buildRecrutementEvent($recrutement),
+        );
+    }
+
     private function buildEvent(Entretien $entretien): Event
     {
         $type     = $entretien->getTypeEntretien() ?? 'Entretien';
@@ -161,6 +189,34 @@ class GoogleCalendarService
             $event->setStart(new EventDateTime(['date' => $date->format('Y-m-d')]));
             $event->setEnd(new EventDateTime(['date' => $date->modify('+1 day')->format('Y-m-d')]));
         }
+
+        return $event;
+    }
+
+    private function buildRecrutementEvent(Recrutement $recrutement): Event
+    {
+        $decision = $recrutement->getDecisionFinale() ?? 'Decision non definie';
+        $description = implode("\n", array_filter([
+            sprintf('Decision finale : %s', $decision),
+            $recrutement->getIdEntretien() !== null ? sprintf('Entretien lie : #%d', $recrutement->getIdEntretien()) : null,
+            $recrutement->getIdUtilisateur() !== null ? sprintf('Utilisateur : #%d', $recrutement->getIdUtilisateur()) : null,
+        ]));
+
+        $event = new Event([
+            'summary' => sprintf('Decision recrutement - %s', $decision),
+            'description' => $description,
+        ]);
+
+        $date = $recrutement->getDateDecision();
+        if ($date === null) {
+            throw new GoogleCalendarException('La date de decision est requise pour Google Calendar.');
+        }
+
+        $startDate = \DateTimeImmutable::createFromInterface($date);
+        $endDate = $startDate->modify('+1 day');
+
+        $event->setStart(new EventDateTime(['date' => $startDate->format('Y-m-d')]));
+        $event->setEnd(new EventDateTime(['date' => $endDate->format('Y-m-d')]));
 
         return $event;
     }

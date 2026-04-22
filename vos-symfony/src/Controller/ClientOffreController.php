@@ -160,6 +160,86 @@ class ClientOffreController extends AbstractController
         ]);
     }
 
+    #[Route('/opportunites/mes-contrats/search', name: 'client_mes_contrats_search', methods: ['GET'])]
+    public function mesContratsSearch(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return $this->json(['error' => 'Non autorisé'], 401);
+        }
+
+        $search    = trim((string) $request->query->get('search', ''));
+        $type      = trim((string) $request->query->get('type', ''));
+        $decision  = trim((string) $request->query->get('decision', ''));
+        $dateFrom  = trim((string) $request->query->get('date_from', ''));
+        $dateTo    = trim((string) $request->query->get('date_to', ''));
+
+        $sql = "
+            SELECT
+                c.id_contrat, c.type_contrat, c.date_debut, c.date_fin,
+                c.salaire, c.status, c.volume_horaire, c.avantages,
+                c.periode, c.id_recrutement,
+                r.date_decision, r.decision_finale
+            FROM contrat_embauche c
+            INNER JOIN recrutement r  ON r.id_recrutement = c.id_recrutement
+            INNER JOIN entretien e    ON e.id_entretien   = r.id_entretien
+            INNER JOIN candidature ca ON ca.id_candidature = e.id_candidature
+            WHERE ca.id_utilisateur = :userId
+        ";
+
+        $params = ['userId' => $idUtilisateur];
+
+        if ($search !== '') {
+            $sql .= " AND (
+                LOWER(c.type_contrat)       LIKE :q
+                OR LOWER(c.status)          LIKE :q
+                OR LOWER(r.decision_finale) LIKE :q
+                OR LOWER(c.avantages)       LIKE :q
+                OR LOWER(c.periode)         LIKE :q
+            )";
+            $params['q'] = '%' . strtolower($search) . '%';
+        }
+
+        if ($type !== '') {
+            $sql .= " AND LOWER(c.type_contrat) = :type";
+            $params['type'] = strtolower($type);
+        }
+
+        if ($decision !== '') {
+            $decisionMap = [
+                'accepte'  => ['accepté', 'accepte'],
+                'refuse'   => ['refusé', 'refuse'],
+                'attente'  => ['en attente', 'attente'],
+            ];
+            $variants = $decisionMap[$decision] ?? [$decision];
+            $orParts = [];
+            foreach ($variants as $i => $v) {
+                $key = 'dec' . $i;
+                $orParts[] = "LOWER(r.decision_finale) LIKE :$key";
+                $params[$key] = '%' . $v . '%';
+            }
+            $sql .= ' AND (' . implode(' OR ', $orParts) . ')';
+        }
+
+        if ($dateFrom !== '') {
+            $sql .= " AND c.date_debut >= :date_from";
+            $params['date_from'] = $dateFrom;
+        }
+
+        if ($dateTo !== '') {
+            $sql .= " AND c.date_debut <= :date_to";
+            $params['date_to'] = $dateTo;
+        }
+
+        $sql .= " ORDER BY c.date_debut DESC, c.id_contrat DESC";
+
+        $contracts = $entityManager->getConnection()
+            ->executeQuery($sql, $params)
+            ->fetchAllAssociative();
+
+        return $this->json(['total' => count($contracts), 'contracts' => $contracts]);
+    }
+
     #[Route('/opportunites/mes-contrats', name: 'client_mes_contrats', methods: ['GET'])]
     public function mesContrats(EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
