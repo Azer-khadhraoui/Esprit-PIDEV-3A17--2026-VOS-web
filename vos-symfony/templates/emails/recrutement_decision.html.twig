@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Décision de recrutement</title>
+<style>
+  body { margin: 0; padding: 0; background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color: #333; }
+  .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .header { background: #1a1a2e; padding: 32px 40px; text-align: center; }
+  .header .logo { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: 4px; }
+  .header .tagline { color: #a0aec0; font-size: 13px; margin-top: 4px; }
+  .badge { display: inline-block; margin: 28px auto 0; padding: 8px 24px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .badge-accepted { background: #d1fae5; color: #065f46; }
+  .badge-refused  { background: #fee2e2; color: #991b1b; }
+  .badge-pending  { background: #fef3c7; color: #92400e; }
+  .body { padding: 36px 40px; }
+  .greeting { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .message { font-size: 15px; line-height: 1.7; color: #555; }
+  .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin: 24px 0; }
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #718096; font-weight: 500; }
+  .info-value { font-weight: 600; color: #2d3748; }
+  .cta-wrap { margin-top: 24px; text-align: center; }
+  .cta-button { display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; }
+  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 40px; text-align: center; font-size: 12px; color: #a0aec0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">VOS</div>
+    <div class="tagline">Virtual Onboarding System</div>
+    {% set dec = recrutementDecision|default(decision)|lower %}
+    {% if 'accept' in dec %}
+      <div class="badge badge-accepted">✓ Candidature acceptée</div>
+    {% elseif 'refus' in dec %}
+      <div class="badge badge-refused">✗ Candidature non retenue</div>
+    {% else %}
+      <div class="badge badge-pending">⏳ Décision en cours</div>
+    {% endif %}
+  </div>
+
+  <div class="body">
+    <div class="greeting">Bonjour {{ recipientName }},</div>
+
+    {% set dec = decision|lower %}
+    <div class="message">
+      {% if recipientRole == 'candidat' %}
+        {% if 'accept' in dec %}
+          Nous avons le plaisir de vous informer que votre candidature a été <strong>acceptée</strong>.
+          Notre équipe vous contactera prochainement pour les prochaines étapes.
+        {% elseif 'refus' in dec %}
+          Nous vous remercions de l'intérêt que vous portez à notre entreprise.
+          Après examen attentif de votre candidature, nous avons le regret de vous informer qu'elle n'a pas été retenue.
+          Nous vous souhaitons bonne chance dans vos recherches.
+        {% else %}
+          Une décision concernant votre candidature a été enregistrée dans notre système.
+        {% endif %}
+      {% else %}
+        La décision pour le recrutement <strong>#{{ recrutementId }}</strong> a été enregistrée.
+      {% endif %}
+    </div>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-label">Recrutement</span>
+        <span class="info-value">#{{ recrutementId }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Décision</span>
+        <span class="info-value">{{ decision }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Date de décision</span>
+        <span class="info-value">{{ dateDecision }}</span>
+      </div>
+    </div>
+
+    {% if calendarLink is defined and calendarLink %}
+      <div class="cta-wrap">
+        <a href="{{ calendarLink }}" target="_blank" rel="noopener noreferrer" class="cta-button">Ajouter a Google Calendar</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    Cet email a été envoyé automatiquement par VOS — Virtual Onboarding System.<br>
+    Merci de ne pas répondre à cet email.
+  </div>
+</div>
+</body>
+</html>

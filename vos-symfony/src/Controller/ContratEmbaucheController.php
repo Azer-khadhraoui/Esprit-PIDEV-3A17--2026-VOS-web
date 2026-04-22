@@ -5,15 +5,78 @@ namespace App\Controller;
 use App\Entity\ContratEmbauche;
 use App\Entity\Recrutement;
 use App\Form\ContratEmbaucheType;
+use App\Repository\ContratEmbaucheRepository;
+use App\Service\ContractReminderAiService;
+use App\Service\RecrutementNotificationService;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 class ContratEmbaucheController extends AbstractController
 {
+    #[Route('/api/contrats-embauche/reminders', name: 'contrat_embauche_reminders_api', methods: ['GET'])]
+    public function reminders(
+        Request $request,
+        ContratEmbaucheRepository $contratRepository,
+        ContractReminderAiService $contractReminderAiService
+    ): JsonResponse
+    {
+        $today = new \DateTimeImmutable('today');
+        $maxDays = max(0, $request->query->getInt('maxDays', 30));
+        $endDate = $today->modify('+' . $maxDays . ' days');
+        $includeAiMessage = $request->query->getBoolean('includeAiMessage', true);
+
+        $contracts = $contratRepository->findEndingBetween($today, $endDate);
+        $matchingContracts = [];
+
+        foreach ($contracts as $contract) {
+            $dateFin = $contract->getDateFin();
+            if ($dateFin === null) {
+                continue;
+            }
+
+            $daysRemaining = (int) $today->diff(\DateTimeImmutable::createFromInterface($dateFin))->format('%r%a');
+            if ($daysRemaining < 0 || $daysRemaining > $maxDays) {
+                continue;
+            }
+
+            $matchingContracts[] = [
+                'id' => $contract->getId(),
+                'typeContrat' => $contract->getTypeContrat(),
+                'dateDebut' => $contract->getDateDebut()?->format('Y-m-d'),
+                'dateFin' => $dateFin->format('Y-m-d'),
+                'daysRemaining' => $daysRemaining,
+                'status' => $contract->getStatus(),
+                'salaire' => $contract->getSalaire(),
+                'volumeHoraire' => $contract->getVolumeHoraire(),
+                'periode' => $contract->getPeriode(),
+                'idRecrutement' => $contract->getIdRecrutement(),
+                'aiReminderMessage' => $includeAiMessage ? $contractReminderAiService->generateReminderMessage($contract, $daysRemaining) : null,
+            ];
+        }
+
+        usort($matchingContracts, static function (array $a, array $b): int {
+            return ($a['daysRemaining'] <=> $b['daysRemaining']) ?: strcmp((string) $a['dateFin'], (string) $b['dateFin']);
+        });
+
+        return new JsonResponse([
+            'ok' => true,
+            'generatedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+            'maxDays' => $maxDays,
+            'ai' => [
+                'enabled' => $includeAiMessage,
+                'provider' => 'Groq',
+                'configured' => $contractReminderAiService->isConfigured(),
+            ],
+            'total' => count($matchingContracts),
+            'contracts' => $matchingContracts,
+        ]);
+    }
+
     #[Route('/admin/contrats-embauche', name: 'contrat_embauche_index')]
     public function index(Request $request, ManagerRegistry $doctrine): Response
     {
@@ -96,7 +159,7 @@ class ContratEmbaucheController extends AbstractController
     }
 
     #[Route('/admin/contrats-embauche/new', name: 'contrat_embauche_new')]
-    public function new(Request $request, ManagerRegistry $doctrine): Response
+    public function new(Request $request, ManagerRegistry $doctrine, RecrutementNotificationService $notifier): Response
     {
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
         $acceptedRecrutements = $recrutementRepo->findBy(['decisionFinale' => 'Accepté']);
@@ -116,22 +179,17 @@ class ContratEmbaucheController extends AbstractController
                 return $this->render('contrat_embauche/new.html.twig', ['form' => $form->createView()]);
             }
 
-            $today = new \DateTime();
-            if ($contrat->getDateDebut() && $contrat->getDateFin()) {
-                if ($today >= $contrat->getDateDebut() && $today <= $contrat->getDateFin()) {
-                    $status = 'Actif';
-                } elseif ($today < $contrat->getDateDebut()) {
-                    $status = 'En attente';
-                } else {
-                    $status = 'Termine';
-                }
-                $contrat->setStatus($status);
-            }
-
+            $this->applyContratStatus($contrat);
             $contrat->setPeriode($contrat->getPeriode());
             $em = $doctrine->getManager();
             $em->persist($contrat);
             $em->flush();
+
+            try {
+                $notifier->notifyContratCreated($contrat);
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Contrat créé, mais l\'envoi de la notification a échoué.');
+            }
 
             $this->addFlash('success', 'Contrat cree avec succes.');
 
@@ -142,7 +200,7 @@ class ContratEmbaucheController extends AbstractController
     }
 
     #[Route('/admin/contrats-embauche/{id}/edit', name: 'contrat_embauche_edit')]
-    public function edit(Request $request, ManagerRegistry $doctrine, ContratEmbauche $contrat): Response
+    public function edit(Request $request, ManagerRegistry $doctrine, ContratEmbauche $contrat, RecrutementNotificationService $notifier): Response
     {
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
         $acceptedRecrutements = $recrutementRepo->findBy(['decisionFinale' => 'Accepté']);
@@ -161,26 +219,67 @@ class ContratEmbaucheController extends AbstractController
                 return $this->render('contrat_embauche/edit.html.twig', ['form' => $form->createView(), 'contrat' => $contrat]);
             }
 
-            $today = new \DateTime();
-            if ($contrat->getDateDebut() && $contrat->getDateFin()) {
-                if ($today >= $contrat->getDateDebut() && $today <= $contrat->getDateFin()) {
-                    $status = 'Actif';
-                } elseif ($today < $contrat->getDateDebut()) {
-                    $status = 'En attente';
-                } else {
-                    $status = 'Termine';
-                }
-                $contrat->setStatus($status);
-            }
-
+            $this->applyContratStatus($contrat);
             $contrat->setPeriode($contrat->getPeriode());
             $doctrine->getManager()->flush();
+
+            try {
+                $notifier->notifyContratUpdated($contrat);
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Contrat mis à jour, mais l\'envoi de la notification a échoué.');
+            }
+
             $this->addFlash('success', 'Contrat mis a jour avec succes.');
 
             return $this->redirectToRoute('contrat_embauche_index');
         }
 
         return $this->render('contrat_embauche/edit.html.twig', ['form' => $form->createView(), 'contrat' => $contrat]);
+    }
+
+    #[Route('/admin/contrats-embauche/{id}/send-reminder', name: 'contrat_embauche_send_reminder', methods: ['POST'])]
+    public function sendReminder(
+        Request $request,
+        ContratEmbauche $contrat,
+        ContractReminderAiService $contractReminderAiService,
+        RecrutementNotificationService $notifier
+    ): Response
+    {
+        if (!$this->isCsrfTokenValid('send_reminder_contrat_' . $contrat->getId(), (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton CSRF invalide pour l envoi du rappel.');
+
+            return $this->redirectToRoute('contrat_embauche_index');
+        }
+
+        $dateFin = $contrat->getDateFin();
+        if ($dateFin === null) {
+            $this->addFlash('error', 'Impossible d envoyer un rappel sans date de fin.');
+
+            return $this->redirectToRoute('contrat_embauche_index');
+        }
+
+        $today = new \DateTimeImmutable('today');
+        $daysRemaining = (int) $today->diff(\DateTimeImmutable::createFromInterface($dateFin))->format('%r%a');
+        if ($daysRemaining < 0) {
+            $this->addFlash('error', sprintf('Le contrat #%d est deja expire.', $contrat->getId() ?? 0));
+
+            return $this->redirectToRoute('contrat_embauche_index');
+        }
+
+        $message = $contractReminderAiService->generateReminderMessage($contrat, $daysRemaining);
+
+        try {
+            $sent = $notifier->notifyContractReminder($contrat, $message, $daysRemaining);
+            if (!$sent) {
+                $this->addFlash('error', sprintf('Aucun email candidat trouve pour le contrat #%d.', $contrat->getId() ?? 0));
+            } else {
+                $this->addFlash('success', sprintf('Rappel envoye pour le contrat #%d.', $contrat->getId() ?? 0));
+            }
+        } catch (\Throwable) {
+            $this->addFlash('error', sprintf('Echec de l envoi du rappel pour le contrat #%d.', $contrat->getId() ?? 0));
+        }
+
+        return $this->redirectToRoute('contrat_embauche_index');
     }
 
     #[Route('/admin/contrats-embauche/{id}/delete', name: 'contrat_embauche_delete', methods: ['POST'])]
@@ -194,5 +293,21 @@ class ContratEmbaucheController extends AbstractController
         }
 
         return $this->redirectToRoute('contrat_embauche_index');
+    }
+
+    private function applyContratStatus(ContratEmbauche $contrat): void
+    {
+        if (!$contrat->getDateDebut() || !$contrat->getDateFin()) {
+            return;
+        }
+
+        $today = new \DateTime();
+        if ($today >= $contrat->getDateDebut() && $today <= $contrat->getDateFin()) {
+            $contrat->setStatus('Actif');
+        } elseif ($today < $contrat->getDateDebut()) {
+            $contrat->setStatus('En attente');
+        } else {
+            $contrat->setStatus('Termine');
+        }
     }
 }

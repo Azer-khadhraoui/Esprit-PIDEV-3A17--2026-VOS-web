@@ -87,3 +87,8 @@ services:
         bind:
             $groqApiKey: '%app.groq_api_key%'
             $groqModel: '%app.groq_model%'
+
+    App\Service\ContractReminderAiService:
+        bind:
+            $groqApiKey: '%app.groq_api_key%'
+            $groqModel: '%app.groq_model%'

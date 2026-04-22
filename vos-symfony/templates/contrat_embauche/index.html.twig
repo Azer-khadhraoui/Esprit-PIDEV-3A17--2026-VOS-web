@@ -148,6 +148,10 @@
                                 <td>
                                     <div class="actions">
                                         <a class="btn-edit" href="{{ path('contrat_embauche_edit', {id: contrat.id}) }}">Modifier</a>
+                                        <form method="post" action="{{ path('contrat_embauche_send_reminder', {id: contrat.id}) }}" onsubmit="return confirm('Envoyer un mail de rappel pour ce contrat ?');" novalidate>
+                                            <input type="hidden" name="_token" value="{{ csrf_token('send_reminder_contrat_' ~ contrat.id) }}">
+                                            <button class="btn-filter" type="submit">Generer mail avec IA</button>
+                                        </form>
                                         <form method="post" action="{{ path('contrat_embauche_delete', {id: contrat.id}) }}" onsubmit="return confirm('Supprimer ce contrat ?');" novalidate>
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete_contrat_' ~ contrat.id) }}">
                                             <button class="btn-delete" type="submit">Supprimer</button>
