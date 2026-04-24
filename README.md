@@ -1,4 +1,4 @@
-# VOS - Virtual Onboarding System
+# VOS - Votre opportunité simplifiée
 
 <p align="center">
   <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="190" style="vertical-align: middle; margin-right: 18px;">
@@ -127,5 +127,5 @@ Les identites Git ci-dessous apparaissent dans l'historique du projet. Certaines
 
 
 <p align="center">
-  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="72">
+  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="100">
 </p>
