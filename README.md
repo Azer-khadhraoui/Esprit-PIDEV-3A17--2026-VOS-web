@@ -1,7 +1,11 @@
 # VOS - Virtual Onboarding System
 
 <p align="center">
-  <img src="public/images/logo.png" alt="VOS logo" width="240">
+  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="230">
+</p>
+
+<p align="center">
+  <img src="vos-symfony/public/images/VOSslogan_1770834966459.png" alt="VOS slogan" width="420">
 </p>
 
 VOS est une application Symfony de gestion RH et recrutement. Elle centralise les candidatures, les entretiens, les recrutements, les contrats, la generation de PDF, les notifications par email et plusieurs fonctions d'assistance par IA.
