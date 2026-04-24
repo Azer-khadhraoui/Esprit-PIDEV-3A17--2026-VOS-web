@@ -1,11 +1,8 @@
 # VOS - Virtual Onboarding System
 
 <p align="center">
-  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="230">
-</p>
-
-<p align="center">
-  <img src="vos-symfony/public/images/VOSslogan_1770834966459.png" alt="VOS slogan" width="420">
+  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="190" style="vertical-align: middle; margin-right: 18px;">
+  <img src="vos-symfony/public/images/VOSslogan_1770834966459.png" alt="VOS slogan" width="420" style="vertical-align: middle;">
 </p>
 
 VOS est une application Symfony de gestion RH et recrutement. Elle centralise les candidatures, les entretiens, les recrutements, les contrats, la generation de PDF, les notifications par email et plusieurs fonctions d'assistance par IA.
@@ -112,19 +109,6 @@ La connexion Face ID fonctionne cote navigateur avec JavaScript :
 3. Le descriptor live est compare avec la reference utilisateur.
 4. Si la similarite est suffisante, le formulaire de connexion est valide.
 
-## QR code dans le PDF d'entretien
-
-Le PDF d'entretien contient un QR code qui pointe vers une page publique mobile de consultation rapide.
-
-## Logo du projet
-
-Le logo VOS est stocke dans :
-
-- `public/images/logo.png`
-
-Il est reutilise dans les documents PDF, les emails et ce README.
-
-
 
 
 ## Contributeurs
@@ -140,4 +124,8 @@ Les identites Git ci-dessous apparaissent dans l'historique du projet. Certaines
 | TanSuperNova <faresmanai05@gmail.com> | 6 | `Gestion-Recrutement` |
 
 
-Equipe VOS.
+
+
+<p align="center">
+  <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="72">
+</p>
