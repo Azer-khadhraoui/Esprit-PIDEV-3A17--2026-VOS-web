@@ -31,6 +31,9 @@ class Recrutement
     #[Assert\Positive(message: "L'identifiant de l'utilisateur doit etre un nombre positif.")]
     private ?int $idUtilisateur = null;
 
+    #[ORM\Column(name: 'calendar_event_id', type: 'string', length: 255, nullable: true)]
+    private ?string $calendarEventId = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -80,6 +83,18 @@ class Recrutement
     public function setIdUtilisateur(?int $idUtilisateur): self
     {
         $this->idUtilisateur = $idUtilisateur;
+
+        return $this;
+    }
+
+    public function getCalendarEventId(): ?string
+    {
+        return $this->calendarEventId;
+    }
+
+    public function setCalendarEventId(?string $calendarEventId): self
+    {
+        $this->calendarEventId = $calendarEventId;
 
         return $this;
     }

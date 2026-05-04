@@ -7,6 +7,8 @@ use App\Entity\ContratEmbauche;
 use App\Entity\Recrutement;
 use App\Entity\User;
 use App\Form\RecrutementType;
+use App\Service\GoogleCalendarService;
+use App\Service\RecrutementNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -237,7 +239,7 @@ class RecrutementController extends AbstractController
     }
 
     #[Route('/admin/recrutements/new', name: 'recrutement_new')]
-    public function new(Request $request, ManagerRegistry $doctrine): Response
+    public function new(Request $request, ManagerRegistry $doctrine, RecrutementNotificationService $notifier, GoogleCalendarService $calendar): Response
     {
         $recrutement = new Recrutement();
         $selectedUserId = $this->resolveSelectedUserId($request, $recrutement);
@@ -253,6 +255,23 @@ class RecrutementController extends AbstractController
             $entityManager->persist($recrutement);
             $entityManager->flush();
 
+            if ($calendar->isConfigured()) {
+                try {
+                    $eventId = $calendar->createRecrutementEvent($recrutement);
+                    $recrutement->setCalendarEventId($eventId);
+                    $entityManager->flush();
+                    $this->addFlash('success', 'Decision ajoutee au Google Calendar.');
+                } catch (\Throwable $e) {
+                    $this->addFlash('warning', 'Recrutement enregistre, mais echec de synchronisation Google Calendar: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $notifier->notifyDecision($recrutement);
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Recrutement enregistré, mais l\'envoi de la notification a échoué.');
+            }
+
             $this->addFlash('success', 'Recrutement ajoute avec succes.');
 
             return $this->redirectToRoute('recrutement_index');
@@ -264,7 +283,7 @@ class RecrutementController extends AbstractController
     }
 
     #[Route('/admin/recrutements/{id}/edit', name: 'recrutement_edit')]
-    public function edit(Request $request, ManagerRegistry $doctrine, Recrutement $recrutement): Response
+    public function edit(Request $request, ManagerRegistry $doctrine, Recrutement $recrutement, RecrutementNotificationService $notifier, GoogleCalendarService $calendar): Response
     {
         $selectedUserId = $this->resolveSelectedUserId($request, $recrutement);
 
@@ -275,7 +294,17 @@ class RecrutementController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $doctrine->getManager()->flush();
+            $entityManager = $doctrine->getManager();
+            $entityManager->flush();
+
+            $this->syncCalendarOnEdit($calendar, $recrutement, $entityManager);
+
+            try {
+                $notifier->notifyDecision($recrutement);
+            } catch (\Throwable) {
+                $this->addFlash('warning', 'Recrutement mis à jour, mais l\'envoi de la notification a échoué.');
+            }
+
             $this->addFlash('success', 'Recrutement mis a jour avec succes.');
 
             return $this->redirectToRoute('recrutement_index');
@@ -288,12 +317,21 @@ class RecrutementController extends AbstractController
     }
 
     #[Route('/admin/recrutements/{id}/delete', name: 'recrutement_delete', methods: ['POST'])]
-    public function delete(Request $request, ManagerRegistry $doctrine, Recrutement $recrutement): Response
+    public function delete(Request $request, ManagerRegistry $doctrine, Recrutement $recrutement, GoogleCalendarService $calendar): Response
     {
         if ($this->isCsrfTokenValid('delete_recrutement_' . $recrutement->getId(), (string) $request->request->get('_token'))) {
             $entityManager = $doctrine->getManager();
+            $calendarEventId = $recrutement->getCalendarEventId();
 
             try {
+                if ($calendarEventId !== null) {
+                    try {
+                        $calendar->deleteEvent($calendarEventId);
+                    } catch (\Throwable) {
+                        $this->addFlash('warning', 'Recrutement supprime, mais echec de suppression dans Google Calendar.');
+                    }
+                }
+
                 $entityManager->remove($recrutement);
                 $entityManager->flush();
                 $this->addFlash('success', 'Recrutement supprime avec succes.');
@@ -396,5 +434,26 @@ class RecrutementController extends AbstractController
         }
 
         return $recrutement->getIdUtilisateur();
+    }
+
+    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Recrutement $recrutement, \Doctrine\ORM\EntityManagerInterface $entityManager): void
+    {
+        if (!$calendar->isConfigured()) {
+            return;
+        }
+
+        try {
+            $existingEventId = $recrutement->getCalendarEventId();
+            if ($existingEventId !== null) {
+                $calendar->updateRecrutementEvent($existingEventId, $recrutement);
+            } else {
+                $recrutement->setCalendarEventId($calendar->createRecrutementEvent($recrutement));
+                $entityManager->flush();
+            }
+
+            $this->addFlash('success', 'Google Calendar mis a jour.');
+        } catch (\Throwable) {
+            $this->addFlash('warning', 'Recrutement modifie, mais echec de synchronisation Google Calendar.');
+        }
     }
 }

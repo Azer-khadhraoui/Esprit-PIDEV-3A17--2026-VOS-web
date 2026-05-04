@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}VOS - Plateforme de Recrutement{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+        {% endblock %}
+
+        {% block styles %}{% endblock %}
+
+        {% block javascripts %}
+        {% endblock %}
+
+        {% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
+        {% if frankenphpHotReload %}
+        <meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
+        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
+        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
+        {% endif %}
+    </head>
+    <body>
+        {{ include('client/_client_header.html.twig', { userName: userName|default('Utilisateur'), activePage: activePage|default('') }) }}
+        
+        {% block body %}{% endblock %}
+
+        {% set isAuthenticatedSession = app.session.get('user_id') or app.session.get('admin_user_id') %}
+        {% if isAuthenticatedSession %}
+            <script>
+                (function () {
+                    window.addEventListener('pageshow', function (event) {
+                        var navEntries = (window.performance && window.performance.getEntriesByType)
+                            ? window.performance.getEntriesByType('navigation')
+                            : [];
+                        var isBackForward = navEntries.length > 0 && navEntries[0].type === 'back_forward';
+
+                        if (event.persisted || isBackForward) {
+                            window.location.reload();
+                        }
+                    });
+                })();
+            </script>
+
+            {# Chatbot Widget #}
+            {% include 'components/chatbot_widget.html.twig' %}
+            <script src="{{ asset('js/chatbot.js') }}"></script>
+        {% endif %}
+    </body>
+</html>

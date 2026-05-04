@@ -317,6 +317,76 @@
                 <p>Créez votre première préférence pour définir vos critères de recherche.</p>
             </div>
         {% else %}
+        {# ── Recherche avancée Préférences ── #}
+<form method="GET" action="{{ path('app_client_preferences') }}" style="margin-bottom:20px;">
+    <div style="background:#f1f3f9; border:1px solid #e8ebf3; border-radius:16px; padding:18px;">
+
+        {# Ligne 1 #}
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+
+            <input type="text" name="poste" placeholder="🔍 Type de poste (Dev, Data...)"
+                   value="{{ filtrePoste }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+
+            <select name="mode" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Tout mode de travail</option>
+                {% for m in ['100% Présentiel', '100% Télétravail', 'Hybride'] %}
+                    <option value="{{ m }}" {{ filtreMode == m ? 'selected' : '' }}>{{ m }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="contrat" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Tout type contrat</option>
+                {% for c in ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance'] %}
+                    <option value="{{ c }}" {{ filtreContrat == c ? 'selected' : '' }}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Ligne 2 #}
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; align-items:center;">
+
+            <select name="disponibilite" style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+                <option value="">Toute disponibilité</option>
+                {% for d in ['Immédiatement', 'Dans 1 mois', 'Dans 3 mois', 'Dans 6 mois'] %}
+                    <option value="{{ d }}" {{ filtreDisponible == d ? 'selected' : '' }}>{{ d }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="number" name="salaire_min" placeholder="Salaire min (TND)"
+                   value="{{ filtreSalaireMin }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+
+            <input type="number" name="salaire_max" placeholder="Salaire max (TND)"
+                   value="{{ filtreSalaireMax }}"
+                   style="border:1px solid #d9deea; border-radius:10px; padding:10px 12px; font-family:inherit; background:#fff;">
+
+            <div style="display:flex; gap:8px;">
+                <button type="submit"
+                        style="flex:1; border:0; border-radius:10px; padding:10px; background:#4361ee; color:#fff; font-weight:700; cursor:pointer; font-family:inherit;">
+                    🔍 Filtrer
+                </button>
+                <a href="{{ path('app_client_preferences') }}"
+                   style="flex:1; border:0; border-radius:10px; padding:10px; background:#e2e8f0; color:#1b2440; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center;">
+                    ✕ Reset
+                </a>
+            </div>
+        </div>
+
+        {% set filtresActifs = (filtrePoste or filtreMode or filtreContrat or filtreDisponible or filtreSalaireMin or filtreSalaireMax) %}
+        {% if filtresActifs %}
+            <p style="margin:10px 0 0; font-size:0.88rem; color:#6c7693;">
+                <strong>{{ preferences|length }}</strong> résultat(s)
+                {% if filtreMode %} · Mode: <strong>{{ filtreMode }}</strong>{% endif %}
+                {% if filtreContrat %} · Contrat: <strong>{{ filtreContrat }}</strong>{% endif %}
+                {% if filtreDisponible %} · Dispo: <strong>{{ filtreDisponible }}</strong>{% endif %}
+                {% if filtreSalaireMin or filtreSalaireMax %}
+                    · Salaire: <strong>{{ filtreSalaireMin ?: '0' }} — {{ filtreSalaireMax ?: '∞' }} TND</strong>
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+</form>
             <div class="grid">
                 {% for preference in preferences %}
                     <div class="card">

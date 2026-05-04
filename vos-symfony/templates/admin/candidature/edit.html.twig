@@ -36,6 +36,12 @@
             </form>
         </header>
 
+        <nav class="module-nav" aria-label="Navigation candidatures">
+            <a class="module-link is-active" href="{{ path('app_admin_candidatures') }}">Candidatures</a>
+            <a class="module-link" href="{{ path('app_admin_preferences') }}">Préférences</a>
+            <a class="module-link" href="{{ path('app_admin_statistics') }}">Statistiques</a>
+        </nav>
+
         {% for message in app.flashes('error') %}
             <div class="flash flash-error">{{ message }}</div>
         {% endfor %}
@@ -104,8 +110,13 @@
                             {% if fieldErrors.statut is defined %}
                                 <small style="color:#b91c1c;font-size:0.82rem;display:block;margin-top:4px;">{{ fieldErrors.statut }}</small>
                             {% endif %}
-                            <button type="submit" class="btn-save">Enregistrer</button>
-                            <a href="{{ path('app_admin_candidatures') }}" class="btn-cancel">Annuler</a>
+                            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                                <a href="{{ path('app_admin_candidature_detail_pdf', {id: candidature.idCandidature}) }}" class="btn-cancel" style="background-color: #4361ee; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                                    📄 Exporter en PDF
+                                </a>
+                                <button type="submit" class="btn-save">Enregistrer</button>
+                                <a href="{{ path('app_admin_candidatures') }}" class="btn-cancel">Annuler</a>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -126,6 +137,19 @@
                         <p class="form-value">{% if candidature.lettreMotivation %}<a href="{{ asset(candidature.lettreMotivation) }}" target="_blank">Voir la lettre</a>{% else %}N/A{% endif %}</p>
                     </div>
                 </div>
+                <div class="card border-info mt-3">
+    <div class="card-header bg-info text-white">
+        <i class="fas fa-qrcode"></i> QR Code — Résumé rapide
+    </div>
+    <div class="card-body text-center">
+        <img src="data:image/png;base64,{{ qrCodeBase64 }}"
+             alt="QR Code Candidature"
+             style="max-width: 180px;" />
+        <p class="text-muted small mt-2">
+            Scannez ce code pour voir le résumé du candidat
+        </p>
+    </div>
+</div>
             </div>
         </section>
     </main>

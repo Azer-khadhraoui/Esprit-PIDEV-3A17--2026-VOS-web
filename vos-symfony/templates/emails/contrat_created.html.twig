@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrat d'embauche</title>
+<style>
+  body { margin: 0; padding: 0; background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color: #333; }
+  .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .header { background: #1a1a2e; padding: 32px 40px; text-align: center; }
+  .header .logo { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: 4px; }
+  .header .tagline { color: #a0aec0; font-size: 13px; margin-top: 4px; }
+  .header .subtitle { color: #e2e8f0; font-size: 16px; margin-top: 16px; font-weight: 500; }
+  .body { padding: 36px 40px; }
+  .greeting { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .message { font-size: 15px; line-height: 1.7; color: #555; margin-bottom: 24px; }
+  .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+  .info-box h3 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #4a5568; }
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #718096; font-weight: 500; }
+  .info-value { font-weight: 600; color: #2d3748; }
+  .salary-highlight { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 16px 24px; margin-bottom: 24px; text-align: center; }
+  .salary-highlight .amount { font-size: 28px; font-weight: 800; color: #2b6cb0; }
+  .salary-highlight .label { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .avantages { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 16px 24px; margin-bottom: 24px; font-size: 14px; color: #276749; line-height: 1.6; }
+  .avantages strong { display: block; margin-bottom: 6px; }
+  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 40px; text-align: center; font-size: 12px; color: #a0aec0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">VOS</div>
+    <div class="tagline">Virtual Onboarding System</div>
+    <div class="subtitle">
+      {% if action == 'mise_a_jour' %}
+        Mise à jour de votre contrat d'embauche
+      {% else %}
+        Votre contrat d'embauche est disponible
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="greeting">Bonjour {{ recipientName }},</div>
+
+    <div class="message">
+      {% if recipientRole == 'candidat' %}
+        {% if action == 'mise_a_jour' %}
+          Les informations de votre contrat d'embauche <strong>#{{ contratId }}</strong> ont été mises à jour.
+          Vous trouverez ci-dessous le récapitulatif actualisé.
+        {% else %}
+          Félicitations ! Votre contrat d'embauche <strong>#{{ contratId }}</strong> vient d'être créé.
+          Vous pouvez en consulter les détails ci-dessous.
+        {% endif %}
+      {% else %}
+        Le contrat <strong>#{{ contratId }}</strong> a été
+        {% if action == 'mise_a_jour' %}mis à jour{% else %}créé{% endif %}.
+      {% endif %}
+    </div>
+
+    <div class="salary-highlight">
+      <div class="amount">{{ salaire ? salaire|number_format(0, ',', ' ') ~ ' TND' : 'À définir' }}</div>
+      <div class="label">Salaire mensuel</div>
+    </div>
+
+    <div class="info-box">
+      <h3>Détails du contrat</h3>
+      <div class="info-row">
+        <span class="info-label">Type de contrat</span>
+        <span class="info-value">{{ typeContrat }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Date de début</span>
+        <span class="info-value">{{ dateDebut }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Date de fin</span>
+        <span class="info-value">{{ dateFin }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Volume horaire</span>
+        <span class="info-value">{{ volumeHoraire }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Statut</span>
+        <span class="info-value">{{ status }}</span>
+      </div>
+    </div>
+
+    {% if avantages and avantages != 'Aucun' %}
+    <div class="avantages">
+      <strong>Avantages inclus :</strong>
+      {{ avantages }}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    Cet email a été envoyé automatiquement par VOS — Virtual Onboarding System.<br>
+    Merci de ne pas répondre à cet email.
+  </div>
+</div>
+</body>
+</html>

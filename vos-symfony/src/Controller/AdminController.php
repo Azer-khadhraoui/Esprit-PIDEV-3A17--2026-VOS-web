@@ -8,8 +8,10 @@ use App\Entity\PreferenceCandidature;
 use App\Entity\User;
 use App\Form\AdminUserType;
 use App\Service\AdminDashboardService;
-use App\Service\GroqReasonEnhancer;
+use App\Service\candidature\MatchingService;
 use App\Service\AdminUserService;
+use App\Service\candidature\PdfService;
+use App\Service\GroqReasonEnhancer;
 use App\Service\LanguageToolReasonEnhancer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +22,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Nucleos\DompdfBundle\Wrapper\DompdfWrapperInterface;
 
@@ -428,7 +432,7 @@ class AdminController extends AbstractController
         return $response;
     }
 
-     #[Route('/candidatures', name: 'app_admin_candidatures', methods: ['GET'])]
+    #[Route('/candidatures', name: 'app_admin_candidatures', methods: ['GET'])]
     public function candidatures(EntityManagerInterface $entityManager, SessionInterface $session, Request $request): Response
     {
         $access = $this->requireAdmin($session);
@@ -471,7 +475,7 @@ class AdminController extends AbstractController
 
             $qb
                 ->andWhere($searchExpr)
-                ->setParameter('search', '%'.mb_strtolower($search).'%');
+                ->setParameter('search', '%' . mb_strtolower($search) . '%');
         }
 
         if ('' !== $statusFilter) {
@@ -480,14 +484,14 @@ class AdminController extends AbstractController
                 ->setParameter('status', $statusFilter);
         }
 
-        $qb->orderBy('c.'.$sortBy, $sortOrder);
-        
+        $qb->orderBy('c.' . $sortBy, $sortOrder);
+
         $candidatures = $qb->getQuery()->getResult();
-        
+
         // Charger les User et OffreEmploi séparément
         $userIds = [];
         $offreIds = [];
-        
+
         foreach ($candidatures as $candidature) {
             if ($candidature->getIdUtilisateur()) {
                 $userIds[$candidature->getIdUtilisateur()] = true;
@@ -496,17 +500,17 @@ class AdminController extends AbstractController
                 $offreIds[$candidature->getIdOffre()] = true;
             }
         }
-        
+
         $users = [];
         $offres = [];
-        
+
         if (!empty($userIds)) {
             $userObjs = $entityManager->getRepository(User::class)->findBy(['id' => array_keys($userIds)]);
             foreach ($userObjs as $user) {
                 $users[$user->getId()] = $user;
             }
         }
-        
+
         if (!empty($offreIds)) {
             $offreObjs = $entityManager->getRepository(OffreEmploi::class)->findBy(['idOffre' => array_keys($offreIds)]);
             foreach ($offreObjs as $offre) {
@@ -565,21 +569,37 @@ class AdminController extends AbstractController
         // Charger l'utilisateur et l'offre séparément
         $user = null;
         $offre = null;
-        
+
         if ($candidature->getIdUtilisateur()) {
             $user = $entityManager->getRepository(User::class)->find($candidature->getIdUtilisateur());
         }
-        
+
         if ($candidature->getIdOffre()) {
             $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
         }
 
+        // ── QR Code ──────────────────────────────────────────────────
+        $qrData = implode("\n", [
+            'Candidature #' . $candidature->getIdCandidature(),
+            'Candidat : ' . $user?->getPrenom() . ' ' . $user?->getNom(),
+            'Offre     : ' . ($offre?->getTitre() ?? 'N/A'),
+            'Statut    : ' . $candidature->getStatut(),
+            'Date      : ' . $candidature->getDateCandidature()?->format('d/m/Y'),
+        ]);
+
+        $qrCode = new QrCode($qrData);
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+        $qrCodeBase64 = base64_encode($result->getString());
+        // ─────────────────────────────────────────────────────────────
         return $this->render('admin/candidature/edit.html.twig', [
             'candidature' => $candidature,
             'adminName' => (string) $session->get('admin_user_name', 'Admin'),
             'user' => $user,
             'offre' => $offre,
             'fieldErrors' => $fieldErrors,
+            'qrCodeBase64' => $qrCodeBase64,  // ← nouveau
+
         ]);
     }
 
@@ -605,6 +625,132 @@ class AdminController extends AbstractController
         }
 
         return $this->redirectToRoute('app_admin_candidatures');
+    }
+
+    // ── Export PDF - Liste des candidatures ───────────────────────────
+    #[Route('/candidatures/export-pdf', name: 'app_admin_candidatures_export_pdf', methods: ['GET'])]
+    public function exportCandidaturesPdf(
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        Request $request,
+        PdfService $pdfService
+    ): Response {
+        $access = $this->requireAdmin($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        $search = trim((string) $request->query->get('search', ''));
+        $statusFilter = trim((string) $request->query->get('status', ''));
+        $sortBy = (string) $request->query->get('sortBy', 'id_candidature');
+        $sortOrder = strtoupper((string) $request->query->get('sortOrder', 'DESC'));
+
+        $allowedSortBy = ['id_candidature', 'date_candidature', 'statut'];
+        if (!in_array($sortBy, $allowedSortBy, true)) {
+            $sortBy = 'id_candidature';
+        }
+
+        if (!in_array($sortOrder, ['ASC', 'DESC'], true)) {
+            $sortOrder = 'DESC';
+        }
+
+        $qb = $entityManager->getRepository(Candidature::class)
+            ->createQueryBuilder('c')
+            ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
+            ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+
+        if ('' !== $search) {
+            $searchExpr = $qb->expr()->orX(
+                $qb->expr()->like('u.nom', ':search'),
+                $qb->expr()->like('u.prenom', ':search'),
+                $qb->expr()->like('o.titre', ':search')
+            );
+
+            if (ctype_digit($search)) {
+                $searchExpr = $qb->expr()->orX(
+                    $searchExpr,
+                    $qb->expr()->eq('c.id_candidature', ':id')
+                );
+                $qb->setParameter('id', $search);
+            }
+
+            $qb->andWhere($searchExpr)->setParameter('search', '%' . $search . '%');
+        }
+
+        if ('' !== $statusFilter) {
+            $qb->andWhere('c.statut = :status')->setParameter('status', $statusFilter);
+        }
+
+        $qb->orderBy('c.' . $sortBy, $sortOrder);
+
+        $candidatures = $qb->getQuery()->getResult();
+
+        // Charger les User et OffreEmploi séparément
+        $userIds = [];
+        $offreIds = [];
+
+        foreach ($candidatures as $candidature) {
+            if ($candidature->getIdUtilisateur()) {
+                $userIds[$candidature->getIdUtilisateur()] = true;
+            }
+            if ($candidature->getIdOffre()) {
+                $offreIds[$candidature->getIdOffre()] = true;
+            }
+        }
+
+        $users = [];
+        $offres = [];
+
+        if (!empty($userIds)) {
+            $userObjs = $entityManager->getRepository(User::class)->findBy(['id' => array_keys($userIds)]);
+            foreach ($userObjs as $user) {
+                $users[$user->getId()] = $user;
+            }
+        }
+
+        if (!empty($offreIds)) {
+            $offreObjs = $entityManager->getRepository(OffreEmploi::class)->findBy(['idOffre' => array_keys($offreIds)]);
+            foreach ($offreObjs as $offre) {
+                $offres[$offre->getIdOffre()] = $offre;
+            }
+        }
+
+        $html = $this->renderView('pdf/candidatures_list_admin.html.twig', [
+            'candidatures' => $candidatures,
+            'users' => $users,
+            'offres' => $offres,
+        ]);
+
+        $filename = 'candidatures_admin_' . date('d-m-Y') . '.pdf';
+
+        return $pdfService->generatePdfResponse($html, $filename);
+    }
+
+    // ── Export PDF - Détail d'une candidature ────────────────────────
+    #[Route('/candidatures/{id}/export-pdf', name: 'app_admin_candidature_detail_pdf', methods: ['GET'])]
+    public function exportCandidatureDetailPdf(
+        Candidature $candidature,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        PdfService $pdfService
+    ): Response {
+        $access = $this->requireAdmin($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        $candidat = $entityManager->getRepository(User::class)->find($candidature->getIdUtilisateur());
+        $offre = $entityManager->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
+
+        $html = $this->renderView('pdf/candidature_detail.html.twig', [
+            'candidature' => $candidature,
+            'candidat' => $candidat,
+            'offre' => $offre,
+        ]);
+
+        $filename = 'candidature_' . $candidature->getIdCandidature() . '_' . date('d-m-Y') . '.pdf';
+
+        return $pdfService->generatePdfResponse($html, $filename);
     }
 
     #[Route('/preferences', name: 'app_admin_preferences', methods: ['GET'])]
@@ -667,7 +813,7 @@ class AdminController extends AbstractController
                 $userIds[$preference->getIdUtilisateur()] = true;
             }
         }
-        
+
         $users = [];
         if (!empty($userIds)) {
             $userObjs = $entityManager->getRepository(User::class)->findBy(['id' => array_keys($userIds)]);
@@ -820,6 +966,173 @@ class AdminController extends AbstractController
         }
 
         return $this->redirectToRoute('app_admin_preferences');
+    }
+
+    // ── Statistiques Candidatures et Préférences ──────────────────────
+    // Dans AdminController.php — remplacer la méthode statistics()
+
+    #[Route('/candidatures-preferences/statistics', name: 'app_admin_statistics', methods: ['GET'])]
+    public function statistics(
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        MatchingService $matchingService,
+        Request $request
+    ): Response {
+        $access = $this->requireAdmin($session);
+        if ($access instanceof RedirectResponse) {
+            return $access;
+        }
+
+        $conn = $entityManager->getConnection();
+
+        // ── Filtre période ──────────────────────────────────────────────
+        $periode = $request->query->get('periode', 'all'); // all | month | week
+        $dateFilter = match ($periode) {
+            'week' => (new \DateTime())->modify('-7 days')->format('Y-m-d'),
+            'month' => (new \DateTime())->modify('-30 days')->format('Y-m-d'),
+            default => null,
+        };
+
+        // ── Candidatures ────────────────────────────────────────────────
+        $candidatureQb = $entityManager->getRepository(Candidature::class)->createQueryBuilder('c');
+        if ($dateFilter) {
+            $candidatureQb->andWhere('c.date_candidature >= :df')->setParameter('df', $dateFilter);
+        }
+        $candidatures = $candidatureQb->getQuery()->getResult();
+        $totalCandidatures = count($candidatures);
+
+        // Par statut
+        $candidaturesByStatus = [];
+        $candidaturesByNiveau = [];
+        $candidaturesByDomaine = [];
+        foreach ($candidatures as $c) {
+            $s = $c->getStatut() ?: 'Non spécifié';
+            $candidaturesByStatus[$s] = ($candidaturesByStatus[$s] ?? 0) + 1;
+            $n = $c->getNiveauExperience() ?: 'Non spécifié';
+            $candidaturesByNiveau[$n] = ($candidaturesByNiveau[$n] ?? 0) + 1;
+            $d = $c->getDomaineExperience() ?: 'Non spécifié';
+            $candidaturesByDomaine[$d] = ($candidaturesByDomaine[$d] ?? 0) + 1;
+        }
+
+        // Par offre
+        $candidaturesByOffers = [];
+        foreach ($candidatures as $c) {
+            $offre = $entityManager->getRepository(OffreEmploi::class)->find($c->getIdOffre());
+            if ($offre) {
+                $t = $offre->getTitre();
+                $candidaturesByOffers[$t] = ($candidaturesByOffers[$t] ?? 0) + 1;
+            }
+        }
+
+        // Timeline — candidatures par jour sur les 14 derniers jours
+        $timeline = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $day = (new \DateTime())->modify("-{$i} days")->format('Y-m-d');
+            $timeline[$day] = 0;
+        }
+        foreach ($candidatures as $c) {
+            $d = $c->getDateCandidature()?->format('Y-m-d');
+            if ($d && isset($timeline[$d])) {
+                $timeline[$d]++;
+            }
+        }
+
+        // ── Préférences ─────────────────────────────────────────────────
+        $preferences = $entityManager->getRepository(PreferenceCandidature::class)->findAll();
+        $totalPreferences = count($preferences);
+        $preferencesByType = [];
+        $preferencesByMode = [];
+        $preferencesByDisponibilite = [];
+        $preferencesByContrat = [];
+        $salairesByContrat = [];
+
+        foreach ($preferences as $p) {
+            $type = $p->getTypePosteSouhaite() ?: 'Non spécifié';
+            $preferencesByType[$type] = ($preferencesByType[$type] ?? 0) + 1;
+            $mode = $p->getModeTravail() ?: 'Non spécifié';
+            $preferencesByMode[$mode] = ($preferencesByMode[$mode] ?? 0) + 1;
+            $dispo = $p->getDisponibilite() ?: 'Non spécifié';
+            $preferencesByDisponibilite[$dispo] = ($preferencesByDisponibilite[$dispo] ?? 0) + 1;
+            $contrat = $p->getTypeContratSouhaite() ?: 'Non spécifié';
+            $preferencesByContrat[$contrat] = ($preferencesByContrat[$contrat] ?? 0) + 1;
+            if ($p->getPretentionSalariale() && $p->getTypeContratSouhaite()) {
+                $salairesByContrat[$p->getTypeContratSouhaite()][] = $p->getPretentionSalariale();
+            }
+        }
+
+        // Moyenne des prétentions salariales par contrat
+        $avgSalairesByContrat = [];
+        foreach ($salairesByContrat as $contrat => $salaires) {
+            $avgSalairesByContrat[$contrat] = round(array_sum($salaires) / count($salaires));
+        }
+
+        // ── Matching Offres / Préférences ────────────────────────────────
+        $offres = $entityManager->getRepository(OffreEmploi::class)->findBy(['statutOffre' => 'OUVERTE']);
+        $matchingStats = [];
+        foreach ($offres as $offre) {
+            $scores = [];
+            foreach ($preferences as $pref) {
+                $result = $matchingService->calculateMatching($offre, $pref);
+                $scores[] = $result['score'];
+            }
+            if (count($scores) > 0) {
+                $avg = array_sum($scores) / count($scores);
+                $matchingStats[] = [
+                    'offre' => $offre->getTitre(),
+                    'avgScore' => round($avg, 1),
+                    'maxScore' => max($scores),
+                    'candidatesMatched' => count(array_filter($scores, fn($s) => $s >= 70)),
+                    'total' => count($scores),
+                ];
+            }
+        }
+        usort($matchingStats, fn($a, $b) => $b['avgScore'] <=> $a['avgScore']);
+
+        // ── Données globales ─────────────────────────────────────────────
+        $totalUsers = count($entityManager->getRepository(User::class)->findAll());
+        $totalOffers = count($entityManager->getRepository(OffreEmploi::class)->findAll());
+        $rateOfCandidature = $totalUsers > 0 ? round(($totalCandidatures / $totalUsers) * 100, 1) : 0;
+        $rateOfPreference = $totalUsers > 0 ? round(($totalPreferences / $totalUsers) * 100, 1) : 0;
+
+        // Taux d'acceptation
+        $accepted = $candidaturesByStatus['Accepté'] ?? 0;
+        $refused = $candidaturesByStatus['Refusé'] ?? 0;
+        $acceptanceRate = $totalCandidatures > 0 ? round(($accepted / $totalCandidatures) * 100, 1) : 0;
+
+        return $this->render('admin/candidature/statistics.html.twig', [
+            'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            'periode' => $periode,
+            // Candidatures
+            'totalCandidatures' => $totalCandidatures,
+            'candidaturesByStatus' => $candidaturesByStatus,
+            'candidaturesByOffers' => $candidaturesByOffers,
+            'candidaturesByNiveau' => $candidaturesByNiveau,
+            'candidaturesByDomaine' => $candidaturesByDomaine,
+            'timeline' => $timeline,
+            'acceptanceRate' => $acceptanceRate,
+            'maxStatus' => count($candidaturesByStatus) > 0 ? max($candidaturesByStatus) : 1,
+            'maxOffers' => count($candidaturesByOffers) > 0 ? max($candidaturesByOffers) : 1,
+            'maxNiveau' => count($candidaturesByNiveau) > 0 ? max($candidaturesByNiveau) : 1,
+            'maxDomaine' => count($candidaturesByDomaine) > 0 ? max($candidaturesByDomaine) : 1,
+            // Préférences
+            'totalPreferences' => $totalPreferences,
+            'preferencesByType' => $preferencesByType,
+            'preferencesByMode' => $preferencesByMode,
+            'preferencesByDisponibilite' => $preferencesByDisponibilite,
+            'preferencesByContrat' => $preferencesByContrat,
+            'avgSalairesByContrat' => $avgSalairesByContrat,
+            'maxType' => count($preferencesByType) > 0 ? max($preferencesByType) : 1,
+            'maxMode' => count($preferencesByMode) > 0 ? max($preferencesByMode) : 1,
+            'maxDispo' => count($preferencesByDisponibilite) > 0 ? max($preferencesByDisponibilite) : 1,
+            'maxContrat' => count($preferencesByContrat) > 0 ? max($preferencesByContrat) : 1,
+            // Matching
+            'matchingStats' => $matchingStats,
+            // Global
+            'totalUsers' => $totalUsers,
+            'totalOffers' => $totalOffers,
+            'rateOfCandidature' => $rateOfCandidature,
+            'rateOfPreference' => $rateOfPreference,
+        ]);
     }
 
     private function requireAdmin(SessionInterface $session): RedirectResponse|null

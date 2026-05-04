@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Entity\OffreEmploi;
+use App\Entity\PreferenceCandidature;
+use App\Service\candidature\MatchingService;
 use App\Service\OffreChatFilterAiService;
 use App\Service\OffreTranslationAiService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -158,6 +160,86 @@ class ClientOffreController extends AbstractController
         ]);
     }
 
+    #[Route('/opportunites/mes-contrats/search', name: 'client_mes_contrats_search', methods: ['GET'])]
+    public function mesContratsSearch(Request $request, EntityManagerInterface $entityManager, SessionInterface $session): JsonResponse
+    {
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return $this->json(['error' => 'Non autorisé'], 401);
+        }
+
+        $search    = trim((string) $request->query->get('search', ''));
+        $type      = trim((string) $request->query->get('type', ''));
+        $decision  = trim((string) $request->query->get('decision', ''));
+        $dateFrom  = trim((string) $request->query->get('date_from', ''));
+        $dateTo    = trim((string) $request->query->get('date_to', ''));
+
+        $sql = "
+            SELECT
+                c.id_contrat, c.type_contrat, c.date_debut, c.date_fin,
+                c.salaire, c.status, c.volume_horaire, c.avantages,
+                c.periode, c.id_recrutement,
+                r.date_decision, r.decision_finale
+            FROM contrat_embauche c
+            INNER JOIN recrutement r  ON r.id_recrutement = c.id_recrutement
+            INNER JOIN entretien e    ON e.id_entretien   = r.id_entretien
+            INNER JOIN candidature ca ON ca.id_candidature = e.id_candidature
+            WHERE ca.id_utilisateur = :userId
+        ";
+
+        $params = ['userId' => $idUtilisateur];
+
+        if ($search !== '') {
+            $sql .= " AND (
+                LOWER(c.type_contrat)       LIKE :q
+                OR LOWER(c.status)          LIKE :q
+                OR LOWER(r.decision_finale) LIKE :q
+                OR LOWER(c.avantages)       LIKE :q
+                OR LOWER(c.periode)         LIKE :q
+            )";
+            $params['q'] = '%' . strtolower($search) . '%';
+        }
+
+        if ($type !== '') {
+            $sql .= " AND LOWER(c.type_contrat) = :type";
+            $params['type'] = strtolower($type);
+        }
+
+        if ($decision !== '') {
+            $decisionMap = [
+                'accepte'  => ['accepté', 'accepte'],
+                'refuse'   => ['refusé', 'refuse'],
+                'attente'  => ['en attente', 'attente'],
+            ];
+            $variants = $decisionMap[$decision] ?? [$decision];
+            $orParts = [];
+            foreach ($variants as $i => $v) {
+                $key = 'dec' . $i;
+                $orParts[] = "LOWER(r.decision_finale) LIKE :$key";
+                $params[$key] = '%' . $v . '%';
+            }
+            $sql .= ' AND (' . implode(' OR ', $orParts) . ')';
+        }
+
+        if ($dateFrom !== '') {
+            $sql .= " AND c.date_debut >= :date_from";
+            $params['date_from'] = $dateFrom;
+        }
+
+        if ($dateTo !== '') {
+            $sql .= " AND c.date_debut <= :date_to";
+            $params['date_to'] = $dateTo;
+        }
+
+        $sql .= " ORDER BY c.date_debut DESC, c.id_contrat DESC";
+
+        $contracts = $entityManager->getConnection()
+            ->executeQuery($sql, $params)
+            ->fetchAllAssociative();
+
+        return $this->json(['total' => count($contracts), 'contracts' => $contracts]);
+    }
+
     #[Route('/opportunites/mes-contrats', name: 'client_mes_contrats', methods: ['GET'])]
     public function mesContrats(EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
@@ -254,6 +336,90 @@ class ClientOffreController extends AbstractController
         $this->addFlash('success', 'Candidature envoyee avec succes.');
 
         return $this->redirectToRoute('client_opportunites');
+    }
+
+    #[Route('/offres-compatibles', name: 'client_offres_compatibles', methods: ['GET'])]
+    public function offresCompatibles(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        MatchingService $matchingService
+    ): Response {
+        $isClientAuthenticated = (bool) $session->get('user_id')
+            && (string) $session->get('user_role', '') === 'CLIENT'
+            && (string) $session->get('auth_scope', '') === 'client';
+
+        if (!$isClientAuthenticated) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return $this->redirectToRoute('app_signin');
+        }
+
+        // ─── Récupérer les préférences du candidat ─────────────────────────
+        $preference = $entityManager->getRepository(PreferenceCandidature::class)
+            ->findOneBy(['id_utilisateur' => $idUtilisateur]);
+
+        // ─── Récupérer toutes les offres ouvertes ──────────────────────────
+        $offres = $entityManager->getRepository(OffreEmploi::class)
+            ->findBy(['statutOffre' => 'OUVERTE'], ['datePublication' => 'DESC']);
+
+        if (empty($offres)) {
+            // Aucune offre disponible dans le système
+            return $this->render('client/candidature/offres_compatibles.html.twig', [
+                'offresAvecScore' => [],
+                'preference' => $preference,
+                'userName' => $session->get('user_name', 'Candidat'),
+                'activePage' => 'offres-compatibles',
+                'pagination' => [
+                    'page' => 1,
+                    'totalPages' => 0,
+                    'total' => 0,
+                ],
+                'message' => 'Aucune offre disponible pour le moment.',
+            ]);
+        }
+
+        // ─── Calculer les scores de matching ────────────────────────────────
+        $offresAvecScore = [];
+        foreach ($offres as $offre) {
+            $matching = $matchingService->calculateMatching($offre, $preference);
+            
+            // Inclure toutes les offres, même sans préférences
+            // pour que l'utilisateur voie ce qui est disponible
+            $offresAvecScore[] = [
+                'offre' => $offre,
+                'matching' => $matching,
+            ];
+        }
+
+        // ─── Trier par score décroissant ───────────────────────────────────
+        usort($offresAvecScore, function ($a, $b) {
+            return $b['matching']['score'] <=> $a['matching']['score'];
+        });
+
+        // ─── Pagination ────────────────────────────────────────────────────
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 10;
+        $total = count($offresAvecScore);
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+        
+        $startIndex = ($page - 1) * $perPage;
+        $paginatedOffres = array_slice($offresAvecScore, $startIndex, $perPage);
+
+        return $this->render('client/candidature/offres_compatibles.html.twig', [
+            'offresAvecScore' => $paginatedOffres,
+            'preference' => $preference,
+            'userName' => $session->get('user_name', 'Candidat'),
+            'activePage' => 'offres-compatibles',
+            'pagination' => [
+                'page' => $page,
+                'totalPages' => $totalPages,
+                'total' => $total,
+            ],
+        ]);
     }
 
     #[Route('/opportunites/translate-criteria', name: 'client_opportunites_translate_criteria', methods: ['GET'])]
@@ -663,6 +829,36 @@ class ClientOffreController extends AbstractController
             'alert' => null,
             'message' => 'Alerte temporaire supprimee.',
         ]);
+    }
+
+    #[Route('/opportunites/{idOffre}/matching-score', name: 'client_offre_matching_score_json', methods: ['GET'])]
+    public function getMatchingScoreJson(
+        #[MapEntity(id: 'idOffre')] OffreEmploi $offre,
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        MatchingService $matchingService
+    ): JsonResponse {
+        $isClientAuthenticated = (bool) $session->get('user_id')
+            && (string) $session->get('user_role', '') === 'CLIENT'
+            && (string) $session->get('auth_scope', '') === 'client';
+
+        if (!$isClientAuthenticated) {
+            return new JsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $idUtilisateur = (int) $session->get('user_id', 0);
+        if ($idUtilisateur <= 0) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
+
+        // Récupérer les préférences du candidat
+        $preference = $entityManager->getRepository(PreferenceCandidature::class)
+            ->findOneBy(['id_utilisateur' => $idUtilisateur]);
+
+        // Calculer le matching
+        $matching = $matchingService->calculateMatching($offre, $preference);
+
+        return new JsonResponse($matching);
     }
 
     private function normalizeText(mixed $value): ?string

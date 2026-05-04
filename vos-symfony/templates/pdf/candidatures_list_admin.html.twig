@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Candidatures</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4361ee;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            color: #4361ee;
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 12px;
+        }
+        .summary {
+            background-color: #f0f3ff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #4361ee;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        thead {
+            background-color: #4361ee;
+            color: white;
+        }
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #4361ee;
+        }
+        td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9fbff;
+        }
+        tbody tr:hover {
+            background-color: #f0f3ff;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            display: inline-block;
+        }
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-examining {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .status-accepted {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .date {
+            font-size: 12px;
+            color: #666;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 2px solid #4361ee;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gestion des Candidatures</h1>
+        <p>VOS - Système d'Administration</p>
+    </div>
+
+    <div class="summary">
+        Total : {{ candidatures|length }} candidature(s)
+    </div>
+
+    {% if candidatures|length > 0 %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Candidat</th>
+                <th>Offre d'Emploi</th>
+                <th>Date de Candidature</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for candidature in candidatures %}
+            <tr>
+                <td>#{{ candidature.idCandidature }}</td>
+                <td>
+                    {% if users[candidature.idUtilisateur] %}
+                        {{ users[candidature.idUtilisateur].nom }} {{ users[candidature.idUtilisateur].prenom }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{% if offres[candidature.idOffre] %}{{ offres[candidature.idOffre].titre }}{% else %}Offre supprimée{% endif %}</td>
+                <td><span class="date">{{ candidature.dateCandidature|date('d/m/Y') }}</span></td>
+                <td>
+                    <span class="status status-{{ candidature.statut|lower|replace({' ': '-'}) }}">
+                        {{ candidature.statut }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">
+        <p>Aucune candidature trouvée.</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Ce document a été généré automatiquement par le système VOS.</p>
+        <p>Date d'édition : {{ 'now'|date('d/m/Y à H:i') }}</p>
+    </div>
+</body>
+</html>

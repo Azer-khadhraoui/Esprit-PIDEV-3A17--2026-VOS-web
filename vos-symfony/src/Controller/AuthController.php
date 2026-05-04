@@ -110,7 +110,7 @@ class AuthController extends AbstractController
                 }
 
                 if ($faceAuthMode === '1') {
-                    if ($faceSimilarity < 70.0) {
+                    if ($faceSimilarity < 64.0) {
                         $this->addFlash('error', sprintf('NN: similitude insuffisante (%.1f%%).', $faceSimilarity));
                         return $this->redirectToRoute('app_signin');
                     }

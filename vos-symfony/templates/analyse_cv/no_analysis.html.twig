@@ -1,0 +1,257 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse CV - VOS{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+    <style>
+        .analyse-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .no-analysis-card {
+            background: white;
+            padding: 50px;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-analysis-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .no-analysis-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .no-analysis-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .candidat-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .candidat-info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-item {
+            text-align: left;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .features {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+            text-align: left;
+        }
+
+        .features h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            color: #666;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .feature-list li:before {
+            content: "✓ ";
+            color: #84fab0;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .analyse-container {
+                margin: 30px auto;
+            }
+
+            .no-analysis-card {
+                padding: 30px;
+            }
+
+            .no-analysis-icon {
+                font-size: 40px;
+            }
+
+            .no-analysis-title {
+                font-size: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="analyse-container">
+    <div class="no-analysis-card">
+        <div class="no-analysis-icon">📄</div>
+        <h1 class="no-analysis-title">Aucune Analyse Disponible</h1>
+        <p class="no-analysis-subtitle">Lancez une analyse de votre CV pour obtenir un retour détaillé et des recommandations</p>
+
+        <!-- Informations du candidat -->
+        <div class="candidat-info">
+            <h3>Informations de la Candidature</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Domaine d'Expérience</div>
+                    <div class="info-value">{{ candidature.domaineExperience|default('Non spécifié') }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Niveau d'Expérience</div>
+                    <div class="info-value">{{ candidature.niveauExperience|default('Non spécifié') }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Années d'Expérience</div>
+                    <div class="info-value">{{ candidature.anneesExperience|default('0') }} ans</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Dernier Poste</div>
+                    <div class="info-value">{{ candidature.dernierPoste|default('Non spécifié') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'actions -->
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="analyzerCV()">Analyser Mon CV</button>
+            <a href="{{ path('app_client_candidatures') }}" class="btn btn-secondary">Retour</a>
+        </div>
+
+        <!-- Fonctionnalités -->
+        <div class="features">
+            <h4>Ce que vous obtiendrez avec l'analyse :</h4>
+            <ul class="feature-list">
+                <li>Détection automatique de vos compétences principales</li>
+                <li>Identification de vos points forts et points à améliorer</li>
+                <li>Score de qualité global de votre CV (0-100)</li>
+                <li>Recommandations personnalisées pour améliorer votre profil</li>
+                <li>Historique de toutes vos analyses précédentes</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function analyzerCV() {
+    const idCandidature = {{ candidature.idCandidature }};
+    const button = event.target;
+    button.disabled = true;
+    button.textContent = 'Analyse en cours...';
+
+    fetch(`/analyse-cv/analyser/${idCandidature}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Recharger la page pour voir le résultat
+            location.reload();
+        } else {
+            alert('Erreur : ' + (data.error || 'Une erreur est survenue'));
+            button.disabled = false;
+            button.textContent = 'Analyser Mon CV';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Une erreur réseau est survenue');
+        button.disabled = false;
+        button.textContent = 'Analyser Mon CV';
+    });
+}
+</script>
+{% endblock %}

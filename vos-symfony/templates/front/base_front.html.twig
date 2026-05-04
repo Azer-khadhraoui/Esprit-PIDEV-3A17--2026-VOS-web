@@ -120,7 +120,8 @@
             <a href="{{ path('client_opportunites') }}" class="{{ currentRoute == 'client_opportunites' ? 'is-active' : '' }}">Opportunités</a>
             <a href="{{ path('app_client_candidatures') }}" class="{{ currentRoute starts with 'app_client_candidature' ? 'is-active' : '' }}">Candidatures</a>
             <a href="{{ path('app_client_preferences') }}" class="{{ currentRoute starts with 'app_client_preference' ? 'is-active' : '' }}">Préférences</a>
-            <a href="{{ path('app_front_dashboard') }}" class="{{ currentRoute starts with 'app_front_' ? 'is-active' : '' }}">Entretiens</a>
+            <a href="{{ path('app_front_dashboard') }}" class="{{ currentRoute starts with 'app_front_' and currentRoute != 'app_front_calendrier' ? 'is-active' : '' }}">Entretiens</a>
+            <a href="{{ path('app_front_calendrier') }}" class="{{ currentRoute == 'app_front_calendrier' ? 'is-active' : '' }}">Calendrier</a>
             <a href="{{ path('client_mes_contrats') }}" class="{{ currentRoute == 'client_mes_contrats' ? 'is-active' : '' }}">Mes contrats</a>
         </nav>
         <div class="header-actions">
@@ -163,5 +164,6 @@
             });
         })();
     </script>
+    {% block javascripts %}{% endblock %}
 </body>
 </html>

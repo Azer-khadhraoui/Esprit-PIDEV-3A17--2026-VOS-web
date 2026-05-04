@@ -1,0 +1,214 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Mon Calendrier{% endblock %}
+{% block hero_title %}Mon Calendrier d'entretiens{% endblock %}
+{% block hero_subtitle %}Visualisez et naviguez dans tous vos entretiens planifiés{% endblock %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<style>
+    /* FullCalendar overrides to match front-office style */
+    .fc {
+        font-family: 'Poppins', 'Segoe UI', sans-serif;
+        font-size: .9rem;
+    }
+    .fc-toolbar-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1b2440;
+    }
+    .fc-button-primary {
+        background: #4361ee !important;
+        border-color: #4361ee !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        font-family: inherit !important;
+    }
+    .fc-button-primary:not(:disabled).fc-button-active,
+    .fc-button-primary:not(:disabled):active {
+        background: #2541c4 !important;
+        border-color: #2541c4 !important;
+    }
+    .fc-button-primary:hover {
+        background: #3451d1 !important;
+        border-color: #3451d1 !important;
+    }
+    .fc-daygrid-day-number,
+    .fc-col-header-cell-cushion {
+        color: #1b2440;
+        font-weight: 600;
+    }
+    .fc-day-today {
+        background: #eef2ff !important;
+    }
+    .fc-event {
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 2px 6px !important;
+        font-weight: 600 !important;
+        cursor: pointer;
+        transition: filter .15s, transform .15s;
+    }
+    .fc-event:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
+    /* Pulsing ring for Planifié events */
+    @keyframes pulse-ring {
+        0%   { box-shadow: 0 0 0 0 rgba(67, 97, 238, .5); }
+        70%  { box-shadow: 0 0 0 7px rgba(67, 97, 238, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+    }
+    @keyframes pulse-ring-purple {
+        0%   { box-shadow: 0 0 0 0 rgba(114, 9, 183, .5); }
+        70%  { box-shadow: 0 0 0 7px rgba(114, 9, 183, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(114, 9, 183, 0); }
+    }
+    .fc-event-planifie-rh     { animation: pulse-ring 2s ease-out infinite; }
+    .fc-event-planifie-tech   { animation: pulse-ring-purple 2s ease-out infinite; }
+
+    /* Legend pills */
+    .cal-legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:18px; }
+    .cal-legend-item { display:inline-flex; align-items:center; gap:7px; font-size:.83rem; font-weight:600; color:#1b2440; }
+    .cal-legend-dot { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+
+    /* Loading overlay */
+    #cal-loading {
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        padding:48px; color:#6c7693; font-weight:600;
+    }
+    #cal-loading .spin {
+        width:28px; height:28px; border:3px solid #e2e8f0;
+        border-top-color:#4361ee; border-radius:50%;
+        animation:fc-spin .7s linear infinite;
+    }
+    @keyframes fc-spin { to { transform:rotate(360deg); } }
+
+    /* Tooltip */
+    .cal-tooltip {
+        position:absolute; z-index:999;
+        background:#1b2440; color:#fff;
+        border-radius:10px; padding:10px 14px;
+        font-size:.8rem; line-height:1.6; pointer-events:none;
+        box-shadow:0 8px 24px rgba(15,23,42,.18);
+        max-width:220px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="panel" style="padding:24px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+        <div>
+            <h2 style="margin:0;font-size:1.4rem;">Mes entretiens</h2>
+            <p style="margin:4px 0 0;color:var(--muted);font-size:.88rem;">Cliquez sur un événement pour voir les détails</p>
+        </div>
+        <a href="{{ path('app_front_entretiens') }}" class="btn btn-soft" style="font-size:.85rem;">Vue liste</a>
+    </div>
+
+    <div id="cal-loading"><div class="spin"></div> Chargement du calendrier…</div>
+    <div id="calendar" style="display:none;"></div>
+
+    <div class="cal-legend">
+        <span style="font-size:.83rem;color:var(--muted);font-weight:600;">Légende :</span>
+        <span class="cal-legend-item">
+            <span class="cal-legend-dot" style="background:#4361ee;"></span> RH
+        </span>
+        <span class="cal-legend-item">
+            <span class="cal-legend-dot" style="background:#7209b7;"></span> TECHNIQUE
+        </span>
+        <span class="cal-legend-item">
+            <span class="cal-legend-dot" style="background:#4361ee;box-shadow:0 0 0 3px rgba(67,97,238,.35);"></span> Planifié (pulsé)
+        </span>
+    </div>
+</div>
+
+{# Hidden tooltip element #}
+<div id="cal-tooltip" class="cal-tooltip" style="display:none;"></div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+(function () {
+    var tooltip  = document.getElementById('cal-tooltip');
+    var loading  = document.getElementById('cal-loading');
+    var calEl    = document.getElementById('calendar');
+    var DATA_URL = {{ dataUrl|json_encode|raw }};
+
+    function esc(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function positionTooltip(e) {
+        tooltip.style.left = (e.pageX + 14) + 'px';
+        tooltip.style.top  = (e.pageY + 14) + 'px';
+    }
+
+    function initCalendar(events) {
+        loading.style.display = 'none';
+        calEl.style.display   = 'block';
+
+        var calendar = new FullCalendar.Calendar(calEl, {
+            locale: 'fr',
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left:   'prev,next today',
+                center: 'title',
+                right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+            },
+            buttonText: {
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week:  'Semaine',
+                day:   'Jour',
+                list:  'Liste',
+            },
+            height: 'auto',
+            events: events,
+
+            eventClick: function (info) {
+                info.jsEvent.preventDefault();
+                if (info.event.url) { window.location.href = info.event.url; }
+            },
+
+            eventDidMount: function (info) {
+                var statut = (info.event.extendedProps.statut || '').toLowerCase();
+                var type   = (info.event.extendedProps.type   || '').toUpperCase();
+                if (statut.includes('planifi')) {
+                    info.el.classList.add(type === 'TECHNIQUE' ? 'fc-event-planifie-tech' : 'fc-event-planifie-rh');
+                }
+                info.el.addEventListener('mouseenter', function (e) {
+                    tooltip.innerHTML =
+                        '<strong>' + esc(info.event.title) + '</strong><br>' +
+                        'Type : '   + esc(info.event.extendedProps.type   || '—') + '<br>' +
+                        'Statut : ' + esc(info.event.extendedProps.statut || '—') + '<br>' +
+                        'Lieu : '   + esc(info.event.extendedProps.lieu   || '—');
+                    tooltip.style.display = 'block';
+                    positionTooltip(e);
+                });
+                info.el.addEventListener('mousemove',  positionTooltip);
+                info.el.addEventListener('mouseleave', function () { tooltip.style.display = 'none'; });
+            },
+        });
+
+        calendar.render();
+    }
+
+    /* Pre-fetch data, then init — avoids FullCalendar loading-callback quirks */
+    fetch(DATA_URL)
+        .then(function (res) {
+            if (!res.ok) { throw new Error('HTTP ' + res.status); }
+            return res.json();
+        })
+        .then(initCalendar)
+        .catch(function (err) {
+            loading.innerHTML =
+                '<span style="color:#b91c1c;font-weight:600;">⚠ Impossible de charger les événements (' + esc(err.message) + ').</span>';
+        });
+})();
+</script>
+{% endblock %}

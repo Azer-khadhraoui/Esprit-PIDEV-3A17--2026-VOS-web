@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rappel de contrat</title>
+<style>
+  body { margin: 0; padding: 0; background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color: #333; }
+  .wrapper { max-width: 620px; margin: 32px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .header { background: linear-gradient(135deg, #102a43, #1f7a8c); padding: 32px 40px; color: #fff; }
+  .header .logo { font-size: 28px; font-weight: 800; letter-spacing: 4px; }
+  .header .subtitle { color: rgba(255,255,255,.84); font-size: 15px; margin-top: 10px; }
+  .body { padding: 36px 40px; }
+  .greeting { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .message { font-size: 15px; line-height: 1.7; color: #4a5568; margin-bottom: 24px; }
+  .ai-box { background: #f8fafc; border-left: 4px solid #1f7a8c; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px; font-size: 15px; line-height: 1.7; color: #1f2937; }
+  .info-box { background: #fbfdff; border: 1px solid #d8e2ec; border-radius: 10px; padding: 20px 24px; }
+  .info-box h3 { margin: 0 0 14px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #486581; }
+  .info-row { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid #e6eef5; font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #627d98; }
+  .info-value { font-weight: 600; color: #102a43; text-align: right; }
+  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 40px; text-align: center; font-size: 12px; color: #829ab1; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">VOS</div>
+    <div class="subtitle">Rappel de contrat a echeance proche</div>
+  </div>
+
+  <div class="body">
+    <div class="greeting">Bonjour {{ recipientName }},</div>
+
+    <div class="message">
+      Votre contrat arrive bientot a son terme. Voici un rappel automatique pour vous aider a anticiper les prochaines etapes.
+    </div>
+
+    <div class="ai-box">
+      {{ reminderMessage }}
+    </div>
+
+    <div class="info-box">
+      <h3>Recapitulatif</h3>
+      <div class="info-row">
+        <span class="info-label">Contrat</span>
+        <span class="info-value">#{{ contratId }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Type</span>
+        <span class="info-value">{{ typeContrat }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Date de fin</span>
+        <span class="info-value">{{ dateFin }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Jours restants</span>
+        <span class="info-value">{{ daysRemaining }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Statut</span>
+        <span class="info-value">{{ status }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Volume horaire</span>
+        <span class="info-value">{{ volumeHoraire }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Salaire</span>
+        <span class="info-value">{{ salaire ? salaire|number_format(0, ',', ' ') ~ ' TND' : 'Non defini' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Cet email a ete envoye automatiquement par VOS. Merci de ne pas repondre a cet email.
+  </div>
+</div>
+</body>
+</html>

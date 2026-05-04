@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entretien #{{ entretien.id }}</title>
+    <style>
+        :root {
+            --bg: #081533;
+            --panel: #ffffff;
+            --accent: #2156d8;
+            --soft: #f5f8ff;
+            --text: #0c1f3f;
+            --muted: #64748b;
+            --border: rgba(16, 24, 40, .10);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(33, 86, 216, .18), transparent 35%),
+                radial-gradient(circle at top right, rgba(15, 143, 98, .14), transparent 28%),
+                linear-gradient(180deg, #eef4ff 0%, #f8fbff 48%, #ffffff 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #081533 0%, #122a66 100%);
+            color: #fff;
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: 0 18px 50px rgba(8, 21, 51, .18);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: auto -40px -60px auto;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, .08);
+            border-radius: 50%;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand img {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            border-radius: 14px;
+            background: rgba(255,255,255,.06);
+            padding: 6px;
+        }
+
+        .brand-name {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            line-height: 1;
+        }
+
+        .brand-sub {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #9cc0ff;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat,
+        .panel {
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 18px;
+            padding: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: #c7d7ff;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr .9fr;
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,.84);
+            border: 1px solid var(--border);
+            color: var(--text);
+            box-shadow: 0 12px 30px rgba(16, 24, 40, .06);
+        }
+
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        .rows {
+            display: grid;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed rgba(16, 24, 40, .10);
+        }
+
+        .row:last-child { border-bottom: 0; padding-bottom: 0; }
+        .label { color: var(--muted); font-size: 12px; }
+        .value { font-weight: 700; text-align: right; }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .b-blue { background: #e8f0ff; color: #2156d8; }
+        .b-green { background: #e8fbf3; color: #0f8f62; }
+        .b-orange { background: #fff4e5; color: #c06a00; }
+        .b-red { background: #ffe8e8; color: #b42318; }
+
+        .wide {
+            margin-top: 16px;
+            background: rgba(255,255,255,.88);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 12px 30px rgba(16, 24, 40, .06);
+        }
+
+        .text-box {
+            white-space: pre-wrap;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--soft);
+            border: 1px solid rgba(33, 86, 216, .12);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+        .note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .footer {
+            margin: 18px 0 6px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        @media (max-width: 720px) {
+            .hero-grid,
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .shell {
+                padding: 14px;
+            }
+
+            .hero {
+                border-radius: 20px;
+            }
+
+            .brand-name {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="hero">
+            <div class="brand">
+                {% if logoBase64 %}
+                    <img src="{{ logoBase64 }}" alt="VOS">
+                {% endif %}
+                <div>
+                    <div class="brand-name">VOS</div>
+                    <div class="brand-sub">Consultation mobile de l'entretien</div>
+                </div>
+            </div>
+
+            <div class="hero-grid">
+                <div class="stat">
+                    <div class="stat-label">Entretien</div>
+                    <div class="stat-value">#{{ entretien.id }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Date</div>
+                    <div class="stat-value">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Heure</div>
+                    <div class="stat-value">{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <h2>Informations principales</h2>
+                <div class="rows">
+                    <div class="row">
+                        <div class="label">Type d'entretien</div>
+                        <div class="value">{{ entretien.typeEntretien ?? '-' }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="label">Statut</div>
+                        <div class="value">
+                            {% if entretien.statutEntretien %}
+                                {% set ls = entretien.statutEntretien|lower %}
+                                {% if 'planifi' in ls %}
+                                    <span class="badge b-blue">{{ entretien.statutEntretien }}</span>
+                                {% elseif 'termin' in ls %}
+                                    <span class="badge b-green">{{ entretien.statutEntretien }}</span>
+                                {% elseif 'annul' in ls %}
+                                    <span class="badge b-red">{{ entretien.statutEntretien }}</span>
+                                {% else %}
+                                    <span class="badge b-orange">{{ entretien.statutEntretien }}</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="label">Lieu</div>
+                        <div class="value">{{ entretien.lieu ?? '-' }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="label">Type de test</div>
+                        <div class="value">{{ entretien.typeTest ?? '-' }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="label">ID Candidature</div>
+                        <div class="value">{{ entretien.idCandidature ? '#' ~ entretien.idCandidature : '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Evaluation</h2>
+                {% if evaluation %}
+                    <div class="rows">
+                        <div class="row">
+                            <div class="label">Score du test</div>
+                            <div class="value">{{ evaluation.scoreTest is not null ? evaluation.scoreTest ~ '/100' : '-' }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Note d'entretien</div>
+                            <div class="value">{{ evaluation.noteEntretien is not null ? evaluation.noteEntretien ~ '/10' : '-' }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Decision finale</div>
+                            <div class="value">{{ evaluation.decision ?? '-' }}</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="note">Aucune evaluation n'a ete enregistree pour cet entretien.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if entretien.questionsEntretien %}
+            <div class="wide">
+                <h2>Questions d'entretien</h2>
+                <div class="text-box">{{ entretien.questionsEntretien }}</div>
+            </div>
+        {% endif %}
+
+        {% if evaluation and evaluation.commentaire %}
+            <div class="wide">
+                <h2>Commentaire du recruteur</h2>
+                <div class="text-box">{{ evaluation.commentaire }}</div>
+            </div>
+        {% endif %}
+
+        <div class="footer">
+            Fiche publique generee depuis le QR code du rapport d'entretien.
+        </div>
+    </div>
+</body>
+</html>

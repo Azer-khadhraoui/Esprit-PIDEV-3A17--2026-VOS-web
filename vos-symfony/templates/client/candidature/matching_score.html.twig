@@ -1,0 +1,508 @@
+{% extends 'client/base_client.html.twig' %}
+
+{% block title %}Analyse de Match - {{ offre.titre }} | VOS{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ asset('styles/client.css') }}">
+    <style>
+        .matching-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .matching-header {
+            background: linear-gradient(135deg, #4361ee 0%, #3a52d0 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .matching-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .matching-header p {
+            margin: 5px 0;
+            opacity: 0.95;
+        }
+
+        .score-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            background: inherit;
+            opacity: 0.2;
+            z-index: -1;
+        }
+
+        .score-label {
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 10px;
+            color: #333333;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .quality-badge.excellent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .quality-badge.bon {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .quality-badge.acceptable {
+            background: #fff3cd;
+            color: #997404;
+        }
+
+        .quality-badge.faible {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .criterion-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #e8ebf3;
+            transition: all 0.3s ease;
+        }
+
+        .criterion-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .criterion-card.perfect {
+            border-left-color: #06d6a0;
+            background: #f0fdf9;
+        }
+
+        .criterion-card.good {
+            border-left-color: #00b4d8;
+            background: #f0f9ff;
+        }
+
+        .criterion-card.neutral {
+            border-left-color: #ffd60a;
+            background: #fffbf0;
+        }
+
+        .criterion-card.poor {
+            border-left-color: #ef476f;
+            background: #fef8f8;
+        }
+
+        .criterion-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .criterion-score {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .criterion-score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4361ee;
+        }
+
+        .criterion-weight {
+            font-size: 12px;
+            color: #555555;
+            font-weight: 600;
+        }
+
+        .criterion-progress {
+            width: 100%;
+            height: 8px;
+            background: #e8ebf3;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .criterion-progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        .criterion-card.perfect .criterion-progress-bar {
+            background: linear-gradient(90deg, #06d6a0, #00d084);
+        }
+
+        .criterion-card.good .criterion-progress-bar {
+            background: linear-gradient(90deg, #00b4d8, #0096c7);
+        }
+
+        .criterion-card.neutral .criterion-progress-bar {
+            background: linear-gradient(90deg, #ffd60a, #ffc300);
+        }
+
+        .criterion-card.poor .criterion-progress-bar {
+            background: linear-gradient(90deg, #ef476f, #d1435b);
+        }
+
+        .criterion-explanation {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .recommendations-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .recommendations-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .recommendation-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .recommendation-item.high {
+            background: #fef8f8;
+            border-left-color: #ef476f;
+        }
+
+        .recommendation-item.high .recommendation-criterion {
+            color: #d1435b;
+            font-weight: 600;
+        }
+
+        .recommendation-item.medium {
+            background: #fffbf0;
+            border-left-color: #ff9500;
+        }
+
+        .recommendation-item.medium .recommendation-criterion {
+            color: #d17a00;
+            font-weight: 600;
+        }
+
+        .recommendation-item.positive {
+            background: #f0fdf9;
+            border-left-color: #06d6a0;
+        }
+
+        .recommendation-item.positive .recommendation-criterion {
+            color: #049c6e;
+            font-weight: 600;
+        }
+
+        .recommendation-item.info {
+            background: #f0f9ff;
+            border-left-color: #00b4d8;
+        }
+
+        .recommendation-item.info .recommendation-criterion {
+            color: #0096c7;
+            font-weight: 600;
+        }
+
+        .recommendation-criterion {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .recommendation-message {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4361ee, #3a52d0);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .offre-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4361ee;
+        }
+
+        .offre-info h3 {
+            margin: 0 0 10px 0;
+            color: #1a1a1a;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .offre-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .offre-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333333;
+            font-weight: 500;
+        }
+
+        .offre-detail-item strong {
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .matching-container {
+                padding: 10px;
+            }
+
+            .matching-header {
+                padding: 20px;
+            }
+
+            .matching-header h1 {
+                font-size: 22px;
+            }
+
+            .score-circle {
+                width: 150px;
+                height: 150px;
+                font-size: 36px;
+            }
+
+            .criteria-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="matching-container">
+    <!-- En-tête -->
+    <div class="matching-header">
+        <h1>📊 Analyse de Compatibilité</h1>
+        <p>Vérifiez si cette offre correspond à vos préférences</p>
+    </div>
+
+    <!-- Offre Info -->
+    <div class="offre-info">
+        <h3>{{ offre.titre }}</h3>
+        <div class="offre-details">
+            {% if offre.typeContrat %}
+                <div class="offre-detail-item">
+                    <strong>Type de Contrat:</strong> {{ offre.typeContrat }}
+                </div>
+            {% endif %}
+            {% if offre.workPreference %}
+                <div class="offre-detail-item">
+                    <strong>Mode de Travail:</strong> {{ offre.workPreference }}
+                </div>
+            {% endif %}
+            {% if offre.lieu %}
+                <div class="offre-detail-item">
+                    <strong>📍 Lieu:</strong> {{ offre.lieu }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Score Principal -->
+    <div class="score-section">
+        <div class="score-circle" style="background: {{ matching.color }};">
+            {{ matching.percentage }}%
+        </div>
+        <h2 style="margin: 0 0 10px 0; color: #1a1a1a; font-weight: 700;">{{ matching.quality }}</h2>
+        <span class="quality-badge {% if matching.percentage >= 85 %}excellent{% elseif matching.percentage >= 70 %}bon{% elseif matching.percentage >= 40 %}acceptable{% else %}faible{% endif %}">
+            Score: {{ matching.score }}/100
+        </span>
+        <p style="color: #333333; margin-top: 15px; font-size: 14px; font-weight: 500; line-height: 1.6;">
+            {% if matching.percentage >= 85 %}
+                ✅ Cette offre correspond parfaitement à vos préférences !
+            {% elseif matching.percentage >= 70 %}
+                👍 Cette offre correspond bien à vos préférences.
+            {% elseif matching.percentage >= 55 %}
+                ℹ️ Cette offre offre une compatibilité acceptable avec vos préférences.
+            {% else %}
+                ⚠️ Cette offre ne correspond que partiellement à vos préférences.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Critères de Matching -->
+    {% if matching.criteria|length > 0 %}
+        <h2 style="margin-bottom: 20px; color: #1a1a1a; font-weight: 700;">📋 Détail par Critère</h2>
+        <div class="criteria-grid">
+            {% for key, criterion in matching.criteria %}
+                <div class="criterion-card {{ criterion.status }}">
+                    <div class="criterion-title">{{ criterion.label }}</div>
+                    <div class="criterion-score">
+                        <span class="criterion-score-value">{{ criterion.score }}%</span>
+                        <span class="criterion-weight">(Poids: {{ criterion.weight }}%)</span>
+                    </div>
+                    <div class="criterion-progress">
+                        <div class="criterion-progress-bar" style="width: {{ criterion.score }}%;"></div>
+                    </div>
+                    <p class="criterion-explanation">{{ criterion.explanation }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Recommandations -->
+    {% if matching.recommendations|length > 0 %}
+        <div class="recommendations-section">
+            <h3 class="recommendations-title">💡 Recommandations</h3>
+            {% for recommendation in matching.recommendations %}
+                <div class="recommendation-item {{ recommendation.priority }}">
+                    <div class="recommendation-criterion">{{ recommendation.criterion }}</div>
+                    <div class="recommendation-message">{{ recommendation.message }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="actions">
+        <a href="{{ path('client_opportunites') }}" class="btn btn-secondary">← Retour aux Offres</a>
+        {% if matching.percentage >= 40 %}
+            <form method="POST" action="{{ path('client_postuler_offre', {idOffre: offre.idOffre}) }}" style="display: inline;">
+                <input type="hidden" name="_token" value="{{ csrf_token('postuler_offre_' ~ offre.idOffre) }}">
+                <button type="submit" class="btn btn-primary">✉️ Postuler à cette offre</button>
+            </form>
+        {% else %}
+            <button class="btn" style="background: #999; color: white; cursor: not-allowed;" disabled>
+                Score trop faible pour postuler
+            </button>
+        {% endif %}
+    </div>
+
+    <!-- Note d'aide -->
+    {% if not preference %}
+        <div style="background: #cfe2ff; border-left: 4px solid #084298; padding: 15px; border-radius: 8px; margin-top: 30px; color: #084298;">
+            <strong>ℹ️ Conseil:</strong> Créez votre profil de préférences pour obtenir une analyse plus précise et personnalisée des offres d'emploi.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

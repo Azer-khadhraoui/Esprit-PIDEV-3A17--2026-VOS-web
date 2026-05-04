@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: #f0f8ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">VOS</div>
+            <p>Plateforme de Recrutement</p>
+        </div>
+
+        <div class="content">
+            <h2>Candidature confirmée ✓</h2>
+            
+            <p>Bonjour <strong>{{ user.prenom }} {{ user.nom }}</strong>,</p>
+            
+            <p>Nous vous confirmons que votre candidature pour le poste suivant a bien été enregistrée :</p>
+            
+            <div class="info-box">
+                <strong>Offre :</strong> {{ offreTitre }}<br>
+                <strong>Date de candidature :</strong> {{ candidature.dateCandidature|date('d/m/Y') }}
+            </div>
+
+            <p>Voici les informations de votre candidature :</p>
+            
+            <div class="info-box">
+                <strong>Niveau d'expérience :</strong> {{ candidature.niveauExperience }}<br>
+                <strong>Années d'expérience :</strong> {{ candidature.anneesExperience }}<br>
+                <strong>Domaine :</strong> {{ candidature.domaineExperience }}<br>
+                <strong>Dernier poste :</strong> {{ candidature.dernierPoste }}<br>
+                <strong>Statut :</strong> {{ candidature.statut }}
+            </div>
+
+            <p>Une équipe spécialisée examinera votre candidature. Nous vous contacterons dans les meilleurs délais.</p>
+
+            <p>Merci de votre intérêt pour notre entreprise !</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>VOS - Plateforme de Recrutement</strong></p>
+            <p>Ne répondez pas à cet email. Pour toute question, veuillez contacter notre équipe via la plateforme.</p>
+            <p>&copy; {{ 'now'|date('Y') }} VOS. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>

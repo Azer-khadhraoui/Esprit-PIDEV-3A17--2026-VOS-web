@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport d'Entretien #{{ entretien.id }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            color: #0c1f3f;
+            background: #ffffff;
+            line-height: 1.5;
+        }
+
+        /* ── Header: app dark navy ── */
+        .header {
+            background-color: #081533;
+            color: #ffffff;
+            padding: 0;
+        }
+        .header-inner {
+            padding: 24px 32px 20px;
+            display: table;
+            width: 100%;
+        }
+        .header-left {
+            display: table-cell;
+            vertical-align: middle;
+            width: 55%;
+        }
+        .header-right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+            width: 45%;
+        }
+        .logo-wrap {
+            display: table;
+        }
+        .logo-img {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .logo-img img {
+            width: 48px;
+            height: 48px;
+        }
+        .logo-text {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 12px;
+        }
+        .brand-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 2px;
+        }
+        .brand-sub {
+            font-size: 9px;
+            color: #93c5fd;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .report-label {
+            font-size: 11px;
+            color: #93c5fd;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 5px;
+        }
+        .report-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .ref-badge {
+            display: inline-block;
+            background: #2156d8;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 14px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+        }
+        /* Blue accent bar below header */
+        .header-bar {
+            height: 4px;
+            background-color: #2156d8;
+        }
+
+        /* ── Content ── */
+        .content {
+            padding: 26px 32px;
+        }
+
+        /* ── Section title ── */
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #0c1f3f;
+            border-left: 4px solid #2156d8;
+            padding-left: 10px;
+            margin-bottom: 12px;
+            margin-top: 22px;
+        }
+        .section-title:first-child { margin-top: 0; }
+
+        /* ── Info table ── */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table tr:last-child td { border-bottom: 1px solid rgba(16,24,40,.08); }
+        .info-table td {
+            border-top: 1px solid rgba(16,24,40,.08);
+            padding: 8px 12px;
+            vertical-align: middle;
+        }
+        .info-table td.lbl {
+            width: 30%;
+            background: #f8fbff;
+            font-size: 9.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
+        }
+        .info-table td.val {
+            color: #0c1f3f;
+            font-size: 11px;
+        }
+
+        /* ── Badges — matches app ── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        /* b-blue */
+        .b-blue   { background: #e8f0ff; color: #2156d8; }
+        /* b-green */
+        .b-green  { background: #e8fbf3; color: #0f8f62; }
+        /* b-orange */
+        .b-orange { background: #fff4e5; color: #c06a00; }
+        /* b-red */
+        .b-red    { background: #ffe8e8; color: #b42318; }
+
+        /* ── Progress bar ── */
+        .bar-wrap {
+            width: 100%;
+            background: #e2e8f0;
+            border-radius: 4px;
+            height: 7px;
+            margin-top: 5px;
+        }
+        .bar-fill {
+            height: 7px;
+            border-radius: 4px;
+            background-color: #2156d8;
+        }
+
+        /* ── Competence table ── */
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comp-table th {
+            background: #081533;
+            color: #ffffff;
+            padding: 7px 12px;
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            text-align: left;
+        }
+        .comp-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid rgba(16,24,40,.08);
+            font-size: 11px;
+            color: #0c1f3f;
+        }
+        .comp-table tr:nth-child(even) td { background: #f8fbff; }
+        .comp-score { font-weight: 700; color: #2156d8; }
+
+        /* ── Comment / Questions box ── */
+        .text-box {
+            background: #f8fbff;
+            border: 1px solid rgba(16,24,40,.08);
+            border-left: 4px solid #2156d8;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            font-size: 10.5px;
+            color: #0c1f3f;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        /* ── No eval notice ── */
+        .no-eval {
+            background: #f8fbff;
+            border: 1px solid rgba(16,24,40,.08);
+            padding: 14px 18px;
+            border-radius: 8px;
+            color: #64748b;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .qr-section {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(33, 86, 216, .16);
+            background: #f8fbff;
+            border-radius: 10px;
+            display: table;
+            width: 100%;
+        }
+        .qr-box {
+            display: table-cell;
+            width: 128px;
+            vertical-align: middle;
+        }
+        .qr-box img {
+            width: 112px;
+            height: 112px;
+            display: block;
+        }
+        .qr-copy {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 14px;
+        }
+        .qr-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 6px;
+        }
+        .qr-text {
+            font-size: 10px;
+            line-height: 1.6;
+            color: #475569;
+        }
+
+        /* ── Divider ── */
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(16,24,40,.08);
+            margin: 20px 0;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 28px;
+            padding: 14px 32px;
+            background: #f8fbff;
+            border-top: 1px solid rgba(16,24,40,.08);
+            display: table;
+            width: 100%;
+        }
+        .footer-left {
+            display: table-cell;
+            vertical-align: middle;
+            width: 50%;
+            font-size: 9px;
+            color: #64748b;
+        }
+        .footer-right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+            width: 50%;
+            font-size: 9px;
+            color: #64748b;
+        }
+        .footer-brand { font-weight: 700; color: #2156d8; font-size: 11px; }
+        .confidential {
+            display: inline-block;
+            border: 1px solid #2156d8;
+            color: #2156d8;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 2px 8px;
+            letter-spacing: 1.5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-inner">
+            <!-- Left: logo + brand -->
+            <div class="header-left">
+                <div class="logo-wrap">
+                    {% if logoBase64 %}
+                    <div class="logo-img">
+                        <img src="{{ logoBase64 }}" alt="VOS Logo">
+                    </div>
+                    {% endif %}
+                    <div class="logo-text">
+                        <div class="brand-name">VOS</div>
+                        <div class="brand-sub">Virtual Onboarding System</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right: report info -->
+            <div class="header-right">
+                <div class="report-label">Rapport officiel</div>
+                <div class="report-title">Rapport d'Entretien</div>
+                <div class="ref-badge">REF #{{ entretien.id }}</div>
+                <div style="margin-top:6px;font-size:9px;color:#93c5fd;">
+                    Genere le {{ generatedAt|date('d/m/Y') }} a {{ generatedAt|date('H:i') }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="header-bar"></div>
+
+    <!-- Body -->
+    <div class="content">
+
+        <!-- Section 1 : Informations de l'entretien -->
+        <div class="section-title">Informations de l'entretien</div>
+
+        <table class="info-table">
+            <tr>
+                <td class="lbl">Date</td>
+                <td class="val">{{ entretien.dateEntretien ? entretien.dateEntretien|date('d/m/Y') : '-' }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Heure</td>
+                <td class="val">{{ entretien.heureEntretien ? entretien.heureEntretien|date('H:i') : '-' }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Type d'entretien</td>
+                <td class="val">
+                    {% if entretien.typeEntretien %}
+                        {% if entretien.typeEntretien == 'RH' %}
+                            <span class="badge b-blue">{{ entretien.typeEntretien }}</span>
+                        {% else %}
+                            <span class="badge b-orange">{{ entretien.typeEntretien }}</span>
+                        {% endif %}
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="lbl">Statut</td>
+                <td class="val">
+                    {% if entretien.statutEntretien %}
+                        {% set ls = entretien.statutEntretien|lower %}
+                        {% if 'planifi' in ls %}
+                            <span class="badge b-blue">{{ entretien.statutEntretien }}</span>
+                        {% elseif 'termin' in ls %}
+                            <span class="badge b-green">{{ entretien.statutEntretien }}</span>
+                        {% elseif 'annul' in ls %}
+                            <span class="badge b-red">{{ entretien.statutEntretien }}</span>
+                        {% else %}
+                            <span class="badge b-orange">{{ entretien.statutEntretien }}</span>
+                        {% endif %}
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="lbl">Lieu</td>
+                <td class="val">{{ entretien.lieu ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Type de test</td>
+                <td class="val">{{ entretien.typeTest ?? '-' }}</td>
+            </tr>
+            {% if entretien.idCandidature %}
+            <tr>
+                <td class="lbl">ID Candidature</td>
+                <td class="val">#{{ entretien.idCandidature }}</td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <!-- Questions -->
+        {% if entretien.questionsEntretien %}
+        <div class="section-title">Questions d'entretien</div>
+        <div class="text-box">{{ entretien.questionsEntretien }}</div>
+        {% endif %}
+
+        <hr class="divider">
+
+        <!-- Section 2 : Evaluation -->
+        <div class="section-title">Evaluation</div>
+
+        {% if evaluation %}
+
+            <table class="info-table" style="margin-bottom:14px;">
+                <tr>
+                    <td class="lbl">Score du test</td>
+                    <td class="val">
+                        {% if evaluation.scoreTest is not null %}
+                            <strong>{{ evaluation.scoreTest }}/100</strong>
+                            <div class="bar-wrap">
+                                <div class="bar-fill" style="width:{{ evaluation.scoreTest }}%;"></div>
+                            </div>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="lbl">Note d'entretien</td>
+                    <td class="val">
+                        {% if evaluation.noteEntretien is not null %}
+                            <strong>{{ evaluation.noteEntretien }}/10</strong>
+                            <div class="bar-wrap">
+                                <div class="bar-fill" style="width:{{ (evaluation.noteEntretien / 10 * 100)|round }}%;"></div>
+                            </div>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="lbl">Decision finale</td>
+                    <td class="val">
+                        {% if evaluation.decision %}
+                            {% set ld = evaluation.decision|lower %}
+                            {% if 'accept' in ld %}
+                                <span class="badge b-green">{{ evaluation.decision }}</span>
+                            {% elseif 'refus' in ld %}
+                                <span class="badge b-red">{{ evaluation.decision }}</span>
+                            {% else %}
+                                <span class="badge b-orange">{{ evaluation.decision }}</span>
+                            {% endif %}
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Competences -->
+            <div class="section-title" style="margin-top:14px;">Grille de competences</div>
+            <table class="comp-table">
+                <tr>
+                    <th>Critere</th>
+                    <th>Score /10</th>
+                    <th style="width:35%">Niveau</th>
+                </tr>
+                {% set criteria = [
+                    {'label': 'Competences techniques',       'value': evaluation.competencesTechniques},
+                    {'label': 'Competences comportementales', 'value': evaluation.competencesComportementales},
+                    {'label': 'Communication',                'value': evaluation.communication},
+                    {'label': 'Motivation',                   'value': evaluation.motivation},
+                    {'label': 'Experience',                   'value': evaluation.experience},
+                ] %}
+                {% for c in criteria %}
+                <tr>
+                    <td>{{ c.label }}</td>
+                    <td class="comp-score">
+                        {% if c.value is not null %}{{ c.value }}/10{% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if c.value is not null %}
+                        <div class="bar-wrap">
+                            <div class="bar-fill" style="width:{{ (c.value / 10 * 100)|round }}%;"></div>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <!-- Commentaire -->
+            {% if evaluation.commentaire %}
+            <div class="section-title" style="margin-top:14px;">Commentaire du recruteur</div>
+            <div class="text-box">{{ evaluation.commentaire }}</div>
+            {% endif %}
+
+        {% else %}
+            <div class="no-eval">Aucune evaluation n'a ete enregistree pour cet entretien.</div>
+        {% endif %}
+
+        {% if publicInfoUrl is defined and publicInfoUrl %}
+        <div class="qr-section">
+            <div class="qr-box">
+                <img src="{{ qr_code_data_uri(publicInfoUrl) }}" alt="QR code vers la page mobile de l'entretien">
+            </div>
+            <div class="qr-copy">
+                <div class="qr-title">Acces mobile rapide</div>
+                <div class="qr-text">
+                    Scanne ce QR code avec ton telephone pour ouvrir la fiche publique de l'entretien et consulter les informations principales sans avoir besoin du PDF.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">
+            <div class="footer-brand">VOS</div>
+            <div>Virtual Onboarding System &mdash; Document confidentiel</div>
+        </div>
+        <div class="footer-right">
+            <span class="confidential">Confidentiel</span>
+            <br>
+            <span style="margin-top:4px;display:inline-block;">
+                Genere le {{ generatedAt|date('d/m/Y') }} a {{ generatedAt|date('H:i') }}
+            </span>
+        </div>
+    </div>
+
+</body>
+</html>

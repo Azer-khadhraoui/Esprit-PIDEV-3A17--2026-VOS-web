@@ -47,6 +47,9 @@ class Entretien
     #[ORM\Column(name: 'id_utilisateur', nullable: true)]
     private ?int $idUtilisateur = null;
 
+    #[ORM\Column(name: 'calendar_event_id', length: 255, nullable: true)]
+    private ?string $calendarEventId = null;
+
     /**
      * @var Collection<int, EvaluationEntretien>
      */
@@ -170,6 +173,17 @@ class Entretien
     public function setIdUtilisateur(?int $idUtilisateur): static
     {
         $this->idUtilisateur = $idUtilisateur;
+        return $this;
+    }
+
+    public function getCalendarEventId(): ?string
+    {
+        return $this->calendarEventId;
+    }
+
+    public function setCalendarEventId(?string $calendarEventId): static
+    {
+        $this->calendarEventId = $calendarEventId;
         return $this;
     }
 
