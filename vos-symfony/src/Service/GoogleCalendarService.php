@@ -20,21 +20,34 @@ class GoogleCalendarService
 
     public function __construct(
         #[Autowire(env: 'GOOGLE_CALENDAR_ID')] string $calendarId,
-        #[Autowire(env: 'GOOGLE_SERVICE_ACCOUNT_JSON_PATH')] string $jsonPath,
-        #[Autowire('%kernel.project_dir%')] string $projectDir,
+        #[Autowire(env: 'GOOGLE_SERVICE_ACCOUNT_B64')] string $serviceAccountB64 = '',
     ) {
         $this->calendarId = $calendarId;
 
-        if ('' === $calendarId) {
+        if ('' === $calendarId || '' === $serviceAccountB64) {
             return;
         }
 
-        $absolutePath = str_starts_with($jsonPath, '/') || preg_match('/^[A-Za-z]:/', $jsonPath)
-            ? $jsonPath
-            : $projectDir . '/' . ltrim($jsonPath, '/\\');
+        try {
+            // Decode service account credentials from base64 (stored in .env.local)
+            $credentials = json_decode(
+                base64_decode($serviceAccountB64, true),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+
+            if (!is_array($credentials)) {
+                throw new \RuntimeException('Invalid service account credentials format');
+            }
+        } catch (\Exception $e) {
+            throw new GoogleCalendarException(
+                sprintf('Failed to load Google Service Account credentials: %s', $e->getMessage())
+            );
+        }
 
         $client = new Client();
-        $client->setAuthConfig($absolutePath);
+        $client->setAuthConfig($credentials);
         $client->setScopes([Calendar::CALENDAR]);
         $client->setApplicationName('VOS Interview Manager');
 
