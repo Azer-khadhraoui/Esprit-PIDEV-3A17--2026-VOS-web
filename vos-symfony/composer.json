@@ -9,7 +9,6 @@
         "ext-iconv": "*",
         "doctrine/doctrine-bundle": "^2.18",
         "doctrine/doctrine-migrations-bundle": "^3.7",
-        "doctrine/orm": "^3.6",
         "knplabs/knp-snappy-bundle": "^1.10",
         "dompdf/dompdf": "^3.1",
         "endroid/qr-code-bundle": "^5.0",
@@ -85,6 +84,9 @@
         }
     },
     "require-dev": {
+        "doctrine/orm": "^3.6",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-symfony": "^2.0",
         "symfony/maker-bundle": "^1.67",
         "symfony/phpunit-bridge": "^8.0"
     }
