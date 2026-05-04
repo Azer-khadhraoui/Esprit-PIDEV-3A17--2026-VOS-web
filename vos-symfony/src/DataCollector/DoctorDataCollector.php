@@ -29,21 +29,30 @@ class DoctorDataCollector extends DataCollector
 
         // Database info
         $databaseName = $connection->getDatabase();
-        $databaseVersion = $connection->getWrappedConnection()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        try {
+            $nativeConn = $connection->getNativeConnection();
+            $databaseVersion = $nativeConn->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        } catch (\Throwable $e) {
+            $databaseVersion = 'N/A';
+        }
         $databaseDriver = $platform->getName();
 
         // Collect queries from profiler
         $queryCount = 0;
         $slowestQueries = [];
         
-        if ($connection->getDriver() instanceof \Doctrine\DBAL\Driver\PDO\Driver) {
-            // Try to get executed queries from the logger
-            $logger = $connection->getConfiguration()->getSQLLogger();
-            if ($logger instanceof \Doctrine\DBAL\Logging\DebugStack) {
-                $queryCount = count($logger->queries);
-                usort($logger->queries, fn($a, $b) => ($b['executionMS'] ?? 0) <=> ($a['executionMS'] ?? 0));
-                $slowestQueries = array_slice($logger->queries, 0, 5);
+        try {
+            $config = $connection->getConfiguration();
+            if ($config && method_exists($config, 'getSQLLogger')) {
+                $logger = $config->getSQLLogger();
+                if ($logger instanceof \Doctrine\DBAL\Logging\DebugStack) {
+                    $queryCount = count($logger->queries);
+                    usort($logger->queries, fn($a, $b) => ($b['executionMS'] ?? 0) <=> ($a['executionMS'] ?? 0));
+                    $slowestQueries = array_slice($logger->queries, 0, 5);
+                }
             }
+        } catch (\Throwable $e) {
+            // Silently fail if logger access fails
         }
 
         // Analyze for issues
@@ -74,49 +83,54 @@ class DoctorDataCollector extends DataCollector
         ];
 
         // Check for common SQL injection patterns
-        if ($connection->getDriver() instanceof \Doctrine\DBAL\Driver\PDO\Driver) {
-            $logger = $connection->getConfiguration()->getSQLLogger();
-            if ($logger instanceof \Doctrine\DBAL\Logging\DebugStack) {
-                foreach ($logger->queries as $query) {
-                    $sql = $query['sql'];
-                    
-                    // Check for string concatenation instead of parameters
-                    if (preg_match('/\s+WHERE\s+.*\'?\s*\.\s*\$|CONCAT\(/', $sql)) {
-                        $issue = [
-                            'type' => 'QUERY_BUILDER_SQL_INJECTION',
-                            'title' => 'Potential SQL Injection in QueryBuilder',
-                            'message' => 'The query appears to use string concatenation instead of parameter binding. Always use setParameter() to prevent SQL injection vulnerabilities.',
-                            'severity' => 'critical',
-                        ];
-                        $issues['critical'][] = $issue;
-                        $issues['all'][] = $issue;
-                    }
+        try {
+            $config = $connection->getConfiguration();
+            if ($config && method_exists($config, 'getSQLLogger')) {
+                $logger = $config->getSQLLogger();
+                if ($logger instanceof \Doctrine\DBAL\Logging\DebugStack) {
+                    foreach ($logger->queries as $query) {
+                        $sql = $query['sql'] ?? '';
+                        
+                        // Check for string concatenation instead of parameters
+                        if (preg_match('/\s+WHERE\s+.*\'?\s*\.\s*\$|CONCAT\(/', $sql)) {
+                            $issue = [
+                                'type' => 'QUERY_BUILDER_SQL_INJECTION',
+                                'title' => 'Potential SQL Injection in QueryBuilder',
+                                'message' => 'The query appears to use string concatenation instead of parameter binding. Always use setParameter() to prevent SQL injection vulnerabilities.',
+                                'severity' => 'critical',
+                            ];
+                            $issues['critical'][] = $issue;
+                            $issues['all'][] = $issue;
+                        }
 
-                    // Check for N+1 queries
-                    if (preg_match('/SELECT.*FROM.*WHERE.*IN\s*\(/i', $sql)) {
-                        $issue = [
-                            'type' => 'POTENTIAL_N_PLUS_ONE',
-                            'title' => 'Potential N+1 Query Pattern',
-                            'message' => 'This query uses IN clause which might indicate N+1 query problem. Consider using JOIN or LEFT JOIN instead.',
-                            'severity' => 'warning',
-                        ];
-                        $issues['warnings'][] = $issue;
-                        $issues['all'][] = $issue;
-                    }
+                        // Check for N+1 queries
+                        if (preg_match('/SELECT.*FROM.*WHERE.*IN\s*\(/i', $sql)) {
+                            $issue = [
+                                'type' => 'POTENTIAL_N_PLUS_ONE',
+                                'title' => 'Potential N+1 Query Pattern',
+                                'message' => 'This query uses IN clause which might indicate N+1 query problem. Consider using JOIN or LEFT JOIN instead.',
+                                'severity' => 'warning',
+                            ];
+                            $issues['warnings'][] = $issue;
+                            $issues['all'][] = $issue;
+                        }
 
-                    // Check for missing indexes
-                    if (preg_match('/WHERE\s+.*(?:!=|<>)/i', $sql)) {
-                        $issue = [
-                            'type' => 'MISSING_INDEX',
-                            'title' => 'Query with Negative Condition',
-                            'message' => 'Queries with negative conditions (!= or <>) may not use indexes efficiently.',
-                            'severity' => 'info',
-                        ];
-                        $issues['info'][] = $issue;
-                        $issues['all'][] = $issue;
+                        // Check for missing indexes
+                        if (preg_match('/WHERE\s+.*(?:!=|<>)/i', $sql)) {
+                            $issue = [
+                                'type' => 'MISSING_INDEX',
+                                'title' => 'Query with Negative Condition',
+                                'message' => 'Queries with negative conditions (!= or <>) may not use indexes efficiently.',
+                                'severity' => 'info',
+                            ];
+                            $issues['info'][] = $issue;
+                            $issues['all'][] = $issue;
+                        }
                     }
                 }
             }
+        } catch (\Throwable $e) {
+            // Silently fail if query analysis fails
         }
 
         return $issues;
