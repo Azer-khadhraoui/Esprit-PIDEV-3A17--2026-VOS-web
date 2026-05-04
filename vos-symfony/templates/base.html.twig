@@ -20,9 +20,6 @@
     <body>
         {% block body %}{% endblock %}
 
-        {# Debug bar container - populated by JS when diagnostics exist #}
-        <div id="debug-bar" aria-hidden="true"></div>
-
         {% set isAuthenticatedSession = app.session.get('user_id') or app.session.get('admin_user_id') %}
         {% if isAuthenticatedSession %}
             <script>
@@ -41,41 +38,6 @@
             </script>
 
         {% endif %}
-        {% block debug_bar_scripts %}
-        <script>
-            (function(){
-                const endpoint = '{{ path('debug_bar') }}';
-                const container = document.getElementById('debug-bar');
-                if (!container) return;
-
-                function render(items){
-                    if (!items || items.length === 0){
-                        container.style.display = 'none';
-                        return;
-                    }
-                    container.style.display = 'block';
-                    let html = '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;gap:12px;">';
-                    html += '<div style="flex:1;overflow:auto;max-height:160px;">';
-                    items.forEach(it=>{
-                        html += '<div style="margin-bottom:6px"><strong>'+ (it.title||'Error') +'</strong>: '+ (it.message||'') +'</div>';
-                    });
-                    html += '</div>';
-                    html += '<div style="margin-left:12px"><button id="debug-bar-close" style="background:#fff;color:#000;border-radius:4px;padding:6px 8px;border:0;cursor:pointer">Close</button></div>';
-                    html += '</div>';
-                    container.innerHTML = html;
-                    document.getElementById('debug-bar-close').addEventListener('click', function(){ container.style.display='none'; });
-                }
-
-                fetch(endpoint, {credentials:'same-origin'})
-                    .then(r=>{ if (!r.ok) throw new Error('no-data'); return r.json() })
-                    .then(json=> render(json.items || []))
-                    .catch(()=> { container.style.display='none' });
-            })();
-        </script>
-        <style>
-            #debug-bar{ display:none; position:fixed; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); color:#fff; font-size:13px; z-index:99999; box-shadow:0 -2px 8px rgba(0,0,0,0.4); }
-            #debug-bar a{ color:#fff; text-decoration:underline }
-        </style>
-        {% endblock %}
+        {% block javascripts_footer %}{% endblock %}
     </body>
 </html>

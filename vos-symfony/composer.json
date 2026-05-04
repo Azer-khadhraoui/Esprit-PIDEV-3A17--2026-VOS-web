@@ -88,6 +88,7 @@
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-symfony": "^2.0",
         "symfony/maker-bundle": "^1.67",
-        "symfony/phpunit-bridge": "^8.0"
+        "symfony/phpunit-bridge": "^8.0",
+        "symfony/web-profiler-bundle": "6.4.*"
     }
 }
