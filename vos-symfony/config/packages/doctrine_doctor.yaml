@@ -1,0 +1,5 @@
+when@dev:
+    doctrine_doctor:
+        enabled: true
+        profiler:
+            show_in_toolbar: true
