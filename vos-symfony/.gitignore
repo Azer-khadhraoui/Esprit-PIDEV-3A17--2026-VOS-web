@@ -9,5 +9,6 @@
 /var/
 /vendor/
 .claude/
+.phpunit.result.cache
 config/google/service-account.json
 ###< symfony/framework-bundle ###
