@@ -42,8 +42,9 @@ class AdminController extends AbstractController
         $sortBy = (string) $request->query->get('sortBy', 'id');
         $sortOrder = (string) $request->query->get('sortOrder', 'DESC');
         $roleFilter = (string) $request->query->get('role', '');
+        $limit = max(10, min(500, (int) $request->query->get('limit', 100)));
 
-        $users = $dashboardService->getUsers($search, $sortBy, $sortOrder, $roleFilter);
+        $users = $dashboardService->getUsers($search, $sortBy, $sortOrder, $roleFilter, $limit);
         $stats = $dashboardService->getStats();
 
         return $this->render('admin/dashboard.html.twig', [
@@ -55,6 +56,7 @@ class AdminController extends AbstractController
             'sortBy' => $sortBy,
             'sortOrder' => $sortOrder,
             'roleFilter' => $roleFilter,
+            'limit' => $limit,
         ]);
     }
 

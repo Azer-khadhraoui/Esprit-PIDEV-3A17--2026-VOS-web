@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Dto\Admin\RoleStatDto;
 use App\Repository\UserRepository;
 
 class AdminDashboardService
@@ -10,7 +11,7 @@ class AdminDashboardService
     {
     }
 
-    public function getUsers(string $search = '', string $sortBy = 'id', string $sortOrder = 'DESC', string $roleFilter = ''): array
+    public function getUsers(string $search = '', string $sortBy = 'id', string $sortOrder = 'DESC', string $roleFilter = '', int $maxResults = 100): array
     {
         $qb = $this->userRepository->createQueryBuilder('u');
         $allowedSortFields = [
@@ -34,7 +35,15 @@ class AdminDashboardService
                 ->setParameter('roleFilter', $roleFilter);
         }
 
-        $qb->orderBy($allowedSortFields[$sortBy], $sortOrder);
+        if ($maxResults < 1) {
+            $maxResults = 100;
+        }
+        if ($maxResults > 500) {
+            $maxResults = 500;
+        }
+
+        $qb->orderBy($allowedSortFields[$sortBy], $sortOrder)
+            ->setMaxResults($maxResults);
 
         return $qb->getQuery()->getResult();
     }
@@ -55,16 +64,16 @@ class AdminDashboardService
     public function getRoleStats(): array
     {
         $rows = $this->userRepository->createQueryBuilder('u')
-            ->select('u.role AS label, COUNT(u.id) AS total')
+            ->select('NEW App\\Dto\\Admin\\RoleStatDto(COALESCE(u.role, :na), COUNT(u.id))')
+            ->setParameter('na', 'N/A')
             ->groupBy('u.role')
             ->orderBy('total', 'DESC')
-            ->getQuery()
-            ->getArrayResult();
+            ->getQuery()->getResult();
 
-        return array_map(static function (array $row): array {
+        return array_map(static function (RoleStatDto $row): array {
             return [
-                'label' => (string) ($row['label'] ?? 'N/A'),
-                'total' => (int) ($row['total'] ?? 0),
+                'label' => $row->label,
+                'total' => $row->total,
             ];
         }, $rows);
     }
