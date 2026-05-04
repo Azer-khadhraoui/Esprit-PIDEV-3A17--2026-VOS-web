@@ -47,6 +47,11 @@ services:
         arguments:
             $abstractApiKey: '%env(default:app.abstract_api_key_default:ABSTRACT_API_KEY)%'
 
+    # Doctrine Doctor DataCollector for Profiler
+    App\DataCollector\DoctorDataCollector:
+        tags:
+            - { name: data_collector, template: '@Profiler/doctor', id: 'app.doctor' }
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 

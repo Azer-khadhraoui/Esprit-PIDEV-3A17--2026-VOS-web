@@ -1,0 +1,212 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% if collector.totalIssues > 0 %}
+        {% set icon %}
+            <span class="sf-toolbar-status sf-toolbar-status-red">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+            </span>
+            <span class="sf-toolbar-label">{{ collector.totalIssues }} issues</span>
+        {% endset %}
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b>Database</b>
+                <span>{{ collector.databaseEngine }} {{ collector.databaseVersion }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Issues</b>
+                <span>
+                    🔴 {{ collector.criticalIssues }} critical,
+                    🟡 {{ collector.warnings }} warnings,
+                    🔵 {{ collector.info }} info
+                </span>
+            </div>
+        {% endset %}
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url, status: 'red' }) }}
+    {% else %}
+        {% set icon %}
+            <span class="sf-toolbar-status sf-toolbar-status-green">✓</span>
+            <span class="sf-toolbar-label">Doctrine OK</span>
+        {% endset %}
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b>Database</b>
+                <span>{{ collector.databaseEngine }}</span>
+            </div>
+        {% endset %}
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url }) }}
+    {% endif %}
+{% endblock %}
+
+{% block head %}
+    <style>
+        .doctor-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .metric-card { background: #f5f5f5; padding: 15px; border-radius: 5px; text-align: center; border-left: 4px solid #ddd; }
+        .metric-card.critical { border-left-color: #d42f2f; }
+        .metric-card.warning { border-left-color: #ffb81c; }
+        .metric-card.info { border-left-color: #2196f3; }
+        .metric-value { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .metric-label { font-size: 12px; color: #666; }
+        .issue-item { margin: 15px 0; padding: 12px; border-left: 4px solid; border-radius: 3px; }
+        .issue-item.critical { border-left-color: #d42f2f; background: #ffebee; }
+        .issue-item.warning { border-left-color: #ffb81c; background: #fff3e0; }
+        .issue-item.info { border-left-color: #2196f3; background: #e3f2fd; }
+        .issue-title { font-weight: bold; color: #333; margin-bottom: 5px; }
+        .issue-message { font-size: 13px; color: #555; }
+        .issue-badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-right: 10px; }
+        .badge-critical { background: #d42f2f; color: white; }
+        .badge-warning { background: #ffb81c; color: #333; }
+        .badge-info { background: #2196f3; color: white; }
+        .tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; }
+        .tab-button { padding: 10px 15px; background: none; border: none; cursor: pointer; color: #666; border-bottom: 3px solid transparent; font-weight: 500; }
+        .tab-button.active { border-bottom-color: #2196f3; color: #2196f3; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </tabs>
+{% endstyle %}
+{% endblock %}
+
+{% block content %}
+    <h2>Doctrine Doctor</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
+        <div style="padding: 15px; background: #f5f5f5; border-radius: 5px;">
+            <strong>Database Engine</strong><br>
+            {{ collector.databaseEngine }}
+        </div>
+        <div style="padding: 15px; background: #f5f5f5; border-radius: 5px;">
+            <strong>Database Version</strong><br>
+            {{ collector.databaseVersion }}
+        </div>
+        <div style="padding: 15px; background: #f5f5f5; border-radius: 5px;">
+            <strong>Doctrine ORM Version</strong><br>
+            {{ collector.doctrinVersion }}
+        </div>
+    </div>
+
+    <h3>Query Metrics</h3>
+    <div class="doctor-metrics">
+        <div class="metric-card critical">
+            <div class="metric-label">Total Issues</div>
+            <div class="metric-value">{{ collector.totalIssues }}</div>
+        </div>
+        <div class="metric-card critical">
+            <div class="metric-label">Critical</div>
+            <div class="metric-value" style="color: #d42f2f;">🔴 {{ collector.criticalIssues }}</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">Warnings</div>
+            <div class="metric-value" style="color: #ffb81c;">🟡 {{ collector.warnings }}</div>
+        </div>
+        <div class="metric-card info">
+            <div class="metric-label">Info</div>
+            <div class="metric-value" style="color: #2196f3;">🔵 {{ collector.info }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Queries Analyzed</div>
+            <div class="metric-value">{{ collector.queryCount }}</div>
+        </div>
+    </div>
+
+    <h3>Issues by Severity</h3>
+    <div class="tabs">
+        <button class="tab-button active" onclick="switchTab(event, 'tab-critical')">
+            Critical ({{ collector.criticalIssues }})
+        </button>
+        <button class="tab-button" onclick="switchTab(event, 'tab-warnings')">
+            Warnings ({{ collector.warnings }})
+        </button>
+        <button class="tab-button" onclick="switchTab(event, 'tab-info')">
+            Info ({{ collector.info }})
+        </button>
+    </div>
+
+    <div id="tab-critical" class="tab-content active">
+        {% if collector.issues.critical|length > 0 %}
+            {% for issue in collector.issues.critical %}
+                <div class="issue-item critical">
+                    <span class="issue-badge badge-critical">{{ issue.type }}</span>
+                    <span class="issue-badge badge-critical">CRITICAL</span>
+                    <div class="issue-title">{{ issue.title }}</div>
+                    <div class="issue-message">{{ issue.message }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #666; padding: 20px;">✓ No critical issues found</p>
+        {% endif %}
+    </div>
+
+    <div id="tab-warnings" class="tab-content">
+        {% if collector.issues.warnings|length > 0 %}
+            {% for issue in collector.issues.warnings %}
+                <div class="issue-item warning">
+                    <span class="issue-badge badge-warning">{{ issue.type }}</span>
+                    <span class="issue-badge badge-warning">WARNING</span>
+                    <div class="issue-title">{{ issue.title }}</div>
+                    <div class="issue-message">{{ issue.message }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #666; padding: 20px;">✓ No warnings found</p>
+        {% endif %}
+    </div>
+
+    <div id="tab-info" class="tab-content">
+        {% if collector.issues.info|length > 0 %}
+            {% for issue in collector.issues.info %}
+                <div class="issue-item info">
+                    <span class="issue-badge badge-info">{{ issue.type }}</span>
+                    <span class="issue-badge badge-info">INFO</span>
+                    <div class="issue-title">{{ issue.title }}</div>
+                    <div class="issue-message">{{ issue.message }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #666; padding: 20px;">✓ No info messages</p>
+        {% endif %}
+    </div>
+
+    {% if collector.slowestQueries|length > 0 %}
+        <h3>Slowest Queries</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background: #f5f5f5;">
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Time (ms)</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Query</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for query in collector.slowestQueries %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; color: {% if query.executionMS > 1 %}#d42f2f{% else %}#333{% endif %}; font-weight: bold;">
+                            {{ (query.executionMS|default(0))|number_format(2) }}
+                        </td>
+                        <td style="padding: 10px; font-family: monospace; font-size: 12px; color: #666;">
+                            {{ query.sql|truncate(80) }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <script>
+        function switchTab(e, tabId) {
+            e.preventDefault();
+            
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show clicked tab
+            document.getElementById(tabId).classList.add('active');
+            e.target.classList.add('active');
+        }
+    </script>
+{% endblock %}
