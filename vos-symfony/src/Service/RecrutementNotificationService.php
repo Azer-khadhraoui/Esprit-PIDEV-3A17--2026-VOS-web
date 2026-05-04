@@ -181,13 +181,6 @@ class RecrutementNotificationService
         return $recipients;
     }
 
-    private function isFinalDecision(string $decision): bool
-    {
-        $normalizedDecision = strtolower($decision);
-
-        return str_contains($normalizedDecision, 'accept') || str_contains($normalizedDecision, 'refus');
-    }
-
     private function generateAddToCalendarLink(Recrutement $recrutement): ?string
     {
         $date = $recrutement->getDateDecision();

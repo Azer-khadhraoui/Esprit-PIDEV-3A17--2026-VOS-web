@@ -13,3 +13,4 @@ parameters:
             - tests/
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    treatPhpDocTypesAsCertain: false

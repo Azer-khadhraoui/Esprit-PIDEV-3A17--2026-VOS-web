@@ -469,27 +469,6 @@ public function index(
         return $titles;
     }
 
-    private function normalizeText(mixed $value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value === '' ? null : $value;
-    }
-
-    private function userExists(EntityManagerInterface $entityManager, int $userId): bool
-    {
-        $result = $entityManager->getConnection()->executeQuery(
-            'SELECT id_utilisateur FROM utilisateur WHERE id_utilisateur = :id LIMIT 1',
-            ['id' => $userId]
-        )->fetchOne();
-
-        return $result !== false;
-    }
-
     private function uploadFile($file, SluggerInterface $slugger, string $folder): string
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
