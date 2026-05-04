@@ -95,7 +95,9 @@ class ContratEmbaucheController extends AbstractController
             'status' => 'c.status',
         ];
 
-        $qb = $doctrine->getRepository(ContratEmbauche::class)->createQueryBuilder('c');
+        /** @var \Doctrine\ORM\EntityRepository $contratRepo */
+        $contratRepo = $doctrine->getRepository(ContratEmbauche::class);
+        $qb = $contratRepo->createQueryBuilder('c');
 
         if ($search !== '') {
             $searchExpr = $qb->expr()->orX(
