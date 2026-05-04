@@ -34,8 +34,9 @@ class RecrutementController extends AbstractController
             'utilisateur' => 'u.nom',
         ];
 
-        $qb = $doctrine->getRepository(Recrutement::class)
-            ->createQueryBuilder('r')
+        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+        $recrutementRepo = $doctrine->getRepository(Recrutement::class);
+        $qb = $recrutementRepo->createQueryBuilder('r')
             ->leftJoin(User::class, 'u', 'WITH', 'u.id = r.idUtilisateur');
 
         if ($search !== '') {
@@ -70,8 +71,9 @@ class RecrutementController extends AbstractController
         $qb->orderBy($sortMap[$sortBy] ?? $sortMap['dateDecision'], $sortOrder);
         $recrutements = $qb->getQuery()->getResult();
 
-        $dynamicUserOptions = $doctrine->getRepository(Recrutement::class)
-            ->createQueryBuilder('r')
+        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+        $recrutementRepo = $doctrine->getRepository(Recrutement::class);
+        $dynamicUserOptions = $recrutementRepo->createQueryBuilder('r')
             ->select('DISTINCT r.idUtilisateur AS userId, u.nom AS nom, u.prenom AS prenom, u.email AS email')
             ->leftJoin(User::class, 'u', 'WITH', 'u.id = r.idUtilisateur')
             ->andWhere('r.idUtilisateur IS NOT NULL')
@@ -94,8 +96,9 @@ class RecrutementController extends AbstractController
             $userNamesById[$currentUserId] = $display;
         }
 
-        $decisionRows = $doctrine->getRepository(Recrutement::class)
-            ->createQueryBuilder('r')
+        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+        $recrutementRepo = $doctrine->getRepository(Recrutement::class);
+        $decisionRows = $recrutementRepo->createQueryBuilder('r')
             ->select('DISTINCT r.decisionFinale AS decisionFinale')
             ->andWhere('r.decisionFinale IS NOT NULL')
             ->orderBy('r.decisionFinale', 'ASC')
@@ -365,7 +368,11 @@ class RecrutementController extends AbstractController
 
     private function buildUtilisateurChoices(ManagerRegistry $doctrine): array
     {
+        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
+        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
+        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
         $entretienRepo = $doctrine->getRepository(Entretien::class);
+        /** @var \Doctrine\ORM\EntityRepository $userRepo */
         $userRepo = $doctrine->getRepository(User::class);
 
         $entretiens = $entretienRepo->createQueryBuilder('e')
@@ -436,7 +443,7 @@ class RecrutementController extends AbstractController
         return $recrutement->getIdUtilisateur();
     }
 
-    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Recrutement $recrutement, \Doctrine\ORM\EntityManagerInterface $entityManager): void
+    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Recrutement $recrutement, \Doctrine\Persistence\ObjectManager $entityManager): void
     {
         if (!$calendar->isConfigured()) {
             return;

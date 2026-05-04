@@ -95,3 +95,35 @@ php bin/console doctrine:migrations:migrate
 ```
 
 Generated: $(date)
+
+---
+
+**Afficher la barre d'erreurs dans l'application**
+
+Le projet inclut une barre en bas de page qui s'affiche si un fichier `var/debug_bar.json` existe. Le contrôleur expose les diagnostics à `/_debug/bar`.
+
+Pour générer rapidement `var/debug_bar.json` (exemples):
+
+- Linux / WSL / macOS (exécuter depuis `vos-symfony`):
+
+```bash
+# Exemple simple : ajouter un message PHPStan + Doctrine
+mkdir -p var
+cat > var/debug_bar.json <<'JSON'
+[
+  {"title":"PHPStan","message":"Voir ./vendor/bin/phpstan analyse --level=5 src"},
+  {"title":"Doctrine","message":"Schema not in sync — run doctrine:migrations:diff and review"}
+]
+JSON
+```
+
+- Windows PowerShell :
+
+```powershell
+mkdir var -ErrorAction SilentlyContinue
+@('[{"title":"PHPStan","message":"Voir .\\vendor\\bin\\phpstan analyse --level=5 src"}, {"title":"Doctrine","message":"Schema not in sync — run doctrine:migrations:diff and review"}]') | Out-File -Encoding utf8 var\debug_bar.json
+```
+
+Plus avancé : produire dynamiquement des messages depuis les sorties d'outils, puis convertir en JSON (écrire un petit script PHP ou Node.js pour normaliser les sorties). Le contrôleur lit simplement `var/debug_bar.json` et la barre l'affiche.
+
+Après création, ouvrez l'application ; la barre apparaîtra en bas avec les messages listés.
