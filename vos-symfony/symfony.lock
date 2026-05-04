@@ -35,6 +35,9 @@
             "./migrations/.gitignore"
         ]
     },
+    "endroid/qr-code-bundle": {
+        "version": "5.0.2"
+    },
     "knplabs/knp-snappy-bundle": {
         "version": "1.10",
         "recipe": {
@@ -46,9 +49,6 @@
         "files": [
             "./config/packages/knp_snappy.yaml"
         ]
-    },
-    "endroid/qr-code-bundle": {
-        "version": "5.0.2"
     },
     "nucleos/dompdf-bundle": {
         "version": "4.3",
@@ -125,6 +125,15 @@
             "branch": "main",
             "version": "1.0",
             "ref": "fadbfe33303a76e25cb63401050439aa9b1a9c7f"
+        }
+    },
+    "symfony/phpunit-bridge": {
+        "version": "8.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.3",
+            "ref": "56f87409c45ff6654b0bf07c5cc359aebf6016ab"
         }
     },
     "symfony/routing": {
