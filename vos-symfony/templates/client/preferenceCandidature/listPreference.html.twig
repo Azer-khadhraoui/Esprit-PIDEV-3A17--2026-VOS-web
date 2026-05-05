@@ -376,7 +376,7 @@
         {% set filtresActifs = (filtrePoste or filtreMode or filtreContrat or filtreDisponible or filtreSalaireMin or filtreSalaireMax) %}
         {% if filtresActifs %}
             <p style="margin:10px 0 0; font-size:0.88rem; color:#6c7693;">
-                <strong>{{ preferences|length }}</strong> résultat(s)
+                <strong>{{ totalPreferences|default(preferences|length) }}</strong> résultat(s)
                 {% if filtreMode %} · Mode: <strong>{{ filtreMode }}</strong>{% endif %}
                 {% if filtreContrat %} · Contrat: <strong>{{ filtreContrat }}</strong>{% endif %}
                 {% if filtreDisponible %} · Dispo: <strong>{{ filtreDisponible }}</strong>{% endif %}
@@ -414,6 +414,17 @@
                     </div>
                 {% endfor %}
             </div>
+            {% if totalPages|default(1) > 1 %}
+                <nav style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:20px;">
+                    {% if currentPage > 1 %}
+                        <a class="btn-new" href="{{ path('app_client_preferences', app.request.query.all|merge({'page': currentPage - 1})) }}">Precedent</a>
+                    {% endif %}
+                    <span style="color:#6c7693; font-weight:700;">Page {{ currentPage }} / {{ totalPages }}</span>
+                    {% if currentPage < totalPages %}
+                        <a class="btn-new" href="{{ path('app_client_preferences', app.request.query.all|merge({'page': currentPage + 1})) }}">Suivant</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
         {% endif %}
     </div>
 </body>

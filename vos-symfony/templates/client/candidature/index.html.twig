@@ -451,7 +451,7 @@
         {% set filtresActifs = (filtreStatut or filtreNiveau or filtreDomaine or filtreContrat or filtreDateDu or filtreDateAu or filtreMotCle) %}
         {% if filtresActifs %}
             <p style="margin:10px 0 0; font-size:0.88rem; color:#6c7693;">
-                <strong>{{ candidatures|length }}</strong> résultat(s) trouvé(s)
+                <strong>{{ totalCandidatures|default(candidatures|length) }}</strong> résultat(s) trouvé(s)
                 {% if filtreStatut %} · Statut: <strong>{{ filtreStatut }}</strong>{% endif %}
                 {% if filtreNiveau %} · Niveau: <strong>{{ filtreNiveau }}</strong>{% endif %}
                 {% if filtreDomaine %} · Domaine: <strong>{{ filtreDomaine }}</strong>{% endif %}
@@ -536,6 +536,17 @@
                 </article>
             {% endfor %}
         </section>
+        {% if totalPages|default(1) > 1 %}
+            <nav style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:20px;">
+                {% if currentPage > 1 %}
+                    <a class="browse-btn" href="{{ path('app_client_candidatures', app.request.query.all|merge({'page': currentPage - 1})) }}">Precedent</a>
+                {% endif %}
+                <span style="color:#6c7693; font-weight:700;">Page {{ currentPage }} / {{ totalPages }}</span>
+                {% if currentPage < totalPages %}
+                    <a class="browse-btn" href="{{ path('app_client_candidatures', app.request.query.all|merge({'page': currentPage + 1})) }}">Suivant</a>
+                {% endif %}
+            </nav>
+        {% endif %}
     {% endif %}
 </main>
 

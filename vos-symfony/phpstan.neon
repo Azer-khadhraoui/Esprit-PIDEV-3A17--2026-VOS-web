@@ -18,3 +18,10 @@ parameters:
         # Doctrine sets ID properties via reflection, not direct assignment
         - '#Property App\\Entity\\OffreEmploi::\$idOffre is never written, only read#'
         - '#Property App\\Entity\\CritereOffre::\$idCritere is never written, only read#'
+        # Primary keys générées par Doctrine pour tes entités
+        - '#Property App\\Entity\\Candidature::\$id_candidature.*is never assigned int#'
+        - '#Property App\\Entity\\PreferenceCandidature::\$id_preference.*is never assigned int#'
+        - '#Property App\\Entity\\AnalyseCv::\$id_analyse.*is never assigned int#'
+        # AnalyseCv propriétés JSON - PhpStan ne peut pas inférer le type exact des valeurs JSON
+        - '#Property App\\Entity\\AnalyseCv::\$(competences_detectees|points_forts|points_faibles|suggestions).*type has no value type specified#'
+

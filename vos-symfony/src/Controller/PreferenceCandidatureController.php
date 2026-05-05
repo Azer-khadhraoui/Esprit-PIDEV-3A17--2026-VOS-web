@@ -6,6 +6,7 @@ use App\Entity\PreferenceCandidature;
 use App\Form\PreferenceCandidatureType;
 use App\Repository\PreferenceCandidatureRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,9 @@ public function index(
     if ($idUtilisateur <= 0) {
         return $this->redirectToRoute('app_signin');
     }
+
+    $page = max(1, (int) $request->query->get('page', 1));
+    $limit = 12;
 
     // ── Filtres ───────────────────────────────────────────────────
     $filtrePoste       = trim((string) $request->query->get('poste', ''));
@@ -72,7 +76,14 @@ public function index(
            ->setParameter('sal_max', (float) $filtreSalaireMax);
     }
 
-    $preferences = $qb->getQuery()->getResult();
+    $qb
+        ->setFirstResult(($page - 1) * $limit)
+        ->setMaxResults($limit);
+
+    $paginator = new Paginator($qb->getQuery());
+    $totalPreferences = count($paginator);
+    $totalPages = max(1, (int) ceil($totalPreferences / $limit));
+    $preferences = iterator_to_array($paginator->getIterator());
 
     return $this->render('client/preferenceCandidature/listPreference.html.twig', [
         'preferences'      => $preferences,
@@ -83,6 +94,9 @@ public function index(
         'filtreDisponible' => $filtreDisponible,
         'filtreSalaireMin' => $filtreSalaireMin,
         'filtreSalaireMax' => $filtreSalaireMax,
+        'currentPage'      => $page,
+        'totalPages'       => $totalPages,
+        'totalPreferences' => $totalPreferences,
     ]);
 }
 

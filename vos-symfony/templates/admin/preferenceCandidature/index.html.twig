@@ -52,7 +52,7 @@
         <section class="table-card">
             <div class="table-head">
                 <h2>Liste des préférences</h2>
-                <span class="table-badge">{{ preferences|length }} entrées</span>
+                <span class="table-badge">{{ totalPreferences|default(preferences|length) }} entrées</span>
             </div>
 
             <div class="search-filters">
@@ -116,8 +116,19 @@
                     </tbody>
                 </table>
             </div>
+
+            {% if totalPages|default(1) > 1 %}
+                <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:18px;">
+                    {% if currentPage > 1 %}
+                        <a class="btn-reset" href="{{ path('app_admin_preferences', app.request.query.all|merge({'page': currentPage - 1})) }}">Precedent</a>
+                    {% endif %}
+                    <span class="table-badge">Page {{ currentPage }} / {{ totalPages }}</span>
+                    {% if currentPage < totalPages %}
+                        <a class="btn-reset" href="{{ path('app_admin_preferences', app.request.query.all|merge({'page': currentPage + 1})) }}">Suivant</a>
+                    {% endif %}
+                </div>
+            {% endif %}
         </section>
     </main>
 </div>
 {% endblock %}
-

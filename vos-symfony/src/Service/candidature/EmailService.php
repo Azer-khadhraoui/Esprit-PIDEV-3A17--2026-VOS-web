@@ -24,9 +24,13 @@ class EmailService
      */
     public function sendCandidatureCreatedEmail(Candidature $candidature, User $user, string $offreTitre): void
     {
+        $userEmail = $user->getEmail();
+        if ($userEmail === null) {
+            throw new \InvalidArgumentException('User email cannot be null');
+        }
         $email = (new TemplatedEmail())
             ->from(new Address(self::FROM_EMAIL, self::FROM_NAME))
-            ->to($user->getEmail())
+            ->to($userEmail)
             ->subject('VOS - Candidature confirmée')
             ->htmlTemplate('emails/candidature/created.html.twig')
             ->context([
@@ -43,9 +47,13 @@ class EmailService
      */
     public function sendCandidatureUpdatedEmail(Candidature $candidature, User $user, string $offreTitre): void
     {
+        $userEmail = $user->getEmail();
+        if ($userEmail === null) {
+            throw new \InvalidArgumentException('User email cannot be null');
+        }
         $email = (new TemplatedEmail())
             ->from(new Address(self::FROM_EMAIL, self::FROM_NAME))
-            ->to($user->getEmail())
+            ->to($userEmail)
             ->subject('VOS - Candidature mise à jour')
             ->htmlTemplate('emails/candidature/updated.html.twig')
             ->context([
@@ -85,9 +93,13 @@ class EmailService
             ->findBy(['role' => 'ADMIN_RH']);
 
         foreach ($admins as $admin) {
+            $adminEmail = $admin->getEmail();
+            if ($adminEmail === null) {
+                continue;
+            }
             $email = (new TemplatedEmail())
                 ->from(new Address(self::FROM_EMAIL, self::FROM_NAME))
-                ->to($admin->getEmail())
+                ->to($adminEmail)
                 ->subject('VOS - Nouvelle candidature reçue')
                 ->htmlTemplate('emails/candidature/admin_new.html.twig')
                 ->context([
@@ -110,9 +122,13 @@ class EmailService
             ->findBy(['role' => 'ADMIN_RH']);
 
         foreach ($admins as $admin) {
+            $adminEmail = $admin->getEmail();
+            if ($adminEmail === null) {
+                continue;
+            }
             $email = (new TemplatedEmail())
                 ->from(new Address(self::FROM_EMAIL, self::FROM_NAME))
-                ->to($admin->getEmail())
+                ->to($adminEmail)
                 ->subject('VOS - Candidature mise à jour')
                 ->htmlTemplate('emails/candidature/admin_updated.html.twig')
                 ->context([
@@ -135,9 +151,13 @@ class EmailService
             ->findBy(['role' => 'ADMIN_RH']);
 
         foreach ($admins as $admin) {
+            $adminEmail = $admin->getEmail();
+            if ($adminEmail === null) {
+                continue;
+            }
             $email = (new TemplatedEmail())
                 ->from(new Address(self::FROM_EMAIL, self::FROM_NAME))
-                ->to($admin->getEmail())
+                ->to($adminEmail)
                 ->subject('VOS - Candidature supprimée')
                 ->htmlTemplate('emails/candidature/admin_deleted.html.twig')
                 ->context([
