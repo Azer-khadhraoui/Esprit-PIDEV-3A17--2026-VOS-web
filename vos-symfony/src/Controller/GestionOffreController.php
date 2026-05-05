@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\CritereOffre;
 use App\Entity\OffreEmploi;
+use App\Dto\Admin\OffreStatDto;
 use App\Service\CriteriaSuggestionAiService;
 use App\Service\OffreDescriptionAiService;
 use App\Service\OffreNotificationService;
@@ -92,11 +93,19 @@ class GestionOffreController extends AbstractController
     #[Route('/gestion-offre/statistique', name: 'gestion_offre_statistique', methods: ['GET'])]
     public function statistique(EntityManagerInterface $entityManager): Response
     {
-        $offreRepository = $entityManager->getRepository(OffreEmploi::class);
+        $offerStats = $entityManager->createQuery(
+            'SELECT NEW App\\Dto\\Admin\\OffreStatDto(
+                COUNT(o.idOffre),
+                SUM(CASE WHEN o.statutOffre = \'OUVERTE\' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN o.statutOffre = \'FERMEE\' THEN 1 ELSE 0 END)
+            )
+            FROM App\\Entity\\OffreEmploi o'
+        )->getSingleResult();
 
-        $totalOffers = (int) $offreRepository->count([]);
-        $activeOffers = (int) $offreRepository->count(['statutOffre' => 'OUVERTE']);
-        $closedOffers = (int) $offreRepository->count(['statutOffre' => 'FERMEE']);
+        /** @var OffreStatDto $offerStats */
+        $totalOffers = $offerStats->total;
+        $activeOffers = $offerStats->active;
+        $closedOffers = $offerStats->closed;
 
         $statutStats = $entityManager->getConnection()->executeQuery(
             "SELECT COALESCE(statut_offre, 'N/A') AS label, COUNT(*) AS total FROM offre_emploi GROUP BY statut_offre ORDER BY total DESC"
@@ -1006,7 +1015,7 @@ class GestionOffreController extends AbstractController
     }
 
     /**
-     * @return list<string>
+     * @return array<string, string>
      */
     private function validateOffreInput(OffreEmploi $offre, EntityManagerInterface $entityManager, int $adminUserId): array
     {
@@ -1132,9 +1141,21 @@ class GestionOffreController extends AbstractController
             return [];
         }
 
-        $rows = $entityManager->getConnection()->executeQuery(
-            sprintf("SELECT DISTINCT %s AS value FROM offre_emploi WHERE %s IS NOT NULL AND %s <> '' ORDER BY %s ASC", $column, $column, $column, $column)
-        )->fetchFirstColumn();
+        $fieldMap = [
+            'statut_offre' => 'o.statutOffre',
+            'type_contrat' => 'o.typeContrat',
+            'work_preference' => 'o.workPreference',
+        ];
+
+        $rows = $entityManager->getRepository(OffreEmploi::class)
+            ->createQueryBuilder('o')
+            ->select(sprintf('DISTINCT %s AS value', $fieldMap[$column]))
+            ->where(sprintf('%s IS NOT NULL', $fieldMap[$column]))
+            ->andWhere(sprintf('%s <> :emptyValue', $fieldMap[$column]))
+            ->setParameter('emptyValue', '')
+            ->orderBy($fieldMap[$column], 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
 
         $values = array_map(static fn (mixed $value): string => (string) $value, $rows);
 

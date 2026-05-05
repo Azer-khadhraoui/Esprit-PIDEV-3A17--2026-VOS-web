@@ -8,6 +8,13 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
+#[ORM\Table(name: 'offre_emploi', indexes: [
+    new ORM\Index(name: 'id_utilisateur', columns: ['id_utilisateur']),
+    new ORM\Index(name: 'idx_offre_statut_offre', columns: ['statut_offre']),
+    new ORM\Index(name: 'idx_offre_type_contrat', columns: ['type_contrat']),
+    new ORM\Index(name: 'idx_offre_work_preference', columns: ['work_preference']),
+    new ORM\Index(name: 'idx_offre_date_publication', columns: ['date_publication'])
+])]
 class OffreEmploi
 {
     /**
@@ -16,7 +23,7 @@ class OffreEmploi
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
-    private ?int $idOffre;
+    private ?int $idOffre = null;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $titre = null;
