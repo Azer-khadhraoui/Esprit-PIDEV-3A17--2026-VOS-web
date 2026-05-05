@@ -2,7 +2,7 @@ includes:
     - vendor/phpstan/phpstan-symfony/extension.neon
 
 parameters:
-    level: 5
+    level: 8
     paths:
         - src
     tmpDir: var/phpstan
@@ -14,3 +14,7 @@ parameters:
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
     treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Doctrine sets ID properties via reflection, not direct assignment
+        - '#Property App\\Entity\\OffreEmploi::\$idOffre is never written, only read#'
+        - '#Property App\\Entity\\CritereOffre::\$idCritere is never written, only read#'
