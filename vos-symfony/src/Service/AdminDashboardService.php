@@ -67,7 +67,7 @@ class AdminDashboardService
             ->select('NEW App\\Dto\\Admin\\RoleStatDto(COALESCE(u.role, :na), COUNT(u.id))')
             ->setParameter('na', 'N/A')
             ->groupBy('u.role')
-            ->orderBy('total', 'DESC')
+            ->orderBy('COUNT(u.id)', 'DESC') 
             ->getQuery()->getResult();
 
         return array_map(static function (RoleStatDto $row): array {

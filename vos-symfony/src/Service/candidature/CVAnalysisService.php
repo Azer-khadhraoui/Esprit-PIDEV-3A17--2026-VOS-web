@@ -43,7 +43,11 @@ class CVAnalysisService
             // Nettoyer les caractères UTF-8 invalides
             $cvText = mb_convert_encoding($cvText, 'UTF-8', 'UTF-8');
             $cvText = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $cvText);
-            $cvText = iconv('UTF-8', 'UTF-8//IGNORE', $cvText);
+            $encoded = iconv('UTF-8', 'UTF-8//IGNORE', (string)$cvText);
+            if ($encoded === false) {
+                throw new \Exception('CV encoding failed');
+            }
+            $cvText = $encoded;
             if (empty($cvText)) {
                 throw new \Exception('Le texte du CV ne peut pas être vide');
             }
@@ -124,13 +128,17 @@ class CVAnalysisService
             // Créer l'entité AnalyseCv
             $analyseCv = new AnalyseCv();
             $analyseCv->setCandidature($candidature);
-            $analyseCv->setIdCandidature($candidature->getIdCandidature());
-            $analyseCv->setCompetencesDetectees($analysis['competences_detectees'] ?? []);
-            $analyseCv->setPointsForts($analysis['points_forts'] ?? []);
-            $analyseCv->setPointsFaibles($analysis['points_faibles'] ?? []);
-            $analyseCv->setScoreCv($analysis['score_cv'] ?? 0);
-            $analyseCv->setSuggestions($analysis['suggestions'] ?? []);
-            $analyseCv->setDateAnalyse(new \DateTime());
+            $competences = $analysis['competences_detectees'];
+            $analyseCv->setCompetencesDetectees(is_array($competences) ? $competences : []);
+            $pointsForts = $analysis['points_forts'];
+            $analyseCv->setPointsForts(is_array($pointsForts) ? $pointsForts : []);
+            $pointsFaibles = $analysis['points_faibles'];
+            $analyseCv->setPointsFaibles(is_array($pointsFaibles) ? $pointsFaibles : []);
+            $score = $analysis['score_cv'];
+            $analyseCv->setScoreCv(is_int($score) ? $score : 0);
+            $suggestions = $analysis['suggestions'];
+            $analyseCv->setSuggestions(is_array($suggestions) ? $suggestions : []);
+            $analyseCv->setDateAnalyse(new \DateTimeImmutable());
 
             // Sauvegarder en base de données
             $this->entityManager->persist($analyseCv);
@@ -185,6 +193,7 @@ class CVAnalysisService
 
     /**
      * Parse la réponse JSON de Groq
+     * @return array<string, array<int|string, mixed>|int>
      */
     private function parseAnalysisResponse(string $jsonResponse): array
     {
@@ -231,8 +240,10 @@ class CVAnalysisService
 
     /**
      * Assure que la valeur est un tableau
+     * @param mixed $value
+     * @return array<int|string, mixed>
      */
-    private function ensureArray($value): array
+    private function ensureArray(mixed $value): array
     {
         if (is_array($value)) {
             return $value;
@@ -245,8 +256,9 @@ class CVAnalysisService
 
     /**
      * Assure que la valeur est un entier entre 0 et 100
+     * @param mixed $value
      */
-    private function ensureInt($value): int
+    private function ensureInt(mixed $value): int
     {
         $int = (int) $value;
         return max(0, min(100, $int));

@@ -14,6 +14,7 @@ use Doctrine\DBAL\Connection;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -39,6 +40,9 @@ public function index(
     if ($idUtilisateur <= 0) {
         return $this->redirectToRoute('app_signin');
     }
+
+    $page = max(1, (int) $request->query->get('page', 1));
+    $limit = 12;
 
     // ── Filtres de recherche avancée ──────────────────────────────
     $filtreStatut   = trim((string) $request->query->get('statut', ''));
@@ -107,7 +111,14 @@ public function index(
         )->setParameter('mot_cle', '%' . mb_strtolower($filtreMotCle) . '%');
     }
 
-    $candidatures = $qb->getQuery()->getResult();
+    $qb
+        ->setFirstResult(($page - 1) * $limit)
+        ->setMaxResults($limit);
+
+    $paginator = new Paginator($qb->getQuery(), false);
+    $totalCandidatures = count($paginator);
+    $totalPages = max(1, (int) ceil($totalCandidatures / $limit));
+    $candidatures = iterator_to_array($paginator->getIterator());
     $offreTitles  = $this->getOffreTitles($entityManager, $candidatures);
 
     return $this->render('client/candidature/index.html.twig', [
@@ -122,6 +133,9 @@ public function index(
         'filtreDateDu'  => $filtreDateDu,
         'filtreDateAu'  => $filtreDateAu,
         'filtreMotCle'  => $filtreMotCle,
+        'currentPage'   => $page,
+        'totalPages'    => $totalPages,
+        'totalCandidatures' => $totalCandidatures,
     ]);
 }
 
@@ -404,7 +418,8 @@ public function index(
 
         $candidatures = $repo->findBy(
             ['id_utilisateur' => $idUtilisateur],
-            ['date_candidature' => 'DESC']
+            ['date_candidature' => 'DESC'],
+            500
         );
 
         $offreTitles = $this->getOffreTitles($entityManager, $candidatures);

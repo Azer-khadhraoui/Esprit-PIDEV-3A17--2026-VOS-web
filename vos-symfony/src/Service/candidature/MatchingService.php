@@ -10,14 +10,7 @@ class MatchingService
     /**
      * Calcule le score de matching entre une offre et les préférences d'un candidat
      * 
-     * @return array{
-     *     score: float,
-     *     percentage: float,
-     *     quality: string,
-     *     color: string,
-     *     criteria: array,
-     *     recommendations: array
-     * }
+     * @return array<string, mixed>
      */
     public function calculateMatching(OffreEmploi $offre, ?PreferenceCandidature $preference): array
     {
@@ -31,58 +24,68 @@ class MatchingService
 
         // 1. Matching Type de Poste (30%)
         $typeScore = $this->matchJobType($offre, $preference);
+        /** @var int $typeScoreValue */
+        $typeScoreValue = (int)($typeScore['score'] ?? 0);
         $criteria['typePoste'] = [
             'label' => '👔 Type de Poste',
-            'score' => $typeScore['score'],
+            'score' => $typeScoreValue,
             'weight' => 30,
             'explanation' => $typeScore['explanation'],
             'status' => $typeScore['status']
         ];
-        $totalScore += $typeScore['score'] * 0.30;
+        $totalScore += $typeScoreValue * 0.30;
 
         // 2. Matching Mode de Travail (25%)
         $modeScore = $this->matchWorkMode($offre, $preference);
+        /** @var int $modeScoreValue */
+        $modeScoreValue = (int)($modeScore['score'] ?? 0);
         $criteria['modeTravail'] = [
             'label' => '🌍 Mode de Travail',
-            'score' => $modeScore['score'],
+            'score' => $modeScoreValue,
             'weight' => 25,
             'explanation' => $modeScore['explanation'],
             'status' => $modeScore['status']
         ];
-        $totalScore += $modeScore['score'] * 0.25;
+        $totalScore += $modeScoreValue * 0.25;
 
         // 3. Matching Disponibilité (20%)
         $disponibiliteScore = $this->matchAvailability($offre, $preference);
+        /** @var int $dispScoreValue */
+        $dispScoreValue = (int)($disponibiliteScore['score'] ?? 0);
         $criteria['disponibilite'] = [
             'label' => '📅 Disponibilité',
-            'score' => $disponibiliteScore['score'],
+            'score' => $dispScoreValue,
             'weight' => 20,
             'explanation' => $disponibiliteScore['explanation'],
             'status' => $disponibiliteScore['status']
         ];
-        $totalScore += $disponibiliteScore['score'] * 0.20;
+        $totalScore += $dispScoreValue * 0.20;
 
         // 4. Matching Type de Contrat (15%)
         $typeContratScore = $this->matchContractType($offre, $preference);
+        /** @var int $typeContratScoreValue */
+        $typeContratScoreValue = (int)($typeContratScore['score'] ?? 0);
         $criteria['typeContrat'] = [
             'label' => '📝 Type de Contrat',
-            'score' => $typeContratScore['score'],
+            'score' => $typeContratScoreValue,
             'weight' => 15,
             'explanation' => $typeContratScore['explanation'],
             'status' => $typeContratScore['status']
         ];
-        $totalScore += $typeContratScore['score'] * 0.15;
+        $totalScore += $typeContratScoreValue * 0.15;
 
         // 5. Matching Lieu (10%)
         $lieuScore = $this->matchLocation($offre, $preference);
+        /** @var int $lieuScoreValue */
+        $lieuScoreValue = (int)($lieuScore['score'] ?? 0);
         $criteria['lieu'] = [
             'label' => '📍 Lieu',
-            'score' => $lieuScore['score'],
+            'score' => $lieuScoreValue,
             'weight' => 10,
             'explanation' => $lieuScore['explanation'],
             'status' => $lieuScore['status']
         ];
-        $totalScore += $lieuScore['score'] * 0.10;
+        $totalScore += $lieuScoreValue * 0.10;
 
         // Générer les recommandations
         $recommendations = $this->generateRecommendations($criteria, $preference, $offre);
@@ -103,6 +106,7 @@ class MatchingService
 
     /**
      * Matching pour le type de poste
+     * @return array<string, int|string>
      */
     private function matchJobType(OffreEmploi $offre, PreferenceCandidature $preference): array
     {
@@ -151,6 +155,7 @@ class MatchingService
 
     /**
      * Matching pour le mode de travail
+     * @return array<string, int|string>
      */
     private function matchWorkMode(OffreEmploi $offre, PreferenceCandidature $preference): array
     {
@@ -195,6 +200,7 @@ class MatchingService
 
     /**
      * Matching pour la disponibilité
+     * @return array<string, int|string>
      */
     private function matchAvailability(OffreEmploi $offre, PreferenceCandidature $preference): array
     {
@@ -249,6 +255,7 @@ class MatchingService
 
     /**
      * Matching pour le type de contrat
+     * @return array<string, int|string>
      */
     private function matchContractType(OffreEmploi $offre, PreferenceCandidature $preference): array
     {
@@ -280,6 +287,7 @@ class MatchingService
 
     /**
      * Matching pour le lieu
+     * @return array<string, int|string>
      */
     private function matchLocation(OffreEmploi $offre, PreferenceCandidature $preference): array
     {
@@ -330,6 +338,8 @@ class MatchingService
 
     /**
      * Générer les recommandations
+     * @param array<string, array<string, mixed>> $criteria
+     * @return array<int, array<string, mixed>>
      */
     private function generateRecommendations(array $criteria, PreferenceCandidature $preference, OffreEmploi $offre): array
     {
@@ -395,6 +405,7 @@ class MatchingService
 
     /**
      * Résultat neutre quand pas de préférence
+     * @return array<string, mixed>
      */
     private function getNeutralResult(): array
     {

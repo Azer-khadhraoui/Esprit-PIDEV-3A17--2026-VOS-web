@@ -27,7 +27,7 @@ class AnalyseCvRepository extends ServiceEntityRepository
     public function findLatestByCandidature(int $idCandidature): ?AnalyseCv
     {
         return $this->createQueryBuilder('a')
-            ->andWhere('a.id_candidature = :id')
+            ->andWhere('IDENTITY(a.candidature) = :id')
             ->setParameter('id', $idCandidature)
             ->orderBy('a.date_analyse', 'DESC')
             ->setMaxResults(1)
@@ -38,12 +38,13 @@ class AnalyseCvRepository extends ServiceEntityRepository
     /**
      * Find all analyses for a specific candidature
      */
-    public function findByCandidature(int $idCandidature): array
+    public function findByCandidature(int $idCandidature, int $limit = 20): array
     {
         return $this->createQueryBuilder('a')
-            ->andWhere('a.id_candidature = :id')
+            ->andWhere('IDENTITY(a.candidature) = :id')
             ->setParameter('id', $idCandidature)
             ->orderBy('a.date_analyse', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }
@@ -51,12 +52,13 @@ class AnalyseCvRepository extends ServiceEntityRepository
     /**
      * Find analyses with scores higher than a threshold
      */
-    public function findByScoreGreaterThan(int $minScore): array
+    public function findByScoreGreaterThan(int $minScore, int $limit = 50): array
     {
         return $this->createQueryBuilder('a')
             ->andWhere('a.score_cv >= :minScore')
             ->setParameter('minScore', $minScore)
             ->orderBy('a.score_cv', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }

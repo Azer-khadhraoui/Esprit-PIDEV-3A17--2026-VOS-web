@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\Admin\CountStatDto;
 use App\Entity\Candidature;
 use App\Entity\OffreEmploi;
 use App\Entity\PreferenceCandidature;
@@ -457,11 +458,13 @@ class AdminController extends AbstractController
         }
 
         $qb = $entityManager->getRepository(Candidature::class)
-            ->createQueryBuilder('c')
-            ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
-            ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+            ->createQueryBuilder('c');
 
         if ('' !== $search) {
+            $qb
+                ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
+                ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+
             $searchExpr = $qb->expr()->orX(
                 'LOWER(c.statut) LIKE :search',
                 'LOWER(c.message_candidat) LIKE :search',
@@ -486,9 +489,16 @@ class AdminController extends AbstractController
                 ->setParameter('status', $statusFilter);
         }
 
-        $qb->orderBy('c.' . $sortBy, $sortOrder);
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 20;
+
+        $qb
+            ->orderBy('c.' . $sortBy, $sortOrder)
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
 
         $candidatures = $qb->getQuery()->getResult();
+
 
         // Charger les User et OffreEmploi séparément
         $userIds = [];
@@ -657,11 +667,13 @@ class AdminController extends AbstractController
         }
 
         $qb = $entityManager->getRepository(Candidature::class)
-            ->createQueryBuilder('c')
-            ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
-            ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+            ->createQueryBuilder('c');
 
         if ('' !== $search) {
+            $qb
+                ->leftJoin(User::class, 'u', 'WITH', 'u.id = c.id_utilisateur')
+                ->leftJoin(OffreEmploi::class, 'o', 'WITH', 'o.idOffre = c.id_offre');
+
             $searchExpr = $qb->expr()->orX(
                 $qb->expr()->like('u.nom', ':search'),
                 $qb->expr()->like('u.prenom', ':search'),
@@ -683,7 +695,7 @@ class AdminController extends AbstractController
             $qb->andWhere('c.statut = :status')->setParameter('status', $statusFilter);
         }
 
-        $qb->orderBy('c.' . $sortBy, $sortOrder);
+        $qb->orderBy('c.' . $sortBy, $sortOrder)->setMaxResults(500);
 
         $candidatures = $qb->getQuery()->getResult();
 
@@ -779,11 +791,12 @@ class AdminController extends AbstractController
         $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
 
         $qb = $entityManager->getRepository(PreferenceCandidature::class)
-            ->createQueryBuilder('p')
-            ->leftJoin(User::class, 'u', 'WITH', 'u.id = p.id_utilisateur');
+            ->createQueryBuilder('p');
 
         // Ajouter la logique de recherche
         if ('' !== $search) {
+            $qb->leftJoin(User::class, 'u', 'WITH', 'u.id = p.id_utilisateur');
+
             $searchExpr = $qb->expr()->orX(
                 $qb->expr()->like('p.type_poste_souhaite', ':search'),
                 $qb->expr()->like('p.mode_travail', ':search'),
@@ -805,7 +818,22 @@ class AdminController extends AbstractController
                 ->setParameter(':search', '%' . $search . '%');
         }
 
-        $qb->orderBy($allowedSortFields[$sortBy], $sortOrder);
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 20;
+
+        $countQb = clone $qb;
+        $totalPreferences = (int) $countQb
+            ->select('COUNT(p.id_preference)')
+            ->resetDQLPart('orderBy')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $qb
+            ->orderBy($allowedSortFields[$sortBy], $sortOrder)
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
+        $totalPages = max(1, (int) ceil($totalPreferences / $limit));
         $preferences = $qb->getQuery()->getResult();
 
         // Charger les User séparément
@@ -831,6 +859,9 @@ class AdminController extends AbstractController
             'search' => $search,
             'sortBy' => $sortBy,
             'sortOrder' => $sortOrder,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalPreferences' => $totalPreferences,
         ]);
     }
 
@@ -995,13 +1026,16 @@ class AdminController extends AbstractController
             default => null,
         };
 
+        return $this->renderStatisticsDashboard($entityManager, $session, $matchingService, (string) $periode, $dateFilter);
+
         // ── Candidatures ────────────────────────────────────────────────
-        $candidatureQb = $entityManager->getRepository(Candidature::class)->createQueryBuilder('c');
-        if ($dateFilter) {
-            $candidatureQb->andWhere('c.date_candidature >= :df')->setParameter('df', $dateFilter);
-        }
-        $candidatures = $candidatureQb->getQuery()->getResult();
-        $totalCandidatures = count($candidatures);
+        $dateWhere = $dateFilter ? ' WHERE c.date_candidature >= :dateFilter' : '';
+        $dateParams = $dateFilter ? ['dateFilter' => $dateFilter] : [];
+
+        $totalCandidatures = (int) $conn
+            ->executeQuery('SELECT COUNT(*) FROM candidature c' . $dateWhere, $dateParams)
+            ->fetchOne();
+        $candidatures = [];
 
         // Par statut
         $candidaturesByStatus = [];
@@ -1027,6 +1061,43 @@ class AdminController extends AbstractController
         }
 
         // Timeline — candidatures par jour sur les 14 derniers jours
+        $candidaturesByStatus = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(c.statut, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM candidature c{$dateWhere}
+                 GROUP BY label",
+                $dateParams
+            )->fetchAllAssociative()
+        );
+        $candidaturesByNiveau = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(c.niveau_experience, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM candidature c{$dateWhere}
+                 GROUP BY label",
+                $dateParams
+            )->fetchAllAssociative()
+        );
+        $candidaturesByDomaine = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(c.domaine_experience, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM candidature c{$dateWhere}
+                 GROUP BY label",
+                $dateParams
+            )->fetchAllAssociative()
+        );
+        $candidaturesByOffers = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(o.titre, ''), CONCAT('Offre #', c.id_offre), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM candidature c
+                 LEFT JOIN offre_emploi o ON o.id_offre = c.id_offre
+                 {$dateWhere}
+                 GROUP BY label
+                 ORDER BY total DESC
+                 LIMIT 8",
+                $dateParams
+            )->fetchAllAssociative()
+        );
+
         $timeline = [];
         for ($i = 13; $i >= 0; $i--) {
             $day = (new \DateTime())->modify("-{$i} days")->format('Y-m-d');
@@ -1040,8 +1111,28 @@ class AdminController extends AbstractController
         }
 
         // ── Préférences ─────────────────────────────────────────────────
-        $preferences = $entityManager->getRepository(PreferenceCandidature::class)->findAll();
-        $totalPreferences = count($preferences);
+        $timelineRows = $conn->executeQuery(
+            "SELECT DATE(c.date_candidature) AS day, COUNT(*) AS total
+             FROM candidature c
+             WHERE c.date_candidature >= :timelineStart
+             GROUP BY day",
+            ['timelineStart' => array_key_first($timeline)]
+        )->fetchAllAssociative();
+        foreach ($timelineRows as $row) {
+            $day = (string) $row['day'];
+            if (isset($timeline[$day])) {
+                $timeline[$day] = (int) $row['total'];
+            }
+        }
+
+        $preferences = $entityManager->getRepository(PreferenceCandidature::class)
+            ->createQueryBuilder('p')
+            ->setMaxResults(100)
+            ->getQuery()
+            ->getResult();
+        $totalPreferences = (int) $conn
+            ->executeQuery('SELECT COUNT(*) FROM preference_candidature')
+            ->fetchOne();
         $preferencesByType = [];
         $preferencesByMode = [];
         $preferencesByDisponibilite = [];
@@ -1069,7 +1160,46 @@ class AdminController extends AbstractController
         }
 
         // ── Matching Offres / Préférences ────────────────────────────────
-        $offres = $entityManager->getRepository(OffreEmploi::class)->findBy(['statutOffre' => 'OUVERTE']);
+        $preferencesByType = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(type_poste_souhaite, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM preference_candidature
+                 GROUP BY label"
+            )->fetchAllAssociative()
+        );
+        $preferencesByMode = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(mode_travail, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM preference_candidature
+                 GROUP BY label"
+            )->fetchAllAssociative()
+        );
+        $preferencesByDisponibilite = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(disponibilite, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM preference_candidature
+                 GROUP BY label"
+            )->fetchAllAssociative()
+        );
+        $preferencesByContrat = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT COALESCE(NULLIF(type_contrat_souhaite, ''), 'Non spécifié') AS label, COUNT(*) AS total
+                 FROM preference_candidature
+                 GROUP BY label"
+            )->fetchAllAssociative()
+        );
+        $avgSalairesByContrat = $this->fetchCountMap(
+            $conn->executeQuery(
+                "SELECT type_contrat_souhaite AS label, ROUND(AVG(pretention_salariale)) AS total
+                 FROM preference_candidature
+                 WHERE pretention_salariale IS NOT NULL
+                   AND type_contrat_souhaite IS NOT NULL
+                   AND type_contrat_souhaite <> ''
+                 GROUP BY type_contrat_souhaite"
+            )->fetchAllAssociative()
+        );
+
+        $offres = $entityManager->getRepository(OffreEmploi::class)->findBy(['statutOffre' => 'OUVERTE'], null, 10);
         $matchingStats = [];
         foreach ($offres as $offre) {
             $scores = [];
@@ -1091,8 +1221,8 @@ class AdminController extends AbstractController
         usort($matchingStats, fn($a, $b) => $b['avgScore'] <=> $a['avgScore']);
 
         // ── Données globales ─────────────────────────────────────────────
-        $totalUsers = count($entityManager->getRepository(User::class)->findAll());
-        $totalOffers = count($entityManager->getRepository(OffreEmploi::class)->findAll());
+        $totalUsers = (int) $conn->executeQuery('SELECT COUNT(*) FROM utilisateur')->fetchOne();
+        $totalOffers = (int) $conn->executeQuery('SELECT COUNT(*) FROM offre_emploi')->fetchOne();
         $rateOfCandidature = $totalUsers > 0 ? round(($totalCandidatures / $totalUsers) * 100, 1) : 0;
         $rateOfPreference = $totalUsers > 0 ? round(($totalPreferences / $totalUsers) * 100, 1) : 0;
 
@@ -1135,6 +1265,297 @@ class AdminController extends AbstractController
             'rateOfCandidature' => $rateOfCandidature,
             'rateOfPreference' => $rateOfPreference,
         ]);
+    }
+
+    private function renderStatisticsDashboard(
+        EntityManagerInterface $entityManager,
+        SessionInterface $session,
+        MatchingService $matchingService,
+        string $periode,
+        ?string $dateFilter
+    ): Response {
+        $notSpecified = 'Non spécifié';
+
+        $totalCandidatures = $this->countCandidatures($entityManager, $dateFilter);
+        $candidaturesByStatus = $this->countCandidaturesBy($entityManager, 'c.statut', $dateFilter, $notSpecified, 20);
+        $candidaturesByNiveau = $this->countCandidaturesBy($entityManager, 'c.niveau_experience', $dateFilter, $notSpecified, 20);
+        $candidaturesByDomaine = $this->countCandidaturesBy($entityManager, 'c.domaine_experience', $dateFilter, $notSpecified, 20);
+        $candidaturesByOffers = $this->countCandidaturesByOffer($entityManager, $dateFilter, $notSpecified);
+        $timeline = $this->buildCandidatureTimeline($entityManager);
+
+        $totalPreferences = $this->countPreferences($entityManager);
+        $preferencesByType = $this->countPreferencesBy($entityManager, 'p.type_poste_souhaite', $notSpecified, 20);
+        $preferencesByMode = $this->countPreferencesBy($entityManager, 'p.mode_travail', $notSpecified, 20);
+        $preferencesByDisponibilite = $this->countPreferencesBy($entityManager, 'p.disponibilite', $notSpecified, 20);
+        $preferencesByContrat = $this->countPreferencesBy($entityManager, 'p.type_contrat_souhaite', $notSpecified, 20);
+        $avgSalairesByContrat = $this->averageSalaryByContract($entityManager);
+
+        $preferences = $entityManager->getRepository(PreferenceCandidature::class)
+            ->createQueryBuilder('p')
+            ->setMaxResults(50)
+            ->getQuery()
+            ->getResult();
+        $offres = $entityManager->getRepository(OffreEmploi::class)->findBy(['statutOffre' => 'OUVERTE'], null, 10);
+        $matchingStats = $this->buildMatchingStats($offres, $preferences, $matchingService);
+
+        $totalUsers = $this->countUsers($entityManager);
+        $totalOffers = $this->countOffers($entityManager);
+        $rateOfCandidature = $totalUsers > 0 ? round(($totalCandidatures / $totalUsers) * 100, 1) : 0;
+        $rateOfPreference = $totalUsers > 0 ? round(($totalPreferences / $totalUsers) * 100, 1) : 0;
+        $accepted = $candidaturesByStatus['Accepté'] ?? 0;
+        $acceptanceRate = $totalCandidatures > 0 ? round(($accepted / $totalCandidatures) * 100, 1) : 0;
+
+        return $this->render('admin/candidature/statistics.html.twig', [
+            'adminName' => (string) $session->get('admin_user_name', 'Admin'),
+            'periode' => $periode,
+            'totalCandidatures' => $totalCandidatures,
+            'candidaturesByStatus' => $candidaturesByStatus,
+            'candidaturesByOffers' => $candidaturesByOffers,
+            'candidaturesByNiveau' => $candidaturesByNiveau,
+            'candidaturesByDomaine' => $candidaturesByDomaine,
+            'timeline' => $timeline,
+            'acceptanceRate' => $acceptanceRate,
+            'maxStatus' => count($candidaturesByStatus) > 0 ? max($candidaturesByStatus) : 1,
+            'maxOffers' => count($candidaturesByOffers) > 0 ? max($candidaturesByOffers) : 1,
+            'maxNiveau' => count($candidaturesByNiveau) > 0 ? max($candidaturesByNiveau) : 1,
+            'maxDomaine' => count($candidaturesByDomaine) > 0 ? max($candidaturesByDomaine) : 1,
+            'totalPreferences' => $totalPreferences,
+            'preferencesByType' => $preferencesByType,
+            'preferencesByMode' => $preferencesByMode,
+            'preferencesByDisponibilite' => $preferencesByDisponibilite,
+            'preferencesByContrat' => $preferencesByContrat,
+            'avgSalairesByContrat' => $avgSalairesByContrat,
+            'maxType' => count($preferencesByType) > 0 ? max($preferencesByType) : 1,
+            'maxMode' => count($preferencesByMode) > 0 ? max($preferencesByMode) : 1,
+            'maxDispo' => count($preferencesByDisponibilite) > 0 ? max($preferencesByDisponibilite) : 1,
+            'maxContrat' => count($preferencesByContrat) > 0 ? max($preferencesByContrat) : 1,
+            'matchingStats' => $matchingStats,
+            'totalUsers' => $totalUsers,
+            'totalOffers' => $totalOffers,
+            'rateOfCandidature' => $rateOfCandidature,
+            'rateOfPreference' => $rateOfPreference,
+        ]);
+    }
+
+    private function countCandidatures(EntityManagerInterface $entityManager, ?string $dateFilter): int
+    {
+        return (int) $entityManager->createQuery(
+            'SELECT COUNT(c.id_candidature)
+             FROM App\Entity\Candidature c
+             WHERE (:dateFilter IS NULL OR c.date_candidature >= :dateFilter)'
+        )
+            ->setParameter('dateFilter', $dateFilter)
+            ->getSingleScalarResult();
+    }
+
+    private function countPreferences(EntityManagerInterface $entityManager): int
+    {
+        return (int) $entityManager->createQuery(
+            'SELECT COUNT(p.id_preference)
+             FROM App\Entity\PreferenceCandidature p'
+        )->getSingleScalarResult();
+    }
+
+    private function countUsers(EntityManagerInterface $entityManager): int
+    {
+        return (int) $entityManager->createQuery(
+            'SELECT COUNT(u.id)
+             FROM App\Entity\User u'
+        )->getSingleScalarResult();
+    }
+
+    private function countOffers(EntityManagerInterface $entityManager): int
+    {
+        return (int) $entityManager->createQuery(
+            'SELECT COUNT(o.idOffre)
+             FROM App\Entity\OffreEmploi o'
+        )->getSingleScalarResult();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function countCandidaturesBy(
+        EntityManagerInterface $entityManager,
+        string $field,
+        ?string $dateFilter,
+        string $fallback,
+        int $limit
+    ): array {
+        $query = sprintf(
+            'SELECT NEW %s(%s, COUNT(c.id_candidature))
+             FROM App\Entity\Candidature c
+             WHERE (:dateFilter IS NULL OR c.date_candidature >= :dateFilter)
+             GROUP BY %s',
+            CountStatDto::class,
+            $field,
+            $field
+        );
+
+        return $this->statDtosToMap(
+            $entityManager->createQuery($query)
+                ->setParameter('dateFilter', $dateFilter)
+                ->setMaxResults($limit)
+                ->getResult(),
+            $fallback
+        );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function countPreferencesBy(EntityManagerInterface $entityManager, string $field, string $fallback, int $limit): array
+    {
+        $query = sprintf(
+            'SELECT NEW %s(%s, COUNT(p.id_preference))
+             FROM App\Entity\PreferenceCandidature p
+             GROUP BY %s',
+            CountStatDto::class,
+            $field,
+            $field
+        );
+
+        return $this->statDtosToMap(
+            $entityManager->createQuery($query)
+                ->setMaxResults($limit)
+                ->getResult(),
+            $fallback
+        );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function countCandidaturesByOffer(
+        EntityManagerInterface $entityManager,
+        ?string $dateFilter,
+        string $fallback
+    ): array {
+        $conn = $entityManager->getConnection();
+
+        $sql = 'SELECT o.titre AS label, COUNT(c.id_candidature) AS total
+            FROM candidature c
+            LEFT JOIN offre_emploi o ON o.id_offre = c.id_offre
+            WHERE (:dateFilter IS NULL OR c.date_candidature >= :dateFilter)
+            GROUP BY o.titre
+            ORDER BY total DESC
+            LIMIT 8';
+
+        $rows = $conn->executeQuery($sql, ['dateFilter' => $dateFilter])->fetchAllAssociative();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $label = trim((string) ($row['label'] ?? ''));
+            $counts[$label !== '' ? $label : $fallback] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function averageSalaryByContract(EntityManagerInterface $entityManager): array
+    {
+        $query = sprintf(
+            'SELECT NEW %s(p.type_contrat_souhaite, AVG(p.pretention_salariale))
+             FROM App\Entity\PreferenceCandidature p
+             WHERE p.pretention_salariale IS NOT NULL
+               AND p.type_contrat_souhaite IS NOT NULL
+               AND p.type_contrat_souhaite <> :empty
+             GROUP BY p.type_contrat_souhaite',
+            CountStatDto::class
+        );
+
+        return $this->statDtosToMap(
+            $entityManager->createQuery($query)
+                ->setParameter('empty', '')
+                ->setMaxResults(20)
+                ->getResult(),
+            'Non spécifié'
+        );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function buildCandidatureTimeline(EntityManagerInterface $entityManager): array
+    {
+        $timeline = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $day = (new \DateTimeImmutable())->modify("-{$i} days")->format('Y-m-d');
+            $timeline[$day] = 0;
+        }
+
+        $query = sprintf(
+            'SELECT NEW %s(c.date_candidature, COUNT(c.id_candidature))
+             FROM App\Entity\Candidature c
+             WHERE c.date_candidature >= :startDate
+             GROUP BY c.date_candidature
+             ORDER BY c.date_candidature ASC',
+            CountStatDto::class
+        );
+
+        /** @var CountStatDto[] $rows */
+        $rows = $entityManager->createQuery($query)
+            ->setParameter('startDate', array_key_first($timeline))
+            ->setMaxResults(14)
+            ->getResult();
+
+        foreach ($rows as $row) {
+            if ($row->label !== null && isset($timeline[$row->label])) {
+                $timeline[$row->label] = (int) $row->total;
+            }
+        }
+
+        return $timeline;
+    }
+
+    /**
+     * @param array<int, OffreEmploi> $offres
+     * @param array<int, PreferenceCandidature> $preferences
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildMatchingStats(array $offres, array $preferences, MatchingService $matchingService): array
+    {
+        $matchingStats = [];
+        foreach ($offres as $offre) {
+            $scores = [];
+            foreach ($preferences as $pref) {
+                $result = $matchingService->calculateMatching($offre, $pref);
+                $scores[] = $result['score'];
+            }
+
+            if (count($scores) > 0) {
+                $avg = array_sum($scores) / count($scores);
+                $matchingStats[] = [
+                    'offre' => $offre->getTitre(),
+                    'avgScore' => round($avg, 1),
+                    'maxScore' => max($scores),
+                    'candidatesMatched' => count(array_filter($scores, static fn($score): bool => $score >= 70)),
+                    'total' => count($scores),
+                ];
+            }
+        }
+
+        usort($matchingStats, static fn(array $a, array $b): int => $b['avgScore'] <=> $a['avgScore']);
+
+        return $matchingStats;
+    }
+
+    /**
+     * @param array<int, CountStatDto> $rows
+     * @return array<string, int>
+     */
+    private function statDtosToMap(array $rows, string $fallback): array
+    {
+        $counts = [];
+        foreach ($rows as $row) {
+            $label = trim((string) ($row->label ?? ''));
+            $counts[$label !== '' ? $label : $fallback] = (int) round((float) $row->total);
+        }
+
+        return $counts;
     }
 
     private function requireAdmin(SessionInterface $session): RedirectResponse|null
@@ -1220,5 +1641,20 @@ class AdminController extends AbstractController
     private function getGeneratedPdfPath(string $reference): string
     {
         return $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $reference . '.pdf';
+    }
+
+    /**
+     * @param array<int, array{label: mixed, total: mixed}> $rows
+     * @return array<string, int>
+     */
+    private function fetchCountMap(array $rows): array
+    {
+        $counts = [];
+        foreach ($rows as $row) {
+            $label = (string) ($row['label'] ?? 'Non spécifié');
+            $counts[$label] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
     }
 }
