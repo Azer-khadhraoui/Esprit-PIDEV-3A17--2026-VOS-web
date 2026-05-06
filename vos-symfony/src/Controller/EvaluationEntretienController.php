@@ -33,13 +33,18 @@ class EvaluationEntretienController extends AbstractController
         $decision = (string) $request->query->get('decision', '');
         $sortBy = (string) $request->query->get('sortBy', 'ev.scoreTest');
         $sortDir = (string) $request->query->get('sortDir', 'DESC');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = min(200, max(10, (int) $request->query->get('perPage', 50)));
+        $offset = ($page - 1) * $perPage;
 
         return $this->render('evaluation_entretien/index.html.twig', [
-            'evaluation_entretiens' => $repo->findWithFilters($search, $decision, $sortBy, $sortDir),
+            'evaluation_entretiens' => $repo->findWithFilters($search, $decision, $sortBy, $sortDir, $perPage, $offset),
             'search' => $search,
             'decision' => $decision,
             'sortBy' => $sortBy,
             'sortDir' => $sortDir,
+            'page' => $page,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -55,6 +60,7 @@ class EvaluationEntretienController extends AbstractController
         $entretienId = $request->query->get('entretienId');
 
         if ($entretienId) {
+            /** @var \App\Entity\Entretien|null $entretien */
             $entretien = $entretienRepository->find($entretienId);
             if ($entretien) {
                 $evaluation->setEntretien($entretien);
@@ -94,7 +100,7 @@ class EvaluationEntretienController extends AbstractController
     public function generateComment(
         Request $request,
         SessionInterface $session,
-        #[Autowire(env: 'GROQ_API_KEY')] string $groqApiKey,
+        #[Autowire('%app.groq_api_key%')] string $groqApiKey,
     ): JsonResponse {
         if (!$session->get('admin_user_id')) {
             return new JsonResponse(['error' => 'Non autorisé'], 403);
@@ -114,7 +120,9 @@ class EvaluationEntretienController extends AbstractController
             throw new AnthropicApiException('Clé API Groq non configurée.', 500);
         }
 
-        $payload = json_decode($request->getContent(), true) ?? [];
+        /** @var string $content */
+        $content = $request->getContent();
+        $payload = json_decode($content, true) ?? [];
 
         $prompt = sprintf(
             "Tu es un expert RH. Génère un commentaire d'évaluation professionnel en français pour un candidat avec ces résultats :\n" .
@@ -138,6 +146,12 @@ class EvaluationEntretienController extends AbstractController
         );
 
         $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        $postFields = json_encode([
+            'model'      => 'llama-3.3-70b-versatile',
+            'max_tokens' => 300,
+            'messages'   => [['role' => 'user', 'content' => $prompt]],
+        ], JSON_THROW_ON_ERROR);
+
         curl_setopt_array($ch, [
             \CURLOPT_RETURNTRANSFER => true,
             \CURLOPT_POST           => true,
@@ -146,11 +160,7 @@ class EvaluationEntretienController extends AbstractController
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $groqApiKey,
             ],
-            \CURLOPT_POSTFIELDS => json_encode([
-                'model'      => 'llama-3.3-70b-versatile',
-                'max_tokens' => 300,
-                'messages'   => [['role' => 'user', 'content' => $prompt]],
-            ]),
+            \CURLOPT_POSTFIELDS => $postFields,
         ]);
 
         $raw       = curl_exec($ch);
@@ -159,6 +169,10 @@ class EvaluationEntretienController extends AbstractController
 
         if (false === $raw || '' !== $curlError) {
             throw new AnthropicApiException('Erreur réseau : ' . $curlError, 502);
+        }
+
+        if (!is_string($raw)) {
+            throw new AnthropicApiException("Réponse API invalide.", 502);
         }
 
         $apiResponse = json_decode($raw, true);

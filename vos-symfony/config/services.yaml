@@ -15,6 +15,8 @@ parameters:
     app.groq_api_key: '%env(default:app.groq_api_key_default:GROQ_API_KEY)%'
     app.groq_model_default: 'llama-3.1-8b-instant'
     app.groq_model: '%env(default:app.groq_model_default:GROQ_MODEL)%'
+    app.google_calendar_id_default: ''
+    app.google_service_account_b64_default: ''
 
 services:
     # default configuration for services in *this* file
@@ -42,6 +44,11 @@ services:
         arguments:
             $mailerFrom: '%env(default::MAILER_FROM)%'
             $appName: '%env(default::APP_NAME)%'
+
+    App\Service\GoogleCalendarService:
+        arguments:
+            $calendarId: '%env(default:app.google_calendar_id_default:GOOGLE_CALENDAR_ID)%'
+            $serviceAccountB64: '%env(default:app.google_service_account_b64_default:GOOGLE_SERVICE_ACCOUNT_B64)%'
 
     App\Service\EmailVerificationService:
         arguments:

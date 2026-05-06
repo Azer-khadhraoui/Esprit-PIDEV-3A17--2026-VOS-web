@@ -7,6 +7,9 @@ use App\Entity\Entretien;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<Entretien>
+ */
 class EntretienRepository extends ServiceEntityRepository
 {
     private const TYPE_CONDITION = 'e.typeEntretien = :type';
@@ -16,12 +19,17 @@ class EntretienRepository extends ServiceEntityRepository
         parent::__construct($registry, Entretien::class);
     }
 
+    /**
+     * @return array<int, Entretien>
+     */
     public function findWithFilters(
         ?string $search = null,
         ?string $type = null,
         ?string $statut = null,
         string $sortBy = 'e.dateEntretien',
-        string $sortDir = 'DESC'
+        string $sortDir = 'DESC',
+        int $limit = 200,
+        int $offset = 0,
     ): array {
         $allowed = ['e.dateEntretien', 'e.typeEntretien', 'e.statutEntretien', 'e.lieu'];
         if (!in_array($sortBy, $allowed, true)) {
@@ -44,16 +52,25 @@ class EntretienRepository extends ServiceEntityRepository
             $qb->andWhere('e.statutEntretien = :statut')->setParameter('statut', $statut);
         }
 
-        return $qb->orderBy($sortBy, $sortDir)->getQuery()->getResult();
+        return $qb->orderBy($sortBy, $sortDir)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
     }
 
+    /**
+     * @return array<int, Entretien>
+     */
     public function findForUser(
         int $userId,
         ?string $search = null,
         ?string $type = null,
         ?string $statut = null,
         string $sortBy = 'e.dateEntretien',
-        string $sortDir = 'DESC'
+        string $sortDir = 'DESC',
+        int $limit = 200,
+        int $offset = 0,
     ): array {
         $allowed = ['e.dateEntretien', 'e.typeEntretien', 'e.statutEntretien', 'e.lieu'];
         if (!in_array($sortBy, $allowed, true)) {
@@ -79,13 +96,21 @@ class EntretienRepository extends ServiceEntityRepository
             $qb->andWhere('e.statutEntretien = :statut')->setParameter('statut', $statut);
         }
 
-        return $qb->orderBy($sortBy, $sortDir)->getQuery()->getResult();
+        return $qb->orderBy($sortBy, $sortDir)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
     }
 
+    /**
+     * @return array<int, Entretien>
+     */
     public function findForStats(
         ?string $dateDebut = null,
         ?string $dateFin = null,
-        ?string $type = null
+        ?string $type = null,
+        int $limit = 2000,
     ): array {
         $qb = $this->createQueryBuilder('e');
 
@@ -104,6 +129,9 @@ class EntretienRepository extends ServiceEntityRepository
                 ->setParameter('type', $type);
         }
 
-        return $qb->orderBy('e.dateEntretien', 'ASC')->getQuery()->getResult();
+        return $qb->orderBy('e.dateEntretien', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

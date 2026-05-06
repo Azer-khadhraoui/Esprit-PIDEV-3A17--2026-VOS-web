@@ -21,6 +21,9 @@ use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
+/**
+ * @extends AbstractType<Entretien>
+ */
 class EntretienType extends AbstractType
 {
     public function __construct(
@@ -32,7 +35,11 @@ class EntretienType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $candidatureChoices = [];
-        foreach ($this->candidatureRepository->createQueryBuilder('c')->orderBy('c.id_candidature', 'DESC')->getQuery()->getResult() as $candidature) {
+        foreach ($this->candidatureRepository->createQueryBuilder('c')
+            ->orderBy('c.id_candidature', 'DESC')
+            ->setMaxResults(300)
+            ->getQuery()
+            ->getResult() as $candidature) {
             if (!$candidature instanceof Candidature) {
                 continue;
             }
@@ -46,6 +53,7 @@ class EntretienType extends AbstractType
             ->andWhere('u.role IN (:roles)')
             ->setParameter('roles', ['ADMIN_RH', 'ADMIN_TECHNIQUE'])
             ->orderBy('u.prenom', 'ASC')
+            ->setMaxResults(200)
             ->getQuery()
             ->getResult() as $user) {
             if (!$user instanceof User) {
