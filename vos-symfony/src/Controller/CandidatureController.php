@@ -56,6 +56,8 @@ public function index(
 
     $qb = $entityManager->getRepository(Candidature::class)
         ->createQueryBuilder('c')
+        ->select('c')
+        ->distinct()
         ->where('c.id_utilisateur = :uid')
         ->setParameter('uid', $idUtilisateur)
         ->orderBy('c.date_candidature', 'DESC');
@@ -115,7 +117,7 @@ public function index(
         ->setFirstResult(($page - 1) * $limit)
         ->setMaxResults($limit);
 
-    $paginator = new Paginator($qb->getQuery(), false);
+    $paginator = new Paginator($qb->getQuery(), true);
     $totalCandidatures = count($paginator);
     $totalPages = max(1, (int) ceil($totalCandidatures / $limit));
     $candidatures = iterator_to_array($paginator->getIterator());
@@ -195,9 +197,9 @@ public function index(
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user) {
                         // Email au candidat
-                        $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre());
+                        $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                         // Notification aux admins
-                        $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre());
+                        $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                     }
                     $cvPath = $candidature->getCv();
                     if ($cvPath) {
@@ -277,9 +279,9 @@ public function index(
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user && $offre) {
                         // Email au candidat
-                        $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre());
+                        $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                         // Notification aux admins
-                        $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre());
+                        $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                     }
                     if ($cvFile instanceof UploadedFile) { // seulement si nouveau CV uploadé
                         $cvPath = $candidature->getCv();
@@ -370,7 +372,7 @@ public function index(
             return $this->redirectToRoute('app_signin');
         }
 
-        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), (string) $request->request->get('_token'))) {
             // Récupérer les informations avant suppression
             $user = $em->getRepository(User::class)->find($idUtilisateur);
             $offre = $em->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
@@ -462,6 +464,10 @@ public function index(
     }
 
     // ── Helper methods ────────────────────────────────────────────────
+    /**
+     * @param Candidature[] $candidatures
+     * @return array<int, string>
+     */
     private function getOffreTitles(EntityManagerInterface $entityManager, array $candidatures): array
     {
         $offreIds = array_values(array_unique(array_filter(array_map(
@@ -484,6 +490,9 @@ public function index(
         return $titles;
     }
 
+    /**
+     * @param UploadedFile $file
+     */
     private function uploadFile($file, SluggerInterface $slugger, string $folder): string
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);

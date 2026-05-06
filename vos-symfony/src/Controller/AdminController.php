@@ -15,6 +15,7 @@ use App\Service\candidature\PdfService;
 use App\Service\GroqReasonEnhancer;
 use App\Service\LanguageToolReasonEnhancer;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -493,11 +494,15 @@ class AdminController extends AbstractController
         $limit = 20;
 
         $qb
+            ->select('c')
+            ->distinct()
             ->orderBy('c.' . $sortBy, $sortOrder)
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
-        $candidatures = $qb->getQuery()->getResult();
+        $paginator = new Paginator($qb->getQuery(), false);
+        $candidatures = iterator_to_array($paginator->getIterator());
+
 
 
         // Charger les User et OffreEmploi séparément
@@ -695,9 +700,14 @@ class AdminController extends AbstractController
             $qb->andWhere('c.statut = :status')->setParameter('status', $statusFilter);
         }
 
-        $qb->orderBy('c.' . $sortBy, $sortOrder)->setMaxResults(500);
+        $qb
+            ->select('c')
+            ->distinct()
+            ->orderBy('c.' . $sortBy, $sortOrder)
+            ->setFirstResult(0)
+            ->setMaxResults(99);
 
-        $candidatures = $qb->getQuery()->getResult();
+        $candidatures = iterator_to_array((new Paginator($qb->getQuery(), true))->getIterator());
 
         // Charger les User et OffreEmploi séparément
         $userIds = [];
@@ -829,12 +839,14 @@ class AdminController extends AbstractController
             ->getSingleScalarResult();
 
         $qb
+            ->select('p')
+            ->distinct()
             ->orderBy($allowedSortFields[$sortBy], $sortOrder)
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
         $totalPages = max(1, (int) ceil($totalPreferences / $limit));
-        $preferences = $qb->getQuery()->getResult();
+        $preferences = iterator_to_array((new Paginator($qb->getQuery(), false))->getIterator());
 
         // Charger les User séparément
         $userIds = [];

@@ -11,6 +11,7 @@ use App\Service\GoogleCalendarService;
 use App\Service\RecrutementNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +22,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class RecrutementController extends AbstractController
 {
+    private const MAX_INDEX_RESULTS = 99;
+    private const MAX_FILTER_OPTIONS = 99;
+    private const MAX_ENTRETIEN_CHOICES = 99;
+
     #[Route('/admin/recrutements', name: 'recrutement_index')]
     public function index(Request $request, ManagerRegistry $doctrine): Response
     {
@@ -78,8 +83,11 @@ class RecrutementController extends AbstractController
 
         /** @var EntityRepository<Recrutement> $recrutementRepo */
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
-        $qb = $recrutementRepo->createQueryBuilder('r')
-            ->leftJoin(User::class, 'u', 'WITH', 'u.id = r.idUtilisateur');
+        $qb = $recrutementRepo->createQueryBuilder('r');
+
+        if ($search !== '' || $sortBy === 'utilisateur') {
+            $qb->leftJoin(User::class, 'u', 'WITH', 'u.id = r.idUtilisateur');
+        }
 
         if ($search !== '') {
             $searchExpr = $qb->expr()->orX(
@@ -110,10 +118,11 @@ class RecrutementController extends AbstractController
                 ->setParameter('userIdFilter', $userIdFilter);
         }
 
-        return $qb->orderBy($sortMap[$sortBy] ?? $sortMap['dateDecision'], $sortOrder)
-            ->setMaxResults(500)
-            ->getQuery()
-            ->getResult();
+        $query = $qb->orderBy($sortMap[$sortBy] ?? $sortMap['dateDecision'], $sortOrder)
+            ->setMaxResults(self::MAX_INDEX_RESULTS)
+            ->getQuery();
+
+        return iterator_to_array((new Paginator($query, false))->getIterator());
     }
 
     /**
@@ -129,7 +138,7 @@ class RecrutementController extends AbstractController
             ->andWhere('r.idUtilisateur IS NOT NULL')
             ->orderBy('u.nom', 'ASC')
             ->addOrderBy('u.prenom', 'ASC')
-            ->setMaxResults(300)
+            ->setMaxResults(self::MAX_FILTER_OPTIONS)
             ->getQuery()
             ->getArrayResult();
 
@@ -509,7 +518,7 @@ class RecrutementController extends AbstractController
         $entretiens = $entretienRepo->createQueryBuilder('e')
             ->select('DISTINCT e.idUtilisateur AS userId')
             ->andWhere('e.idUtilisateur IS NOT NULL')
-            ->setMaxResults(500)
+            ->setMaxResults(self::MAX_FILTER_OPTIONS)
             ->getQuery()
             ->getArrayResult();
 
@@ -519,19 +528,21 @@ class RecrutementController extends AbstractController
         }
 
         $users = $userRepo->createQueryBuilder('u')
+            ->select('u.id AS id, u.nom AS nom, u.prenom AS prenom, u.email AS email')
             ->andWhere('u.id IN (:ids)')
             ->setParameter('ids', $userIds)
             ->orderBy('u.nom', 'ASC')
             ->addOrderBy('u.prenom', 'ASC')
-            ->setMaxResults(500)
+            ->setMaxResults(self::MAX_FILTER_OPTIONS)
             ->getQuery()
-            ->getResult();
+            ->getArrayResult();
 
         $choices = [];
         foreach ($users as $user) {
-            $fullName = trim((string) ($user->getNom() ?? '') . ' ' . (string) ($user->getPrenom() ?? ''));
-            $labelName = $fullName !== '' ? $fullName : (string) ($user->getEmail() ?? 'Utilisateur');
-            $choices[sprintf('%s (ID: %d)', $labelName, (int) $user->getId())] = (int) $user->getId();
+            $userIdValue = (int) ($user['id'] ?? 0);
+            $fullName = trim((string) ($user['nom'] ?? '') . ' ' . (string) ($user['prenom'] ?? ''));
+            $labelName = $fullName !== '' ? $fullName : (string) ($user['email'] ?? 'Utilisateur');
+            $choices[sprintf('%s (ID: %d)', $labelName, $userIdValue)] = $userIdValue;
         }
 
         return $choices;
@@ -546,11 +557,12 @@ class RecrutementController extends AbstractController
         $entretienRepo = $doctrine->getRepository(Entretien::class);
 
         $queryBuilder = $entretienRepo->createQueryBuilder('e')
+            ->select('e.id AS id, e.dateEntretien AS dateEntretien, e.typeEntretien AS typeEntretien')
             ->andWhere('LOWER(e.statutEntretien) IN (:statuts)')
             ->setParameter('statuts', ['termine', 'terminé'])
             ->orderBy('e.dateEntretien', 'DESC')
             ->addOrderBy('e.heureEntretien', 'DESC')
-            ->setMaxResults(500);
+            ->setMaxResults(self::MAX_ENTRETIEN_CHOICES);
 
         if ($userId !== null) {
             $queryBuilder
@@ -558,13 +570,18 @@ class RecrutementController extends AbstractController
                 ->setParameter('userId', $userId);
         }
 
-        $entretiens = $queryBuilder->getQuery()->getResult();
+        $entretiens = $queryBuilder->getQuery()->getArrayResult();
 
         $choices = [];
         foreach ($entretiens as $entretien) {
-            $date = $entretien->getDateEntretien()?->format('Y-m-d') ?? 'sans date';
-            $type = $entretien->getTypeEntretien() ?: 'type inconnu';
-            $choices[sprintf('Entretien #%d - %s - %s', (int) $entretien->getId(), $type, $date)] = (int) $entretien->getId();
+            $dateValue = $entretien['dateEntretien'] ?? null;
+            $date = $dateValue instanceof \DateTimeInterface
+                ? $dateValue->format('Y-m-d')
+                : (is_string($dateValue) && $dateValue !== ''
+                    ? (new \DateTimeImmutable($dateValue))->format('Y-m-d')
+                    : 'sans date');
+            $type = trim((string) ($entretien['typeEntretien'] ?? '')) ?: 'type inconnu';
+            $choices[sprintf('Entretien #%d - %s - %s', (int) $entretien['id'], $type, $date)] = (int) $entretien['id'];
         }
 
         return $choices;
