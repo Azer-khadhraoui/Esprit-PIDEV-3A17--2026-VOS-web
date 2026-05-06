@@ -574,9 +574,12 @@ class RecrutementController extends AbstractController
 
         $choices = [];
         foreach ($entretiens as $entretien) {
-            $date = isset($entretien['dateEntretien']) && $entretien['dateEntretien'] !== null
-                ? (new \DateTimeImmutable($entretien['dateEntretien']))->format('Y-m-d')
-                : 'sans date';
+            $dateValue = $entretien['dateEntretien'] ?? null;
+            $date = $dateValue instanceof \DateTimeInterface
+                ? $dateValue->format('Y-m-d')
+                : (is_string($dateValue) && $dateValue !== ''
+                    ? (new \DateTimeImmutable($dateValue))->format('Y-m-d')
+                    : 'sans date');
             $type = trim((string) ($entretien['typeEntretien'] ?? '')) ?: 'type inconnu';
             $choices[sprintf('Entretien #%d - %s - %s', (int) $entretien['id'], $type, $date)] = (int) $entretien['id'];
         }
