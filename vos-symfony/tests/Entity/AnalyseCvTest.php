@@ -5,7 +5,6 @@ namespace App\Tests\Entity;
 use PHPUnit\Framework\TestCase;
 use App\Entity\AnalyseCv;
 use App\Entity\Candidature;
-use DateTime;
 
 class AnalyseCvTest extends TestCase
 {

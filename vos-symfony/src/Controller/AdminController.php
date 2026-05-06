@@ -504,6 +504,7 @@ class AdminController extends AbstractController
         $candidatures = iterator_to_array($paginator->getIterator());
 
 
+
         // Charger les User et OffreEmploi séparément
         $userIds = [];
         $offreIds = [];
