@@ -10,7 +10,9 @@ use App\Form\RecrutementType;
 use App\Service\GoogleCalendarService;
 use App\Service\RecrutementNotificationService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,13 +30,53 @@ class RecrutementController extends AbstractController
         $sortBy = (string) $request->query->get('sortBy', 'dateDecision');
         $sortOrder = strtoupper((string) $request->query->get('sortOrder', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
+        $viewData = $this->buildRecrutementIndexViewData($doctrine, $search, $decision, $userIdFilter, $sortBy, $sortOrder);
+
+        return $this->render('recrutement/index.html.twig', [
+            'recrutements' => $viewData['recrutements'],
+            'userNamesById' => $viewData['userNamesById'],
+            'stats' => $viewData['stats'],
+            'filters' => [
+                'search' => $search,
+                'decision' => $decision,
+                'userId' => $userIdFilter,
+                'sortBy' => $sortBy,
+                'sortOrder' => $sortOrder,
+            ],
+            'decisionOptions' => $viewData['decisionOptions'],
+            'userOptions' => $viewData['userOptions'],
+        ]);
+    }
+
+    /**
+     * @return array{recrutements: array<int, Recrutement>, userNamesById: array<int, string>, stats: array{total: int, acceptes: int, refuses: int}, decisionOptions: array<int, string>, userOptions: array<int, array{id: int, label: string}>}
+     */
+    private function buildRecrutementIndexViewData(ManagerRegistry $doctrine, string $search, string $decision, int $userIdFilter, string $sortBy, string $sortOrder): array
+    {
+        $recrutements = $this->findRecrutements($doctrine, $search, $decision, $userIdFilter, $sortBy, $sortOrder);
+        $userOptionsData = $this->buildUserOptionsData($doctrine);
+
+        return [
+            'recrutements' => $recrutements,
+            'userNamesById' => $userOptionsData['userNamesById'],
+            'stats' => $this->calculateRecrutementStats($recrutements),
+            'decisionOptions' => $this->buildDecisionOptions($doctrine),
+            'userOptions' => $userOptionsData['userOptions'],
+        ];
+    }
+
+    /**
+     * @return array<int, Recrutement>
+     */
+    private function findRecrutements(ManagerRegistry $doctrine, string $search, string $decision, int $userIdFilter, string $sortBy, string $sortOrder): array
+    {
         $sortMap = [
             'dateDecision' => 'r.dateDecision',
             'decisionFinale' => 'r.decisionFinale',
             'utilisateur' => 'u.nom',
         ];
 
-        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+        /** @var EntityRepository<Recrutement> $recrutementRepo */
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
         $qb = $recrutementRepo->createQueryBuilder('r')
             ->leftJoin(User::class, 'u', 'WITH', 'u.id = r.idUtilisateur');
@@ -68,10 +110,18 @@ class RecrutementController extends AbstractController
                 ->setParameter('userIdFilter', $userIdFilter);
         }
 
-        $qb->orderBy($sortMap[$sortBy] ?? $sortMap['dateDecision'], $sortOrder);
-        $recrutements = $qb->getQuery()->getResult();
+        return $qb->orderBy($sortMap[$sortBy] ?? $sortMap['dateDecision'], $sortOrder)
+            ->setMaxResults(500)
+            ->getQuery()
+            ->getResult();
+    }
 
-        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+    /**
+     * @return array{userOptions: array<int, array{id: int, label: string}>, userNamesById: array<int, string>}
+     */
+    private function buildUserOptionsData(ManagerRegistry $doctrine): array
+    {
+        /** @var EntityRepository<Recrutement> $recrutementRepo */
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
         $dynamicUserOptions = $recrutementRepo->createQueryBuilder('r')
             ->select('DISTINCT r.idUtilisateur AS userId, u.nom AS nom, u.prenom AS prenom, u.email AS email')
@@ -79,16 +129,17 @@ class RecrutementController extends AbstractController
             ->andWhere('r.idUtilisateur IS NOT NULL')
             ->orderBy('u.nom', 'ASC')
             ->addOrderBy('u.prenom', 'ASC')
+            ->setMaxResults(300)
             ->getQuery()
             ->getArrayResult();
 
         $userOptions = [];
         $userNamesById = [];
+
         foreach ($dynamicUserOptions as $row) {
             $currentUserId = (int) $row['userId'];
             $fullName = trim(((string) ($row['nom'] ?? '')) . ' ' . ((string) ($row['prenom'] ?? '')));
-            $labelName = $fullName !== '' ? $fullName : (string) ($row['email'] ?? 'Utilisateur inconnu');
-            $display = $labelName;
+            $display = '' !== $fullName ? $fullName : (string) ($row['email'] ?? 'Utilisateur inconnu');
             $userOptions[] = [
                 'id' => $currentUserId,
                 'label' => $display,
@@ -96,12 +147,24 @@ class RecrutementController extends AbstractController
             $userNamesById[$currentUserId] = $display;
         }
 
-        /** @var \Doctrine\ORM\EntityRepository $recrutementRepo */
+        return [
+            'userOptions' => $userOptions,
+            'userNamesById' => $userNamesById,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function buildDecisionOptions(ManagerRegistry $doctrine): array
+    {
+        /** @var EntityRepository<Recrutement> $recrutementRepo */
         $recrutementRepo = $doctrine->getRepository(Recrutement::class);
         $decisionRows = $recrutementRepo->createQueryBuilder('r')
             ->select('DISTINCT r.decisionFinale AS decisionFinale')
             ->andWhere('r.decisionFinale IS NOT NULL')
             ->orderBy('r.decisionFinale', 'ASC')
+            ->setMaxResults(50)
             ->getQuery()
             ->getArrayResult();
 
@@ -113,7 +176,16 @@ class RecrutementController extends AbstractController
             }
         }
 
-        $recrutementStats = [
+        return $decisionOptions;
+    }
+
+    /**
+     * @param array<int, Recrutement> $recrutements
+     * @return array{total: int, acceptes: int, refuses: int}
+     */
+    private function calculateRecrutementStats(array $recrutements): array
+    {
+        $stats = [
             'total' => count($recrutements),
             'acceptes' => 0,
             'refuses' => 0,
@@ -122,35 +194,108 @@ class RecrutementController extends AbstractController
         foreach ($recrutements as $recrutement) {
             $decisionNormalized = strtolower(trim((string) ($recrutement->getDecisionFinale() ?? '')));
             if (in_array($decisionNormalized, ['accepté', 'accepte', 'acceptes', 'acceptés'], true)) {
-                ++$recrutementStats['acceptes'];
+                ++$stats['acceptes'];
             }
+
             if (in_array($decisionNormalized, ['refusé', 'refuse', 'refusés', 'refuses'], true)) {
-                ++$recrutementStats['refuses'];
+                ++$stats['refuses'];
             }
         }
 
-        return $this->render('recrutement/index.html.twig', [
-            'recrutements' => $recrutements,
-            'userNamesById' => $userNamesById,
-            'stats' => $recrutementStats,
-            'filters' => [
-                'search' => $search,
-                'decision' => $decision,
-                'userId' => $userIdFilter,
-                'sortBy' => $sortBy,
-                'sortOrder' => $sortOrder,
-            ],
-            'decisionOptions' => $decisionOptions,
-            'userOptions' => $userOptions,
-        ]);
+        return $stats;
     }
 
     #[Route('/admin/recrutements/statistique', name: 'recrutement_statistique')]
     public function statistique(ManagerRegistry $doctrine): Response
     {
-        $recrutements = $doctrine->getRepository(Recrutement::class)->findAll();
-        $contrats = $doctrine->getRepository(ContratEmbauche::class)->findAll();
+        $recrutements = $doctrine->getRepository(Recrutement::class)->findBy([], ['dateDecision' => 'DESC'], 2000);
+        $contrats = $doctrine->getRepository(ContratEmbauche::class)->findBy([], ['dateDebut' => 'DESC'], 2000);
+        $statistics = $this->buildStatistiqueViewData($recrutements, $contrats);
 
+        return $this->render('recrutement/statistique.html.twig', [
+            'kpis' => [
+                'totalRecrutements' => count($recrutements),
+                'totalContrats' => count($contrats),
+                'acceptanceRate' => $statistics['acceptanceRate'],
+            ],
+            'decisionLabels' => array_keys($statistics['decisionCounts']),
+            'decisionValues' => array_values($statistics['decisionCounts']),
+            'statusLabels' => array_keys($statistics['statusCounts']),
+            'statusValues' => array_values($statistics['statusCounts']),
+            'monthLabels' => $statistics['monthLabels'],
+            'recrutementsSeries' => array_values($statistics['recrutementsByMonth']),
+            'contratsSeries' => array_values($statistics['contratsByMonth']),
+        ]);
+    }
+
+    /**
+     * @param array<int, Recrutement> $recrutements
+     * @param array<int, ContratEmbauche> $contrats
+     * @return array{
+     *     decisionCounts: array<string, int>,
+     *     statusCounts: array<string, int>,
+     *     monthLabels: array<int, string>,
+     *     recrutementsByMonth: array<string, int>,
+     *     contratsByMonth: array<string, int>,
+     *     acceptanceRate: float|int
+     * }
+     */
+    private function buildStatistiqueViewData(array $recrutements, array $contrats): array
+    {
+        [$monthLabels, $monthKeys] = $this->buildMonthWindow();
+
+        $decisionCounts = $this->countDecisionOutcomes($recrutements);
+        $statusCounts = $this->countContractStatuses($contrats);
+        $recrutementsByMonth = $this->countRecrutementsByMonth($recrutements, $monthKeys);
+        $contratsByMonth = array_fill_keys($monthKeys, 0);
+
+        foreach ($contrats as $contrat) {
+            $date = $contrat->getDateDebut();
+            if ($date !== null) {
+                $key = $date->format('Y-m');
+                if (array_key_exists($key, $contratsByMonth)) {
+                    ++$contratsByMonth[$key];
+                }
+            }
+        }
+
+        $accepted = $decisionCounts['Accepté'];
+        $acceptanceRate = empty($recrutements) ? 0 : round(($accepted * 100) / count($recrutements), 1);
+
+        return [
+            'decisionCounts' => $decisionCounts,
+            'statusCounts' => $statusCounts,
+            'monthLabels' => $monthLabels,
+            'recrutementsByMonth' => $recrutementsByMonth,
+            'contratsByMonth' => $contratsByMonth,
+            'acceptanceRate' => $acceptanceRate,
+        ];
+    }
+
+    /**
+     * @return array{0: array<int, string>, 1: array<int, string>}
+     */
+    private function buildMonthWindow(): array
+    {
+        $monthLabels = [];
+        $monthKeys = [];
+        $cursor = new \DateTimeImmutable('first day of -5 month');
+
+        for ($i = 0; $i < 6; ++$i) {
+            $monthLabels[] = $cursor->format('M Y');
+            $monthKeys[] = $cursor->format('Y-m');
+            $cursor = $cursor->modify('+1 month');
+        }
+
+        return [$monthLabels, $monthKeys];
+    }
+
+    /**
+     * @param array<int, Recrutement> $recrutements
+     * @return array<string, int>
+     */
+    private function countDecisionOutcomes(array $recrutements): array
+    {
         $decisionCounts = [
             'Accepté' => 0,
             'Refusé' => 0,
@@ -171,6 +316,15 @@ class RecrutementController extends AbstractController
             }
         }
 
+        return $decisionCounts;
+    }
+
+    /**
+     * @param array<int, ContratEmbauche> $contrats
+     * @return array<string, int>
+     */
+    private function countContractStatuses(array $contrats): array
+    {
         $statusCounts = [
             'Actif' => 0,
             'En attente' => 0,
@@ -191,16 +345,18 @@ class RecrutementController extends AbstractController
             }
         }
 
-        $monthLabels = [];
-        $monthKeys = [];
-        $cursor = new \DateTimeImmutable('first day of -5 month');
-        for ($i = 0; $i < 6; ++$i) {
-            $monthLabels[] = $cursor->format('M Y');
-            $monthKeys[] = $cursor->format('Y-m');
-            $cursor = $cursor->modify('+1 month');
-        }
+        return $statusCounts;
+    }
 
+    /**
+     * @param array<int, Recrutement> $recrutements
+     * @param array<int, string> $monthKeys
+     * @return array<string, int>
+     */
+    private function countRecrutementsByMonth(array $recrutements, array $monthKeys): array
+    {
         $recrutementsByMonth = array_fill_keys($monthKeys, 0);
+
         foreach ($recrutements as $recrutement) {
             $date = $recrutement->getDateDecision();
             if ($date !== null) {
@@ -211,35 +367,9 @@ class RecrutementController extends AbstractController
             }
         }
 
-        $contratsByMonth = array_fill_keys($monthKeys, 0);
-        foreach ($contrats as $contrat) {
-            $date = $contrat->getDateDebut();
-            if ($date !== null) {
-                $key = $date->format('Y-m');
-                if (array_key_exists($key, $contratsByMonth)) {
-                    ++$contratsByMonth[$key];
-                }
-            }
-        }
-
-        $accepted = $decisionCounts['Accepté'];
-        $acceptanceRate = count($recrutements) > 0 ? round(($accepted * 100) / count($recrutements), 1) : 0;
-
-        return $this->render('recrutement/statistique.html.twig', [
-            'kpis' => [
-                'totalRecrutements' => count($recrutements),
-                'totalContrats' => count($contrats),
-                'acceptanceRate' => $acceptanceRate,
-            ],
-            'decisionLabels' => array_keys($decisionCounts),
-            'decisionValues' => array_values($decisionCounts),
-            'statusLabels' => array_keys($statusCounts),
-            'statusValues' => array_values($statusCounts),
-            'monthLabels' => $monthLabels,
-            'recrutementsSeries' => array_values($recrutementsByMonth),
-            'contratsSeries' => array_values($contratsByMonth),
-        ]);
+        return $recrutementsByMonth;
     }
+
 
     #[Route('/admin/recrutements/new', name: 'recrutement_new')]
     public function new(Request $request, ManagerRegistry $doctrine, RecrutementNotificationService $notifier, GoogleCalendarService $calendar): Response
@@ -366,18 +496,20 @@ class RecrutementController extends AbstractController
         return $this->json($payload);
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function buildUtilisateurChoices(ManagerRegistry $doctrine): array
     {
-        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
-        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
-        /** @var \Doctrine\ORM\EntityRepository $entretienRepo */
+        /** @var EntityRepository<Entretien> $entretienRepo */
         $entretienRepo = $doctrine->getRepository(Entretien::class);
-        /** @var \Doctrine\ORM\EntityRepository $userRepo */
+        /** @var EntityRepository<User> $userRepo */
         $userRepo = $doctrine->getRepository(User::class);
 
         $entretiens = $entretienRepo->createQueryBuilder('e')
             ->select('DISTINCT e.idUtilisateur AS userId')
             ->andWhere('e.idUtilisateur IS NOT NULL')
+            ->setMaxResults(500)
             ->getQuery()
             ->getArrayResult();
 
@@ -391,6 +523,7 @@ class RecrutementController extends AbstractController
             ->setParameter('ids', $userIds)
             ->orderBy('u.nom', 'ASC')
             ->addOrderBy('u.prenom', 'ASC')
+            ->setMaxResults(500)
             ->getQuery()
             ->getResult();
 
@@ -404,15 +537,20 @@ class RecrutementController extends AbstractController
         return $choices;
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function buildEntretienChoices(ManagerRegistry $doctrine, ?int $userId = null): array
     {
+        /** @var EntityRepository<Entretien> $entretienRepo */
         $entretienRepo = $doctrine->getRepository(Entretien::class);
 
         $queryBuilder = $entretienRepo->createQueryBuilder('e')
             ->andWhere('LOWER(e.statutEntretien) IN (:statuts)')
             ->setParameter('statuts', ['termine', 'terminé'])
             ->orderBy('e.dateEntretien', 'DESC')
-            ->addOrderBy('e.heureEntretien', 'DESC');
+            ->addOrderBy('e.heureEntretien', 'DESC')
+            ->setMaxResults(500);
 
         if ($userId !== null) {
             $queryBuilder
@@ -443,7 +581,7 @@ class RecrutementController extends AbstractController
         return $recrutement->getIdUtilisateur();
     }
 
-    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Recrutement $recrutement, \Doctrine\Persistence\ObjectManager $entityManager): void
+    private function syncCalendarOnEdit(GoogleCalendarService $calendar, Recrutement $recrutement, ObjectManager $entityManager): void
     {
         if (!$calendar->isConfigured()) {
             return;

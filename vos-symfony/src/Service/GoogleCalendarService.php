@@ -9,7 +9,6 @@ use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
 use Google\Service\Calendar\EventDateTime;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class GoogleCalendarService
 {
@@ -19,8 +18,8 @@ class GoogleCalendarService
     private string $calendarId;
 
     public function __construct(
-        #[Autowire(env: 'GOOGLE_CALENDAR_ID')] string $calendarId,
-        #[Autowire(env: 'GOOGLE_SERVICE_ACCOUNT_B64')] string $serviceAccountB64 = '',
+        string $calendarId,
+        string $serviceAccountB64 = '',
     ) {
         $this->calendarId = $calendarId;
 
