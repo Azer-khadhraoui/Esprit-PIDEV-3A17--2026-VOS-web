@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use App\Repository\AnalyseCvRepository;
 use App\Entity\AnalyseCv;
+use App\Entity\Candidature;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\QueryBuilder;
@@ -84,7 +85,13 @@ class AnalyseCvRepositoryTest extends TestCase
     public function testAnalysisProperties(): void
     {
         $analysis = new AnalyseCv();
-        $analysis->setIdCandidature(5);
+        $candidature = new Candidature();
+        $reflectionClass = new \ReflectionClass($candidature);
+        $property = $reflectionClass->getProperty('id_candidature');
+        $property->setAccessible(true);
+        $property->setValue($candidature, 5);
+        
+        $analysis->setCandidature($candidature);
         $analysis->setScoreCv(92);
 
         $this->assertEquals(5, $analysis->getIdCandidature());
@@ -113,7 +120,13 @@ class AnalyseCvRepositoryTest extends TestCase
     public function testCreateNewAnalysis(): void
     {
         $analysis = new AnalyseCv();
-        $analysis->setIdCandidature(10);
+        $candidature = new Candidature();
+        $reflectionClass = new \ReflectionClass($candidature);
+        $property = $reflectionClass->getProperty('id_candidature');
+        $property->setAccessible(true);
+        $property->setValue($candidature, 10);
+        
+        $analysis->setCandidature($candidature);
         $analysis->setScoreCv(78);
         $analysis->setCompetencesDetectees(['PHP' => 85, 'Symfony' => 80]);
         $analysis->setPointsForts(['Bon code', 'Expérience']);

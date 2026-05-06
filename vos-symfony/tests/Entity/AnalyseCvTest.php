@@ -21,7 +21,7 @@ class AnalyseCvTest extends TestCase
      */
     public function testConstructorSetsCurrentDate(): void
     {
-        $now = new DateTime();
+        $now = new \DateTimeImmutable();
         $analyseCv = new AnalyseCv();
         
         $this->assertNotNull($analyseCv->getDateAnalyse());
@@ -33,7 +33,13 @@ class AnalyseCvTest extends TestCase
      */
     public function testSetAndGetIdCandidature(): void
     {
-        $this->analyseCv->setIdCandidature(42);
+        $candidature = new Candidature();
+        $reflectionClass = new \ReflectionClass($candidature);
+        $property = $reflectionClass->getProperty('id_candidature');
+        $property->setAccessible(true);
+        $property->setValue($candidature, 42);
+        
+        $this->analyseCv->setCandidature($candidature);
         $this->assertEquals(42, $this->analyseCv->getIdCandidature());
     }
 
@@ -154,7 +160,7 @@ class AnalyseCvTest extends TestCase
      */
     public function testSetAndGetDateAnalyse(): void
     {
-        $date = new DateTime('2025-02-15 10:30:00');
+        $date = new \DateTimeImmutable('2025-02-15 10:30:00');
         $this->analyseCv->setDateAnalyse($date);
         $this->assertEquals($date, $this->analyseCv->getDateAnalyse());
     }
@@ -172,14 +178,20 @@ class AnalyseCvTest extends TestCase
      */
     public function testCompleteAnalysisInitialization(): void
     {
-        $date = new DateTime('2025-02-20');
+        $date = new \DateTimeImmutable('2025-02-20');
         
         $competences = ['PHP' => 90, 'Symfony' => 85];
         $pointsForts = ['Expérience confirmée', 'Bon communicateur'];
         $pointsFaibles = ['Pas de DevOps'];
         $suggestions = ['Apprendre Docker'];
         
-        $this->analyseCv->setIdCandidature(10);
+        $candidature = new Candidature();
+        $reflectionClass = new \ReflectionClass($candidature);
+        $property = $reflectionClass->getProperty('id_candidature');
+        $property->setAccessible(true);
+        $property->setValue($candidature, 10);
+        
+        $this->analyseCv->setCandidature($candidature);
         $this->analyseCv->setCompetencesDetectees($competences);
         $this->analyseCv->setPointsForts($pointsForts);
         $this->analyseCv->setPointsFaibles($pointsFaibles);

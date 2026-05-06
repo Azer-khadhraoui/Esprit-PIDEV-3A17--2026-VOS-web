@@ -53,7 +53,7 @@ class Entretien
     /**
      * @var Collection<int, EvaluationEntretien>
      */
-    #[ORM\OneToMany(targetEntity: EvaluationEntretien::class, mappedBy: 'entretien')]
+    #[ORM\OneToMany(targetEntity: EvaluationEntretien::class, mappedBy: 'entretien', cascade: ['remove'], orphanRemoval: true)]
     private Collection $evaluationEntretiens;
 
     public function __construct()
