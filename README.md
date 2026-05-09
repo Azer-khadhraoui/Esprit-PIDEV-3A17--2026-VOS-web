@@ -1,11 +1,34 @@
-# VOS - Votre opportunité simplifiée
+# VOS - Votre opportunite simplifiee
 
 <p align="center">
   <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="190" style="vertical-align: middle; margin-right: 18px;">
   <img src="vos-symfony/public/images/VOSslogan_1770834966459.png" alt="VOS slogan" width="420" style="vertical-align: middle;">
 </p>
 
+<p align="center">
+  <img alt="Symfony" src="https://img.shields.io/badge/Symfony-6.4-111111?style=for-the-badge&logo=symfony">
+  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.2-777BB4?style=for-the-badge&logo=php&logoColor=white">
+  <img alt="Doctrine" src="https://img.shields.io/badge/Doctrine-ORM%20%2B%20Migrations-DB4D37?style=for-the-badge">
+  <img alt="Twig" src="https://img.shields.io/badge/Twig-Templates-84cc16?style=for-the-badge">
+</p>
+
+<p align="center">
+  <img alt="RH" src="https://img.shields.io/badge/RH-Recrutement-0F172A?style=flat-square">
+  <img alt="IA" src="https://img.shields.io/badge/IA-Groq%20%2B%20LanguageTool-1D4ED8?style=flat-square">
+  <img alt="Calendar" src="https://img.shields.io/badge/Sync-Google%20Calendar-EA4335?style=flat-square">
+  <img alt="Auth" src="https://img.shields.io/badge/Auth-Face%20ID-059669?style=flat-square">
+</p>
+
 VOS est une application Symfony de gestion RH et recrutement. Elle centralise les candidatures, les entretiens, les recrutements, les contrats, la generation de PDF, les notifications par email et plusieurs fonctions d'assistance par IA.
+
+## Apercu rapide
+
+| Module | Description |
+| --- | --- |
+| Candidatures | Depot, suivi, modification, export PDF et analyse |
+| Entretiens | Planification, QR code public, evaluation et suivi |
+| Recrutement | Decision finale, notifications et synchronisation agenda |
+| Contrats | Gestion RH, rappels et suivi de fin de contrat |
 
 ## Fonctionnalites principales
 
@@ -73,14 +96,16 @@ php bin/console doctrine:migrations:migrate
 ### 4. Lancer le serveur local
 
 ```bash
-symfony serve --dir=vos-symfony --no-tls
+cd vos-symfony
+php -S 127.0.0.1:8000 -t public
 ```
 
-Pour un acces reseau local depuis un autre appareil, vous pouvez utiliser :
+Si vous avez le Symfony CLI installe, vous pouvez aussi utiliser :
 
 ```bash
 symfony serve --dir=vos-symfony --listen-ip=0.0.0.0 --no-tls
 ```
+
 
 ## Variables externes et APIs
 
@@ -110,21 +135,25 @@ La connexion Face ID fonctionne cote navigateur avec JavaScript :
 4. Si la similarite est suffisante, le formulaire de connexion est valide.
 
 
-
 ## Contributeurs
 
-Les identites Git ci-dessous apparaissent dans l'historique du projet. Certaines personnes utilisent plusieurs alias de commit, donc la liste conserve les noms tels qu'ils sont visibles dans Git.
+Les identites ci-dessous viennent de `git shortlog -sne --all`, verifiees sur le depot local. Certaines personnes ont plusieurs alias Git, donc les lignes sont conservees telles qu'elles apparaissent dans l'historique.
 
-| Contributeur Git | Commits | Branche principale observée |
+| Contributeur Git | Commits | Branche principale observee |
 | --- | ---: | --- |
-| Azer-khadhraoui <azerronaldo2004@gmail.com> | 31 |  `Gestion-Utilisateur` |
-| MAMIYASSINE <mamiy463@gmail.com> | 31 | `Gestion-Candidat` |
-| yessine merhbene <mohamedyessin.merhbene@esprit.tn> | 25 | `Gestion-Entretien`, `GESTION-ENTRETIEN-INTEG` |
-| omar belhaj <obelhaj444@gmail.com> | 13 | `Gestion-Offre` |
-| TanSuperNova <faresmanai05@gmail.com> | 6 | `Gestion-Recrutement` |
+| Azer-khadhraoui <azerronaldo2004@gmail.com> | 58 | `Gestion-Utilisateur` |
+| MAMIYASSINE <mamiy463@gmail.com> | 32 | `Gestion-Candidat` |
+| yessine merhbene <mohamedyessin.merhbene@esprit.tn> | 27 | `Gestion-Entretien`, `GESTION-ENTRETIEN-INTEG` |
+| omar belhaj <133699793+wrldomar@users.noreply.github.com> | 16 | `Gestion-Offre` |
+| Fares manai <faresmanai05@gmail.com> | 10 | `Gestion-Recrutement` |
 
 
+## Acces rapide
 
+- Application Symfony : `vos-symfony/`
+- Serveur local : `http://127.0.0.1:8000`
+- Images projet : `vos-symfony/public/images/`
+- Migrations Doctrine : `vos-symfony/migrations/`
 
 <p align="center">
   <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="100">
