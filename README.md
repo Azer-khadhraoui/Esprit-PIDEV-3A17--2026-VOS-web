@@ -144,16 +144,10 @@ Les identites ci-dessous viennent de `git shortlog -sne --all`, verifiees sur le
 | Azer-khadhraoui <azerronaldo2004@gmail.com> | 58 | `Gestion-Utilisateur` |
 | MAMIYASSINE <mamiy463@gmail.com> | 32 | `Gestion-Candidat` |
 | yessine merhbene <mohamedyessin.merhbene@esprit.tn> | 27 | `Gestion-Entretien`, `GESTION-ENTRETIEN-INTEG` |
-| omar belhaj <133699793+wrldomar@users.noreply.github.com> | 16 | `Gestion-Offre` |
+| omar belhaj <obelhaj444@gmail.com> | 16 | `Gestion-Offre` |
 | Fares manai <faresmanai05@gmail.com> | 10 | `Gestion-Recrutement` |
 
 
-## Acces rapide
-
-- Application Symfony : `vos-symfony/`
-- Serveur local : `http://127.0.0.1:8000`
-- Images projet : `vos-symfony/public/images/`
-- Migrations Doctrine : `vos-symfony/migrations/`
 
 <p align="center">
   <img src="vos-symfony/public/images/logo.png" alt="VOS logo" width="100">
