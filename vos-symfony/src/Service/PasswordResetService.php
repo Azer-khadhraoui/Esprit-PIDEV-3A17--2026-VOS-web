@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
@@ -15,6 +16,7 @@ class PasswordResetService
         private readonly UserRepository $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly MailerInterface $mailer,
+        private readonly EntityManagerInterface $entityManager,
         private readonly string $mailerFrom,
         private readonly string $appName,
     ) {
@@ -32,7 +34,7 @@ class PasswordResetService
             ->setResetTokenHash(hash('sha256', $resetCode))
             ->setResetExpiresAt(new \DateTimeImmutable('+15 minutes'));
 
-        $this->userRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         $fromAddress = filter_var($this->mailerFrom, FILTER_VALIDATE_EMAIL) ? $this->mailerFrom : 'no-reply@vos.local';
         $appName = trim($this->appName) !== '' ? $this->appName : 'VOS';
@@ -71,17 +73,13 @@ class PasswordResetService
             return false;
         }
 
-        if (!$user) {
-            return false;
-        }
-
         $hashedPassword = $this->passwordHasher->hashPassword($user, $newPassword);
         $user->setMotDePasse($hashedPassword);
         $user
             ->setResetTokenHash(null)
             ->setResetExpiresAt(null);
 
-        $this->userRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return true;
     }

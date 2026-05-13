@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Ignore;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -44,6 +45,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $signatureUrl = null;
 
     #[ORM\Column(name: 'reset_token_hash', type: 'string', length: 64, nullable: true)]
+    #[Ignore]
     private ?string $resetTokenHash = null;
 
     #[ORM\Column(name: 'reset_expires_at', type: 'datetime_immutable', nullable: true)]
@@ -56,6 +58,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private bool $faceAuthEnabled = false;
 
     private ?string $plainPassword = null;
+
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword(?string $plainPassword): static
+    {
+        $this->plainPassword = $plainPassword;
+
+        return $this;
+    }
 
     public function getId(): ?int
     {
@@ -144,12 +158,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    #[Ignore]
     public function getResetTokenHash(): ?string
     {
         return $this->resetTokenHash;
     }
 
-    public function setResetTokenHash(?string $resetTokenHash): static
+    public function setResetTokenHash(#[\SensitiveParameter] ?string $resetTokenHash): static
     {
         $this->resetTokenHash = $resetTokenHash;
 

@@ -67,7 +67,7 @@ class AnalyseCvController extends AbstractController
                 'message' => 'Analyse du CV complétée',
                 'analyse_id' => $analyseCv->getIdAnalyse(),
                 'score' => $analyseCv->getScoreCv(),
-                'date_analyse' => $analyseCv->getDateAnalyse()?->format('Y-m-d H:i:s')
+                'date_analyse' => $analyseCv->getDateAnalyse()->format('Y-m-d H:i:s')
             ]);
 
         } catch (\Exception $e) {
@@ -157,7 +157,7 @@ class AnalyseCvController extends AbstractController
                     'points_faibles' => $analyseCv->getPointsFaibles() ?? [],
                     'score_cv' => $analyseCv->getScoreCv(),
                     'suggestions' => $analyseCv->getSuggestions() ?? [],
-                    'date_analyse' => $analyseCv->getDateAnalyse()?->format('Y-m-d H:i:s')
+                    'date_analyse' => $analyseCv->getDateAnalyse()->format('Y-m-d H:i:s')
                 ]
             ]);
 
@@ -234,6 +234,9 @@ class AnalyseCvController extends AbstractController
             // Supprimer les caractères non-imprimables et extraire du texte
             $text = '';
             $parts = preg_split('/\x00/', $content);
+            if (!is_array($parts)) {
+                return 'Erreur lors de l\'extraction du texte';
+            }
 
             foreach ($parts as $part) {
                 // Extraire les chaînes de caractères imprimables

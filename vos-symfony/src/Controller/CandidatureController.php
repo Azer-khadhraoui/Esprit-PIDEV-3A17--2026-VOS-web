@@ -14,6 +14,7 @@ use Doctrine\DBAL\Connection;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -40,6 +41,9 @@ public function index(
         return $this->redirectToRoute('app_signin');
     }
 
+    $page = max(1, (int) $request->query->get('page', 1));
+    $limit = 12;
+
     // ── Filtres de recherche avancée ──────────────────────────────
     $filtreStatut   = trim((string) $request->query->get('statut', ''));
     $filtreNiveau   = trim((string) $request->query->get('niveau', ''));
@@ -52,6 +56,8 @@ public function index(
 
     $qb = $entityManager->getRepository(Candidature::class)
         ->createQueryBuilder('c')
+        ->select('c')
+        ->distinct()
         ->where('c.id_utilisateur = :uid')
         ->setParameter('uid', $idUtilisateur)
         ->orderBy('c.date_candidature', 'DESC');
@@ -107,7 +113,14 @@ public function index(
         )->setParameter('mot_cle', '%' . mb_strtolower($filtreMotCle) . '%');
     }
 
-    $candidatures = $qb->getQuery()->getResult();
+    $qb
+        ->setFirstResult(($page - 1) * $limit)
+        ->setMaxResults($limit);
+
+    $paginator = new Paginator($qb->getQuery(), true);
+    $totalCandidatures = count($paginator);
+    $totalPages = max(1, (int) ceil($totalCandidatures / $limit));
+    $candidatures = iterator_to_array($paginator->getIterator());
     $offreTitles  = $this->getOffreTitles($entityManager, $candidatures);
 
     return $this->render('client/candidature/index.html.twig', [
@@ -122,6 +135,9 @@ public function index(
         'filtreDateDu'  => $filtreDateDu,
         'filtreDateAu'  => $filtreDateAu,
         'filtreMotCle'  => $filtreMotCle,
+        'currentPage'   => $page,
+        'totalPages'    => $totalPages,
+        'totalCandidatures' => $totalCandidatures,
     ]);
 }
 
@@ -181,9 +197,9 @@ public function index(
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user) {
                         // Email au candidat
-                        $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre());
+                        $emailService->sendCandidatureCreatedEmail($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                         // Notification aux admins
-                        $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre());
+                        $emailService->notifyAdminsNewCandidature($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                     }
                     $cvPath = $candidature->getCv();
                     if ($cvPath) {
@@ -263,9 +279,9 @@ public function index(
                     $user = $entityManager->getRepository(User::class)->find($idUtilisateur);
                     if ($user && $offre) {
                         // Email au candidat
-                        $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre());
+                        $emailService->sendCandidatureUpdatedEmail($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                         // Notification aux admins
-                        $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre());
+                        $emailService->notifyAdminsUpdatedCandidature($candidature, $user, $offre->getTitre() ?? 'Offre sans titre');
                     }
                     if ($cvFile instanceof UploadedFile) { // seulement si nouveau CV uploadé
                         $cvPath = $candidature->getCv();
@@ -356,7 +372,7 @@ public function index(
             return $this->redirectToRoute('app_signin');
         }
 
-        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $candidature->getIdCandidature(), (string) $request->request->get('_token'))) {
             // Récupérer les informations avant suppression
             $user = $em->getRepository(User::class)->find($idUtilisateur);
             $offre = $em->getRepository(OffreEmploi::class)->find($candidature->getIdOffre());
@@ -404,7 +420,8 @@ public function index(
 
         $candidatures = $repo->findBy(
             ['id_utilisateur' => $idUtilisateur],
-            ['date_candidature' => 'DESC']
+            ['date_candidature' => 'DESC'],
+            500
         );
 
         $offreTitles = $this->getOffreTitles($entityManager, $candidatures);
@@ -447,6 +464,10 @@ public function index(
     }
 
     // ── Helper methods ────────────────────────────────────────────────
+    /**
+     * @param Candidature[] $candidatures
+     * @return array<int, string>
+     */
     private function getOffreTitles(EntityManagerInterface $entityManager, array $candidatures): array
     {
         $offreIds = array_values(array_unique(array_filter(array_map(
@@ -469,27 +490,9 @@ public function index(
         return $titles;
     }
 
-    private function normalizeText(mixed $value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value === '' ? null : $value;
-    }
-
-    private function userExists(EntityManagerInterface $entityManager, int $userId): bool
-    {
-        $result = $entityManager->getConnection()->executeQuery(
-            'SELECT id_utilisateur FROM utilisateur WHERE id_utilisateur = :id LIMIT 1',
-            ['id' => $userId]
-        )->fetchOne();
-
-        return $result !== false;
-    }
-
+    /**
+     * @param UploadedFile $file
+     */
     private function uploadFile($file, SluggerInterface $slugger, string $folder): string
     {
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);

@@ -103,8 +103,8 @@
                     {% for candidature in candidatures %}
                         <tr>
                             <td>#{{ candidature.idCandidature }}</td>
-                            <td>{% if users[candidature.idUtilisateur] %}{{ users[candidature.idUtilisateur].nom }} {{ users[candidature.idUtilisateur].prenom }}{% else %}N/A{% endif %}</td>
-                            <td>{% if offres[candidature.idOffre] %}{{ offres[candidature.idOffre].titre }}{% else %}N/A{% endif %}</td>
+                            <td>{% set user = users[candidature.idUtilisateur] ?? null %}{% if user %}{{ user.nom }} {{ user.prenom }}{% else %}N/A{% endif %}</td>
+                            <td>{% set offre = offres[candidature.idOffre] ?? null %}{% if offre %}{{ offre.titre }}{% else %}N/A{% endif %}</td>
                             <td>{{ candidature.dateCandidature|date('d/m/Y') }}</td>
                             <td><span class="role-chip">{{ candidature.statut }}</span></td>
                             <td>

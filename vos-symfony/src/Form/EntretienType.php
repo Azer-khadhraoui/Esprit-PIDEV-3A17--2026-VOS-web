@@ -21,6 +21,9 @@ use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
+/**
+ * @extends AbstractType<Entretien>
+ */
 class EntretienType extends AbstractType
 {
     public function __construct(
@@ -31,13 +34,53 @@ class EntretienType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $candidatureChoices = [];
-        foreach ($this->candidatureRepository->createQueryBuilder('c')->orderBy('c.id_candidature', 'DESC')->getQuery()->getResult() as $candidature) {
+        $candidatures = $this->candidatureRepository->createQueryBuilder('c')
+            ->orderBy('c.id_candidature', 'DESC')
+            ->setMaxResults(300)
+            ->getQuery()
+            ->getResult();
+
+        $candidatureUserIds = [];
+        foreach ($candidatures as $candidature) {
             if (!$candidature instanceof Candidature) {
                 continue;
             }
 
-            $label = sprintf('#%d - %s', $candidature->getIdCandidature(), $candidature->getStatut() ?? 'Sans statut');
+            $userId = $candidature->getIdUtilisateur();
+            if ($userId !== null) {
+                $candidatureUserIds[$userId] = true;
+            }
+        }
+
+        $usersById = [];
+        if ($candidatureUserIds !== []) {
+            foreach ($this->userRepository->findBy(['id' => array_keys($candidatureUserIds)]) as $user) {
+                if (!$user instanceof User || $user->getId() === null) {
+                    continue;
+                }
+
+                $usersById[$user->getId()] = $user;
+            }
+        }
+
+        $candidatureChoices = [];
+        foreach ($candidatures as $candidature) {
+            if (!$candidature instanceof Candidature) {
+                continue;
+            }
+
+            $user = $usersById[$candidature->getIdUtilisateur() ?? 0] ?? null;
+            $fullName = trim(sprintf(
+                '%s %s',
+                $user?->getNom() ?? '',
+                $user?->getPrenom() ?? '',
+            ));
+
+            if ($fullName === '') {
+                $fullName = sprintf('Candidature #%d', $candidature->getIdCandidature());
+            }
+
+            $label = $fullName;
             $candidatureChoices[$label] = $candidature->getIdCandidature();
         }
 
@@ -46,6 +89,7 @@ class EntretienType extends AbstractType
             ->andWhere('u.role IN (:roles)')
             ->setParameter('roles', ['ADMIN_RH', 'ADMIN_TECHNIQUE'])
             ->orderBy('u.prenom', 'ASC')
+            ->setMaxResults(200)
             ->getQuery()
             ->getResult() as $user) {
             if (!$user instanceof User) {

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Entretien;
+use App\Entity\EvaluationEntretien;
 use App\Entity\OffreEmploi;
 use App\Exception\AnthropicApiException;
 use App\Form\EntretienType;
@@ -44,14 +45,19 @@ class EntretienController extends AbstractController
         $statut = (string) $request->query->get('statut', '');
         $sortBy = (string) $request->query->get('sortBy', 'e.dateEntretien');
         $sortDir = (string) $request->query->get('sortDir', 'DESC');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = min(200, max(10, (int) $request->query->get('perPage', 50)));
+        $offset = ($page - 1) * $perPage;
 
         return $this->render('gestion_entretien/index.html.twig', [
-            'entretiens' => $repo->findWithFilters($search, $type, $statut, $sortBy, $sortDir),
+            'entretiens' => $repo->findWithFilters($search, $type, $statut, $sortBy, $sortDir, $perPage, $offset),
             'search' => $search,
             'type' => $type,
             'statut' => $statut,
             'sortBy' => $sortBy,
             'sortDir' => $sortDir,
+            'page' => $page,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -169,7 +175,7 @@ class EntretienController extends AbstractController
         CandidatureRepository $candidatureRepo,
         EntityManagerInterface $em,
         SessionInterface $session,
-        #[Autowire(env: 'GROQ_API_KEY')] string $groqApiKey,
+        #[Autowire('%app.groq_api_key%')] string $groqApiKey,
     ): JsonResponse {
         if (!$session->get('admin_user_id')) {
             return new JsonResponse(['error' => self::MSG_NON_AUTORISE], 403);
@@ -193,7 +199,9 @@ class EntretienController extends AbstractController
             throw new AnthropicApiException('Cle API Groq non configuree dans .env (GROQ_API_KEY).', 500);
         }
 
-        $payload = json_decode($request->getContent(), true);
+        /** @var string $content */
+        $content = $request->getContent();
+        $payload = json_decode($content, true) ?? [];
         $candidatureId = (int) ($payload['candidatureId'] ?? 0);
         $typeEntretien = trim((string) ($payload['typeEntretien'] ?? ''));
 
@@ -245,6 +253,12 @@ class EntretienController extends AbstractController
     private function callGroqApi(string $apiKey, string $prompt): string
     {
         $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        $postFields = json_encode([
+            'model' => 'llama-3.3-70b-versatile',
+            'max_tokens' => 1500,
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+        ], JSON_THROW_ON_ERROR);
+
         curl_setopt_array($ch, [
             \CURLOPT_RETURNTRANSFER => true,
             \CURLOPT_POST => true,
@@ -253,11 +267,7 @@ class EntretienController extends AbstractController
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $apiKey,
             ],
-            \CURLOPT_POSTFIELDS => json_encode([
-                'model' => 'llama-3.3-70b-versatile',
-                'max_tokens' => 1500,
-                'messages' => [['role' => 'user', 'content' => $prompt]],
-            ]),
+            \CURLOPT_POSTFIELDS => $postFields,
         ]);
 
         $raw = curl_exec($ch);
@@ -266,6 +276,10 @@ class EntretienController extends AbstractController
 
         if (false === $raw || '' !== $curlError) {
             throw new AnthropicApiException('Erreur reseau : ' . $curlError, 502);
+        }
+
+        if (!is_string($raw)) {
+            throw new AnthropicApiException('Reponse API invalide.', 502);
         }
 
         $apiResponse = json_decode($raw, true);
@@ -294,8 +308,11 @@ class EntretienController extends AbstractController
         $statut = (string) $request->query->get('statut', '');
         $sortBy = (string) $request->query->get('sortBy', 'e.dateEntretien');
         $sortDir = (string) $request->query->get('sortDir', 'DESC');
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = min(200, max(10, (int) $request->query->get('perPage', 100)));
+        $offset = ($page - 1) * $perPage;
 
-        $entretiens = $repo->findWithFilters($search, $type, $statut, $sortBy, $sortDir);
+        $entretiens = $repo->findWithFilters($search, $type, $statut, $sortBy, $sortDir, $perPage, $offset);
 
         $data = array_map(function (Entretien $e) use ($csrf): array {
             $entretienId = (int) $e->getId();
@@ -316,7 +333,12 @@ class EntretienController extends AbstractController
             ];
         }, $entretiens);
 
-        return new JsonResponse(['entretiens' => $data, 'total' => count($data)]);
+        return new JsonResponse([
+            'entretiens' => $data,
+            'total' => count($data),
+            'page' => $page,
+            'perPage' => $perPage,
+        ]);
     }
 
     #[Route('/{id}/pdf', name: 'gestion_entretien_pdf', methods: ['GET'])]
@@ -331,8 +353,9 @@ class EntretienController extends AbstractController
         $publicInfoUrl = $this->resolvePublicEntretienUrl($request, $entretien);
 
         $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/logo.png';
-        $logoBase64 = is_file($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+        $logoContents = is_file($logoPath) ? file_get_contents($logoPath) : false;
+        $logoBase64 = false !== $logoContents
+            ? 'data:image/png;base64,' . base64_encode($logoContents)
             : null;
 
         $html = $twig->render('pdf/entretien_report.html.twig', [
@@ -364,6 +387,7 @@ class EntretienController extends AbstractController
     #[Route('/public/{id}', name: 'gestion_entretien_public_view', methods: ['GET'])]
     public function publicView(int $id, EntretienRepository $entretienRepository): Response
     {
+        /** @var Entretien|null $entretien */
         $entretien = $entretienRepository->find($id);
         if (null === $entretien) {
             throw $this->createNotFoundException('Entretien introuvable');
@@ -371,8 +395,9 @@ class EntretienController extends AbstractController
 
         $evaluation = $entretien->getEvaluationEntretiens()->first() ?: null;
         $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/logo.png';
-        $logoBase64 = is_file($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+        $logoContents = is_file($logoPath) ? file_get_contents($logoPath) : false;
+        $logoBase64 = false !== $logoContents
+            ? 'data:image/png;base64,' . base64_encode($logoContents)
             : null;
 
         return $this->render('gestion_entretien/public_view.html.twig', [
@@ -504,6 +529,9 @@ class EntretienController extends AbstractController
         return null;
     }
 
+    /**
+     * @return array{0: ?string, 1: ?string, 2: ?string, 3: string}
+     */
     private function resolveStatsFilters(Request $request): array
     {
         $dateDebut = (string) $request->query->get('dateDebut', '');
@@ -532,6 +560,23 @@ class EntretienController extends AbstractController
         return [$dateDebut ?: null, $dateFin ?: null, $typeFilter ?: null, $periode];
     }
 
+    /**
+     * @param array<int, Entretien> $entretiens
+     * @return array{
+     *     total: int,
+     *     termines: int,
+     *     planifies: int,
+     *     autres: int,
+     *     nbRH: int,
+     *     nbTechnique: int,
+     *     parStatutLabels: list<string>,
+     *     parStatutData: list<int>,
+     *     parTypeLabels: list<string>,
+     *     parTypeData: list<int>,
+     *     parMoisLabels: list<string>,
+     *     parMoisData: list<int>
+     * }
+     */
     private function calculateEntretienStats(array $entretiens): array
     {
         $total = count($entretiens);
@@ -590,6 +635,19 @@ class EntretienController extends AbstractController
         ];
     }
 
+    /**
+     * @param array<int, EvaluationEntretien> $evaluations
+     * @return array{
+     *     totalEvals: int,
+     *     nbAcceptes: int,
+     *     nbRefuses: int,
+     *     nbEnAttente: int,
+     *     scoreMoyen: float|int,
+     *     noteMoyenne: float|int,
+     *     evalStats: list<float>,
+     *     tauxReussite: float|int
+     * }
+     */
     private function calculateEvaluationStats(array $evaluations): array
     {
         $totalEvals = count($evaluations);
