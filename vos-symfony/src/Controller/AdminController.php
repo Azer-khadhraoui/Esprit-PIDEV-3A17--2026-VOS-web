@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Nucleos\DompdfBundle\Wrapper\DompdfWrapperInterface;
 
@@ -605,8 +606,15 @@ class AdminController extends AbstractController
         ]);
 
         $qrCode = new QrCode($qrData);
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
+        if (extension_loaded('gd')) {
+            $writer = new PngWriter();
+            $result = $writer->write($qrCode);
+            $qrCodeMime = 'image/png';
+        } else {
+            $writer = new SvgWriter();
+            $result = $writer->write($qrCode);
+            $qrCodeMime = 'image/svg+xml';
+        }
         $qrCodeBase64 = base64_encode($result->getString());
         // ─────────────────────────────────────────────────────────────
         return $this->render('admin/candidature/edit.html.twig', [
@@ -615,6 +623,7 @@ class AdminController extends AbstractController
             'user' => $user,
             'offre' => $offre,
             'fieldErrors' => $fieldErrors,
+            'qrCodeMime' => $qrCodeMime,
             'qrCodeBase64' => $qrCodeBase64,  // ← nouveau
 
         ]);

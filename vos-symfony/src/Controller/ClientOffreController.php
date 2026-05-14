@@ -1067,12 +1067,12 @@ class ClientOffreController extends AbstractController
     private function getLatestCriteriaByOffer(EntityManagerInterface $entityManager): array
     {
         $rows = $entityManager->getConnection()->executeQuery(
-            'SELECT id_offre_id, id_critere, niveau_experience, niveau_etude, competences_requises, responsibilities FROM critere_offre ORDER BY id_offre_id ASC, id_critere DESC'
+            'SELECT id_offre, id_critere, niveau_experience, niveau_etude, competences_requises, responsibilities FROM critere_offre ORDER BY id_offre ASC, id_critere DESC'
         )->fetchAllAssociative();
 
         $criteriaByOffer = [];
         foreach ($rows as $row) {
-            $offreId = (int) $row['id_offre_id'];
+            $offreId = (int) $row['id_offre'];
             if (isset($criteriaByOffer[$offreId])) {
                 continue;
             }
@@ -1094,7 +1094,7 @@ class ClientOffreController extends AbstractController
     private function getLatestCriteriaForOfferId(EntityManagerInterface $entityManager, int $offerId): ?array
     {
         $row = $entityManager->getConnection()->executeQuery(
-            'SELECT niveau_experience, niveau_etude, competences_requises, responsibilities FROM critere_offre WHERE id_offre_id = :offerId ORDER BY id_critere DESC LIMIT 1',
+            'SELECT niveau_experience, niveau_etude, competences_requises, responsibilities FROM critere_offre WHERE id_offre = :offerId ORDER BY id_critere DESC LIMIT 1',
             ['offerId' => $offerId]
         )->fetchAssociative();
 

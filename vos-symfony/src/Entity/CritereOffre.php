@@ -6,7 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'critere_offre', indexes: [
-    new ORM\Index(name: 'id_offre_id', columns: ['id_offre_id'])
+    new ORM\Index(name: 'id_offre', columns: ['id_offre'])
 ])]
 class CritereOffre
 {
@@ -31,7 +31,7 @@ class CritereOffre
     private ?string $responsibilities = null;
 
     #[ORM\ManyToOne(targetEntity: OffreEmploi::class, inversedBy: 'critereOffres')]
-    #[ORM\JoinColumn(name: 'id_offre_id', referencedColumnName: 'id_offre', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'id_offre', referencedColumnName: 'id_offre', nullable: false, onDelete: 'CASCADE')]
     private ?OffreEmploi $offreEmploi = null;
 
     public function getIdCritere(): ?int

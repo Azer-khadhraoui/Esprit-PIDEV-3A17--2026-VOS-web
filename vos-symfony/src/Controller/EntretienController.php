@@ -196,7 +196,7 @@ class EntretienController extends AbstractController
         string $groqApiKey,
     ): string {
         if ('' === trim($groqApiKey)) {
-            throw new AnthropicApiException('Cle API Groq non configuree dans .env (GROQ_API_KEY).', 500);
+            return $this->buildFallbackQuestions($typeEntretien, $candidature);
         }
 
         /** @var string $content */
@@ -215,7 +215,11 @@ class EntretienController extends AbstractController
         }
 
         $prompt = $this->buildQuestionsPrompt($candidature, $typeEntretien, $em);
-        return $this->callGroqApi($groqApiKey, $prompt);
+        try {
+            return $this->callGroqApi($groqApiKey, $prompt);
+        } catch (AnthropicApiException $e) {
+            return $this->buildFallbackQuestions($typeEntretien, $candidature);
+        }
     }
 
     private function buildQuestionsPrompt(
@@ -285,7 +289,9 @@ class EntretienController extends AbstractController
         $apiResponse = json_decode($raw, true);
 
         if (isset($apiResponse['error'])) {
-            throw new AnthropicApiException($apiResponse['error']['message'] ?? 'Erreur API Groq.', 502);
+            $message = (string) ($apiResponse['error']['message'] ?? 'Erreur API Groq.');
+            $status = (int) ($apiResponse['error']['code'] ?? 502);
+            throw new AnthropicApiException($message, $status);
         }
 
         $questions = $apiResponse['choices'][0]['message']['content'] ?? null;
@@ -294,6 +300,41 @@ class EntretienController extends AbstractController
         }
 
         return $questions;
+    }
+
+    private function buildFallbackQuestions(string $typeEntretien, ?
+\App\Entity\Candidature $candidature): string
+    {
+        $typeEntretien = strtoupper(trim($typeEntretien));
+        $poste = $candidature?->getDernierPoste() ?? 'le poste visé';
+
+        $questions = $typeEntretien === 'TECHNIQUE'
+            ? [
+                sprintf('1. Pouvez-vous décrire votre expérience sur %s ?', $poste),
+                '2. Quelle est la réalisation technique dont vous êtes le plus fier ?',
+                '3. Comment diagnostiqueriez-vous un problème de performance ?',
+                '4. Comment gérez-vous les bugs urgents en production ?',
+                '5. Quel outil ou langage utilisez-vous le plus et pourquoi ?',
+                '6. Comment garantissez-vous la qualité de votre code ?',
+                '7. Comment collaborez-vous avec une équipe produit ?',
+                '8. Comment apprenez-vous rapidement une nouvelle technologie ?',
+                '9. Décrivez une difficulté technique que vous avez résolue.',
+                '10. Qu’attendez-vous d’un poste technique comme celui-ci ?'
+            ]
+            : [
+                sprintf('1. Pourquoi souhaitez-vous rejoindre un poste comme %s ?', $poste),
+                '2. Comment décririez-vous votre manière de travailler en équipe ?',
+                '3. Quelle est votre plus grande force professionnelle ?',
+                '4. Comment réagissez-vous face à une priorité changeante ?',
+                '5. Décrivez une situation où vous avez dû résoudre un conflit.',
+                '6. Comment organisez-vous vos tâches au quotidien ?',
+                '7. Qu’est-ce qui vous motive le plus dans ce rôle ?',
+                '8. Comment recevez-vous les retours ou les critiques ?',
+                '9. Donnez un exemple d’initiative que vous avez prise.',
+                '10. Pourquoi pensez-vous être un bon choix pour ce poste ?'
+            ];
+
+        return implode("\n", $questions);
     }
 
     #[Route('/search', name: 'gestion_entretien_search', methods: ['GET'])]
